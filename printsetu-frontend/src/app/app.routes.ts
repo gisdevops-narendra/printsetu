@@ -1,0 +1,97 @@
+import { Routes } from '@angular/router';
+import { authGuard } from './core/auth/auth.guard';
+
+export const routes: Routes = [
+  { path: '', pathMatch: 'full', redirectTo: 'login' },
+  {
+    path: 'login',
+    loadComponent: () => import('./auth/login/login.component').then((m) => m.LoginComponent),
+  },
+  {
+    path: 's/:shopCode',
+    loadComponent: () =>
+      import('./customer/order-flow/order-flow.component').then((m) => m.OrderFlowComponent),
+  },
+  {
+    path: 'admin',
+    canActivate: [authGuard('ADMIN')],
+    loadComponent: () =>
+      import('./layout/admin-layout/admin-layout.component').then((m) => m.AdminLayoutComponent),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./admin/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+      },
+      {
+        path: 'shops',
+        loadComponent: () => import('./admin/shops/shops.component').then((m) => m.ShopsComponent),
+      },
+      {
+        path: 'shops/:shopId/pricing',
+        loadComponent: () =>
+          import('./admin/pricing/pricing.component').then((m) => m.PricingComponent),
+      },
+      {
+        path: 'shops/:shopId/qr',
+        loadComponent: () => import('./admin/qr/qr.component').then((m) => m.QrComponent),
+      },
+      {
+        path: 'users',
+        loadComponent: () => import('./admin/users/users.component').then((m) => m.UsersComponent),
+      },
+      {
+        path: 'printers',
+        loadComponent: () =>
+          import('./admin/printers/printers.component').then((m) => m.PrintersComponent),
+      },
+      {
+        path: 'print-history',
+        loadComponent: () =>
+          import('./admin/print-history/print-history.component').then(
+            (m) => m.PrintHistoryComponent,
+          ),
+      },
+      {
+        path: 'audit-logs',
+        loadComponent: () =>
+          import('./admin/audit-logs/audit-logs.component').then((m) => m.AuditLogsComponent),
+      },
+    ],
+  },
+  {
+    path: 'shop',
+    canActivate: [authGuard('SHOPKEEPER')],
+    loadComponent: () =>
+      import('./layout/shopkeeper-layout/shopkeeper-layout.component').then(
+        (m) => m.ShopkeeperLayoutComponent,
+      ),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'queue' },
+      {
+        path: 'queue',
+        loadComponent: () =>
+          import('./shopkeeper/queue/queue.component').then((m) => m.QueueComponent),
+      },
+      {
+        path: 'history',
+        loadComponent: () =>
+          import('./shopkeeper/history/history.component').then((m) => m.HistoryComponent),
+      },
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import('./shopkeeper/profile/profile.component').then((m) => m.ProfileComponent),
+      },
+      {
+        path: 'notifications',
+        loadComponent: () =>
+          import('./shopkeeper/notifications/notifications.component').then(
+            (m) => m.NotificationsComponent,
+          ),
+      },
+    ],
+  },
+  { path: '**', redirectTo: 'login' },
+];

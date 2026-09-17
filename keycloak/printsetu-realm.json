@@ -1,0 +1,89 @@
+{
+  "realm": "printsetu",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "accessTokenLifespan": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "roles": {
+    "realm": [
+      { "name": "ADMIN", "description": "PrintSetu platform administrator" },
+      { "name": "SHOPKEEPER", "description": "Shop-level operator" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "printsetu-frontend",
+      "name": "PrintSetu Frontend",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:4200/*"],
+      "webOrigins": ["http://localhost:4200"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    },
+    {
+      "clientId": "printsetu-backend",
+      "name": "PrintSetu Backend Resource Server",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": true,
+      "protocol": "openid-connect",
+      "secret": "printsetu_backend_client_secret_dev_only"
+    },
+    {
+      "clientId": "printsetu-backend-admin",
+      "name": "PrintSetu Backend Admin API (service account)",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": false,
+      "protocol": "openid-connect",
+      "secret": "printsetu_backend_admin_secret_dev_only",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    }
+  ],
+  "users": [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "username": "admin.demo",
+      "email": "admin.demo@printsetu.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "PrintSetu",
+      "lastName": "Admin",
+      "credentials": [
+        { "type": "password", "value": "Admin@12345", "temporary": false }
+      ],
+      "realmRoles": ["ADMIN", "offline_access", "uma_authorization"]
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "username": "shopkeeper.demo",
+      "email": "shopkeeper.demo@printsetu.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "PrintSetu",
+      "lastName": "Shopkeeper",
+      "credentials": [
+        { "type": "password", "value": "Shop@12345", "temporary": false }
+      ],
+      "realmRoles": ["SHOPKEEPER", "offline_access", "uma_authorization"]
+    },
+    {
+      "username": "service-account-printsetu-backend-admin",
+      "enabled": true,
+      "serviceAccountClientId": "printsetu-backend-admin",
+      "clientRoles": {
+        "realm-management": ["manage-users", "view-users", "query-users", "view-realm"]
+      }
+    }
+  ]
+}
