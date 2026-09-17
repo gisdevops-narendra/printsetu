@@ -1,6 +1,31 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import * as pdfToPrinter from 'pdf-to-printer';
 import { PrinterAdapter, PrintOptions } from './printer-adapter.interface';
 import { logger } from '../logger';
+
+const SUMATRA_ASSET = 'SumatraPDF-3.4.6-32.exe';
+
+/**
+ * pdf-to-printer resolves its bundled SumatraPDF.exe relative to its own
+ * __dirname. Under `pkg` that path lives inside the read-only virtual
+ * snapshot, which `child_process.execFile` cannot spawn directly — so when
+ * packaged, extract it once to a real temp file and pass it explicitly via
+ * `sumatraPdfPath` (an option pdf-to-printer already supports). In normal
+ * (non-pkg) runs this is a no-op and pdf-to-printer uses its own default.
+ */
+function resolveSumatraPath(): string | undefined {
+  if (!(process as unknown as { pkg?: unknown }).pkg) return undefined;
+
+  const extractedPath = path.join(os.tmpdir(), 'printsetu-agent', SUMATRA_ASSET);
+  if (!fs.existsSync(extractedPath)) {
+    const snapshotPath = path.join(__dirname, '..', '..', 'node_modules', 'pdf-to-printer', 'dist', SUMATRA_ASSET);
+    fs.mkdirSync(path.dirname(extractedPath), { recursive: true });
+    fs.writeFileSync(extractedPath, fs.readFileSync(snapshotPath));
+  }
+  return extractedPath;
+}
 
 /**
  * SRS §13.1/13.2: submits the file to the configured Windows printer via
@@ -21,6 +46,7 @@ export class WindowsPrinterAdapter implements PrinterAdapter {
       // silently.
       monochrome: options.colorMode === 'BW',
       side: options.sideMode === 'DUPLEX' ? 'duplex' : 'simplex',
+      sumatraPdfPath: resolveSumatraPath(),
     };
     logger.info(`Submitting ${filePath} to Windows spooler`, { printerName, printOptions });
     await pdfToPrinter.print(filePath, printOptions);

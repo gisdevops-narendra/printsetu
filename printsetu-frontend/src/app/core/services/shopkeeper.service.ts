@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { NotificationRow, PricingRate, PrintJobRow, Shop } from '../models/models';
+import { NotificationRow, PricingRate, PrinterRow, PrintJobRow, Shop } from '../models/models';
 
 export interface SetPricingDto {
   paperSize: string;
@@ -82,5 +82,14 @@ export class ShopkeeperService {
   // ---- QR (SRS §12: view/download own QR; regenerating stays admin-only) ----
   getQr() {
     return this.http.get<{ dataUrl: string; url: string; code: string }>(`${BASE}/shop/qr`);
+  }
+
+  // ---- Print Agent (self-serve download so the shop can connect its own printer) ----
+  listPrinters() {
+    return this.http.get<PrinterRow[]>(`${BASE}/shop/printers`);
+  }
+
+  downloadAgentPackage() {
+    return this.http.post(`${BASE}/shop/printers/agent-package`, {}, { responseType: 'blob' });
   }
 }

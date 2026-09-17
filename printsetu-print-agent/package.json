@@ -5,12 +5,15 @@
   "private": true,
   "license": "UNLICENSED",
   "main": "dist/index.js",
+  "bin": "dist/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "configure": "ts-node src/configure.ts",
-    "test": "jest"
+    "test": "jest",
+    "build:exe": "npm run build && pkg . --output release/PrintSetuAgent.exe",
+    "package": "node scripts/build-release-bundle.js"
   },
   "dependencies": {
     "axios": "^1.7.7",
@@ -25,6 +28,7 @@
     "@types/node": "^20.16.10",
     "@types/uuid": "^10.0.0",
     "jest": "^29.7.0",
+    "pkg": "^5.8.1",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.2"
@@ -32,5 +36,14 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node"
+  },
+  "pkg": {
+    "assets": [
+      "node_modules/pdf-to-printer/dist/SumatraPDF-3.4.6-32.exe"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "release"
   }
 }

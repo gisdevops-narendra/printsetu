@@ -53,6 +53,10 @@ async function main() {
 }
 
 main().catch((error) => {
+  // winston's file transport writes asynchronously — exiting immediately
+  // after logger.error() can cut the write off before it reaches disk,
+  // which would hide the one log line an installer/operator needs most.
   logger.error(`Fatal agent error: ${error.message}`);
-  process.exit(1);
+  logger.on('finish', () => process.exit(1));
+  logger.end();
 });
