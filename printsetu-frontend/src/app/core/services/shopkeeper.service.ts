@@ -17,7 +17,7 @@ export class ShopkeeperService {
   constructor(private readonly http: HttpClient) {}
 
   profile() {
-    return this.http.get<{ shop: Shop; pricing: PricingRate[] }>(`${BASE}/shop/profile`);
+    return this.http.get<{ shop: Shop }>(`${BASE}/shop/profile`);
   }
 
   queue() {

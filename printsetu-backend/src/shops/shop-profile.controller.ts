@@ -5,7 +5,11 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/request-context';
 import { ShopAccessDeniedException } from '../common/exceptions/app.exceptions';
 
-/** SRS §7: "Shop profile and pricing visibility" (read-only for shopkeeper). */
+/**
+ * SRS §7: "Shop profile ... visibility" (read-only for shopkeeper).
+ * Pricing lives at GET/POST/DELETE /api/shop/pricing (ShopPricingController)
+ * now that the shop manages its own rates, so it isn't duplicated here.
+ */
 @Controller('shop')
 @Roles('SHOPKEEPER')
 export class ShopProfileController {
@@ -18,10 +22,6 @@ export class ShopProfileController {
       where: { id: user.shopId },
       include: { printSettings: true },
     });
-    const pricing = await this.prisma.pricing.findMany({
-      where: { shopId: user.shopId, active: true },
-      orderBy: [{ paperSize: 'asc' }, { colorMode: 'asc' }, { sideMode: 'asc' }],
-    });
-    return { shop, pricing };
+    return { shop };
   }
 }

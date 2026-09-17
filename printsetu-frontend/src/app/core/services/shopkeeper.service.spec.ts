@@ -24,7 +24,7 @@ describe('ShopkeeperService (SRS §7 shopkeeper module)', () => {
     service.profile().subscribe();
     const req = httpMock.expectOne(`${BASE}/shop/profile`);
     expect(req.request.method).toBe('GET');
-    req.flush({ shop: {}, pricing: [] });
+    req.flush({ shop: {} });
   });
 
   it('queue() GETs the pending print-job queue', () => {

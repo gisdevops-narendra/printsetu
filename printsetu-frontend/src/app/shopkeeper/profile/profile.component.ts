@@ -1,15 +1,13 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { TableModule } from 'primeng/table';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
-import { PricingRate, Shop } from '../../core/models/models';
+import { Shop } from '../../core/models/models';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, RouterLink, TableModule, ProgressSpinnerModule],
+  imports: [CommonModule, ProgressSpinnerModule],
   template: `
     <h1 class="page-title">Shop Profile</h1>
     <p class="page-subtitle">Read-only — contact an administrator to change shop details.</p>
@@ -26,38 +24,18 @@ import { PricingRate, Shop } from '../../core/models/models';
           <div class="col-12"><span class="text-color-secondary text-sm">Address</span><div class="font-medium">{{ s.address }}, {{ s.city }}</div></div>
         </div>
       </div>
-
-      <div class="flex align-items-center justify-content-between mb-3">
-        <h3 class="m-0">Current pricing</h3>
-        <a routerLink="/shop/pricing" class="text-sm" style="color: var(--p-primary-600)">Manage pricing &rarr;</a>
-      </div>
-      <p-table [value]="pricing()" styleClass="surface-card-flat">
-        <ng-template pTemplate="header">
-          <tr><th>Paper</th><th>Color</th><th>Side</th><th>Price / page</th></tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-rate>
-          <tr>
-            <td>{{ rate.paperSize }}</td>
-            <td>{{ rate.colorMode }}</td>
-            <td>{{ rate.sideMode }}</td>
-            <td>₹{{ rate.pricePerPage }}</td>
-          </tr>
-        </ng-template>
-      </p-table>
     }
   `,
 })
 export class ProfileComponent implements OnInit {
   loading = signal(true);
   shop = signal<Shop | null>(null);
-  pricing = signal<PricingRate[]>([]);
 
   constructor(private readonly shopkeeperService: ShopkeeperService) {}
 
   ngOnInit(): void {
     this.shopkeeperService.profile().subscribe((res) => {
       this.shop.set(res.shop);
-      this.pricing.set(res.pricing);
       this.loading.set(false);
     });
   }
