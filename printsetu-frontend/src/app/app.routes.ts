@@ -14,7 +14,7 @@ export const routes: Routes = [
   },
   {
     path: 'admin',
-    // TEMP: canActivate: [authGuard('ADMIN')],
+    canActivate: [authGuard('ADMIN')],
     loadComponent: () =>
       import('./layout/admin-layout/admin-layout.component').then((m) => m.AdminLayoutComponent),
     children: [
