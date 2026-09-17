@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ColorMode, PaperSize, SideMode } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { InvalidPrintOptionException } from '../common/exceptions/app.exceptions';
+import {
+  AppNotFoundException,
+  InvalidPrintOptionException,
+} from '../common/exceptions/app.exceptions';
 import { SetPricingDto } from './dto/pricing.dto';
 
 @Injectable()
@@ -52,6 +55,23 @@ export class PricingService {
         },
       });
     });
+  }
+
+  /**
+   * "Delete" a rate: deactivate rather than physically remove the row.
+   * Nothing references pricing.id by FK (orders snapshot the rate into
+   * PrintQuote.pricingSnapshot as JSON — see that model's comment), so a
+   * hard delete would be safe, but keeping the row preserves the same
+   * audit trail setRate() already relies on for history.
+   */
+  async deactivate(shopId: string, id: string): Promise<void> {
+    const result = await this.prisma.pricing.updateMany({
+      where: { id, shopId },
+      data: { active: false },
+    });
+    if (result.count === 0) {
+      throw new AppNotFoundException('Pricing rule not found for this shop.');
+    }
   }
 
   async getActiveRateOrThrow(

@@ -5,7 +5,8 @@ import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
-import { MessageService } from 'primeng/api';
+import { TooltipModule } from 'primeng/tooltip';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { PricingRate } from '../../core/models/models';
 
@@ -19,6 +20,7 @@ import { PricingRate } from '../../core/models/models';
     ButtonModule,
     SelectModule,
     InputNumberModule,
+    TooltipModule,
   ],
   template: `
     <h1 class="page-title">Pricing</h1>
@@ -28,25 +30,28 @@ import { PricingRate } from '../../core/models/models';
     </p>
 
     <div class="surface-card-flat p-4 mb-4">
-      <h3 class="mt-0 mb-3 text-base">Set / update a rate</h3>
+      <h3 class="mt-0 mb-3 text-base">{{ editingId() ? 'Update rate' : 'Set a new rate' }}</h3>
       <div class="flex flex-wrap gap-3 align-items-end">
         <div class="flex flex-column gap-2">
           <label class="text-sm">Paper size</label>
-          <p-select [options]="paperSizes" [(ngModel)]="form.paperSize" />
+          <p-select [options]="paperSizes" [(ngModel)]="form.paperSize" [disabled]="!!editingId()" />
         </div>
         <div class="flex flex-column gap-2">
           <label class="text-sm">Color mode</label>
-          <p-select [options]="colorModes" [(ngModel)]="form.colorMode" />
+          <p-select [options]="colorModes" [(ngModel)]="form.colorMode" [disabled]="!!editingId()" />
         </div>
         <div class="flex flex-column gap-2">
           <label class="text-sm">Side mode</label>
-          <p-select [options]="sideModes" [(ngModel)]="form.sideMode" />
+          <p-select [options]="sideModes" [(ngModel)]="form.sideMode" [disabled]="!!editingId()" />
         </div>
         <div class="flex flex-column gap-2">
           <label class="text-sm">Price per page (₹)</label>
           <p-inputNumber [(ngModel)]="form.pricePerPage" mode="decimal" [minFractionDigits]="2" />
         </div>
-        <p-button label="Save rate" (onClick)="save()" [loading]="saving()" />
+        <p-button [label]="editingId() ? 'Update rate' : 'Save rate'" (onClick)="save()" [loading]="saving()" />
+        @if (editingId()) {
+          <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="cancelEdit()" />
+        }
       </div>
     </div>
 
@@ -58,6 +63,7 @@ import { PricingRate } from '../../core/models/models';
           <th>Side</th>
           <th>Price / page</th>
           <th>Effective from</th>
+          <th></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-rate>
@@ -67,10 +73,27 @@ import { PricingRate } from '../../core/models/models';
           <td>{{ rate.sideMode }}</td>
           <td>₹{{ rate.pricePerPage }}</td>
           <td>{{ rate.effectiveFrom | date: 'medium' }}</td>
+          <td class="flex gap-2 justify-content-end">
+            <p-button
+              icon="pi pi-pencil"
+              size="small"
+              [text]="true"
+              (onClick)="edit(rate)"
+              pTooltip="Edit"
+            />
+            <p-button
+              icon="pi pi-trash"
+              size="small"
+              severity="danger"
+              [text]="true"
+              (onClick)="confirmDelete(rate)"
+              pTooltip="Remove"
+            />
+          </td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr><td colspan="5" class="text-center text-color-secondary p-4">No pricing configured yet.</td></tr>
+        <tr><td colspan="6" class="text-center text-color-secondary p-4">No pricing configured yet.</td></tr>
       </ng-template>
     </p-table>
   `,
@@ -79,6 +102,7 @@ export class ShopPricingComponent implements OnInit {
   rates = signal<PricingRate[]>([]);
   loading = signal(true);
   saving = signal(false);
+  editingId = signal<string | null>(null);
 
   paperSizes = ['A4', 'A3', 'LETTER', 'LEGAL'];
   colorModes = ['BW', 'COLOR'];
@@ -94,6 +118,7 @@ export class ShopPricingComponent implements OnInit {
   constructor(
     private readonly shopkeeperService: ShopkeeperService,
     private readonly messageService: MessageService,
+    private readonly confirmationService: ConfirmationService,
   ) {}
 
   ngOnInit(): void {
@@ -106,6 +131,21 @@ export class ShopPricingComponent implements OnInit {
       this.rates.set(rates);
       this.loading.set(false);
     });
+  }
+
+  edit(rate: PricingRate): void {
+    this.editingId.set(rate.id);
+    this.form = {
+      paperSize: rate.paperSize,
+      colorMode: rate.colorMode,
+      sideMode: rate.sideMode,
+      pricePerPage: Number(rate.pricePerPage),
+    };
+  }
+
+  cancelEdit(): void {
+    this.editingId.set(null);
+    this.form = { paperSize: 'A4', colorMode: 'BW', sideMode: 'SIMPLEX', pricePerPage: null };
   }
 
   save(): void {
@@ -122,9 +162,25 @@ export class ShopPricingComponent implements OnInit {
         next: () => {
           this.saving.set(false);
           this.messageService.add({ severity: 'success', summary: 'Rate saved' });
+          this.cancelEdit();
           this.load();
         },
         error: () => this.saving.set(false),
       });
+  }
+
+  confirmDelete(rate: PricingRate): void {
+    this.confirmationService.confirm({
+      message: `Remove the ${rate.paperSize} / ${rate.colorMode} / ${rate.sideMode} rate? Customers will no longer be able to select this combination until a new rate is set.`,
+      header: 'Confirm',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.shopkeeperService.deletePricing(rate.id).subscribe(() => {
+          this.messageService.add({ severity: 'success', summary: 'Rate removed' });
+          if (this.editingId() === rate.id) this.cancelEdit();
+          this.load();
+        });
+      },
+    });
   }
 }

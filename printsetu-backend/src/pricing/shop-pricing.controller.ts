@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/request-context';
@@ -28,6 +28,13 @@ export class ShopPricingController {
   setRate(@CurrentUser() user: AuthenticatedUser, @Body() dto: SetPricingDto) {
     const shopId = this.requireShopId(user);
     return this.pricingService.setRate(shopId, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    const shopId = this.requireShopId(user);
+    await this.pricingService.deactivate(shopId, id);
   }
 
   private requireShopId(user: AuthenticatedUser): string {

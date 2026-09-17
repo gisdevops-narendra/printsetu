@@ -75,4 +75,7 @@ export class ShopkeeperService {
   setPricing(dto: SetPricingDto) {
     return this.http.post<PricingRate>(`${BASE}/shop/pricing`, dto);
   }
+  deletePricing(id: string) {
+    return this.http.delete<void>(`${BASE}/shop/pricing/${id}`);
+  }
 }

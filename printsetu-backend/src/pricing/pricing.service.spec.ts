@@ -1,7 +1,10 @@
 import { Test } from '@nestjs/testing';
 import { PricingService } from './pricing.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { InvalidPrintOptionException } from '../common/exceptions/app.exceptions';
+import {
+  AppNotFoundException,
+  InvalidPrintOptionException,
+} from '../common/exceptions/app.exceptions';
 
 describe('PricingService (SRS §10 versioned pricing)', () => {
   let service: PricingService;
@@ -65,6 +68,25 @@ describe('PricingService (SRS §10 versioned pricing)', () => {
 
     await expect(service.getActiveRateOrThrow('shop-1', 'A3', 'COLOR', 'DUPLEX')).rejects.toThrow(
       InvalidPrintOptionException,
+    );
+  });
+
+  it('deactivates a rate scoped to its own shop (tenant isolation)', async () => {
+    prisma.pricing.updateMany.mockResolvedValue({ count: 1 });
+
+    await service.deactivate('shop-1', 'rate-1');
+
+    expect(prisma.pricing.updateMany).toHaveBeenCalledWith({
+      where: { id: 'rate-1', shopId: 'shop-1' },
+      data: { active: false },
+    });
+  });
+
+  it('throws NOT_FOUND when deactivating a rate that does not belong to the shop', async () => {
+    prisma.pricing.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(service.deactivate('shop-1', 'someone-elses-rate')).rejects.toThrow(
+      AppNotFoundException,
     );
   });
 });

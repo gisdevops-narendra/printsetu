@@ -88,4 +88,11 @@ describe('ShopkeeperService (SRS §7 shopkeeper module)', () => {
     expect(req.request.body).toEqual(dto);
     req.flush({});
   });
+
+  it('deletePricing() DELETEs the rate by id', () => {
+    service.deletePricing('rate-1').subscribe();
+    const req = httpMock.expectOne(`${BASE}/shop/pricing/rate-1`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+  });
 });
