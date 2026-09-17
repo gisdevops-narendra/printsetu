@@ -278,12 +278,15 @@ model PrintJobEvent {
 }
 
 model PrintSettings {
-  id                String   @id @default(uuid())
-  shopId            String   @unique @map("shop_id")
-  defaultPrinterId  String?  @map("default_printer_id")
-  retentionMinutes  Int      @default(30) @map("retention_minutes")
-  maxFileSizeBytes  Int      @default(26214400) @map("max_file_size")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id                      String   @id @default(uuid())
+  shopId                  String   @unique @map("shop_id")
+  defaultPrinterId        String?  @map("default_printer_id")
+  retentionMinutes        Int      @default(30) @map("retention_minutes")
+  maxFileSizeBytes        Int      @default(26214400) @map("max_file_size")
+  // Admin-controlled, per-shop (off by default): lets the shopkeeper preview
+  // a document before printing it, via a short-lived signed URL.
+  documentPreviewEnabled  Boolean  @default(false) @map("document_preview_enabled")
+  updatedAt               DateTime @updatedAt @map("updated_at")
 
   shop Shop @relation(fields: [shopId], references: [id])
 

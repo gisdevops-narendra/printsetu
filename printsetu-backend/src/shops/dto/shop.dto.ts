@@ -1,4 +1,4 @@
-import { IsEmail, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class CreateShopDto {
   @IsString() @IsNotEmpty() name!: string;
@@ -42,4 +42,9 @@ export class UpdatePrintSettingsDto {
   @Min(1024)
   @Max(104_857_600) // 1 KB .. 100 MB
   maxFileSizeBytes?: number;
+
+  /** Off by default; admin opts a shop in per SRS-style "not enabled for all shops by default". */
+  @IsOptional()
+  @IsBoolean()
+  documentPreviewEnabled?: boolean;
 }

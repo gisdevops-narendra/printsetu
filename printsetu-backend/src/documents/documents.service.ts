@@ -115,6 +115,12 @@ export class DocumentsService {
     if (document.status === DocumentStatus.DELETED) {
       throw new AppNotFoundException('Document has been deleted per retention policy.');
     }
+    const settings = await this.prisma.printSettings.findUnique({ where: { shopId } });
+    if (!settings?.documentPreviewEnabled) {
+      throw new ShopAccessDeniedException(
+        'Document preview is not enabled for your shop. Ask your admin to turn it on.',
+      );
+    }
     const url = await this.storage.getSignedDownloadUrl(document.s3Key, 120);
     return { url, expiresInSeconds: 120 };
   }

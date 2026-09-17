@@ -26,6 +26,7 @@ export interface PrintSettings {
   defaultPrinterId: string | null;
   retentionMinutes: number;
   maxFileSizeBytes: number;
+  documentPreviewEnabled: boolean;
 }
 
 export interface Shop {
@@ -39,6 +40,7 @@ export interface Shop {
   city: string;
   status: 'ACTIVE' | 'INACTIVE';
   createdAt: string;
+  printSettings?: PrintSettings | null;
 }
 
 export interface PricingRate {

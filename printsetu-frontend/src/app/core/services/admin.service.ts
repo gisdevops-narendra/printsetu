@@ -37,7 +37,7 @@ export class AdminService {
   }
   updateShopSettings(
     shopId: string,
-    dto: { retentionMinutes?: number; maxFileSizeBytes?: number },
+    dto: { retentionMinutes?: number; maxFileSizeBytes?: number; documentPreviewEnabled?: boolean },
   ) {
     return this.http.patch<PrintSettings>(`${BASE}/admin/shops/${shopId}/settings`, dto);
   }

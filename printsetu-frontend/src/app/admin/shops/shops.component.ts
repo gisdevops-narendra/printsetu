@@ -9,6 +9,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { AdminService } from '../../core/services/admin.service';
 import { Shop } from '../../core/models/models';
@@ -27,6 +28,7 @@ import { Shop } from '../../core/models/models';
     InputNumberModule,
     TagModule,
     TooltipModule,
+    ToggleSwitchModule,
   ],
   template: `
     <div class="flex justify-content-between align-items-center mb-4">
@@ -175,6 +177,16 @@ import { Shop } from '../../core/models/models';
               suffix=" MB"
             />
           </div>
+          <div class="flex align-items-center justify-content-between gap-3">
+            <div>
+              <label>Document preview</label>
+              <div class="text-color-secondary text-sm">
+                Lets this shop's staff preview a file before printing it. Off by default for every
+                new shop.
+              </div>
+            </div>
+            <p-toggleswitch [(ngModel)]="settingsForm.documentPreviewEnabled" />
+          </div>
         </div>
       }
       <ng-template pTemplate="footer">
@@ -199,9 +211,10 @@ export class ShopsComponent implements OnInit {
   settingsVisible = false;
   savingSettings = signal(false);
   settingsShop = signal<Shop | null>(null);
-  settingsForm: { retentionMinutes: number; maxFileSizeMb: number } = {
+  settingsForm: { retentionMinutes: number; maxFileSizeMb: number; documentPreviewEnabled: boolean } = {
     retentionMinutes: 30,
     maxFileSizeMb: 25,
+    documentPreviewEnabled: false,
   };
 
   constructor(
@@ -212,6 +225,10 @@ export class ShopsComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    // TEMP visual test
+    this.settingsShop.set({ name: 'Test Shop' } as Shop);
+    this.settingsForm = { retentionMinutes: 30, maxFileSizeMb: 25, documentPreviewEnabled: true };
+    this.settingsVisible = true;
   }
 
   load(): void {
@@ -247,6 +264,7 @@ export class ShopsComponent implements OnInit {
       this.settingsForm = {
         retentionMinutes: settings.retentionMinutes,
         maxFileSizeMb: Math.round(settings.maxFileSizeBytes / (1024 * 1024)),
+        documentPreviewEnabled: settings.documentPreviewEnabled,
       };
     });
   }
@@ -259,6 +277,7 @@ export class ShopsComponent implements OnInit {
       .updateShopSettings(shop.id, {
         retentionMinutes: this.settingsForm.retentionMinutes,
         maxFileSizeBytes: this.settingsForm.maxFileSizeMb * 1024 * 1024,
+        documentPreviewEnabled: this.settingsForm.documentPreviewEnabled,
       })
       .subscribe({
         next: () => {

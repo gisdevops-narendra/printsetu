@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { PrintJobRow } from '../../core/models/models';
@@ -10,7 +11,7 @@ import { StatusTagComponent } from '../../shared/components/status-tag/status-ta
 @Component({
   selector: 'app-queue',
   standalone: true,
-  imports: [CommonModule, TableModule, ButtonModule, StatusTagComponent],
+  imports: [CommonModule, TableModule, ButtonModule, TooltipModule, StatusTagComponent],
   template: `
     <div class="flex justify-content-between align-items-center mb-4">
       <div>
@@ -41,15 +42,27 @@ import { StatusTagComponent } from '../../shared/components/status-tag/status-ta
           <td><app-status-tag [status]="job.status" /></td>
           <td>{{ job.createdAt | date: 'short' }}</td>
           <td class="text-right">
-            @if (job.status === 'PRINT_ELIGIBLE' || job.status === 'AGENT_OFFLINE' || job.status === 'PRINT_FAILED') {
-              <p-button label="PRINT" icon="pi pi-print" size="small" (onClick)="confirmPrint(job)" />
-            }
-            @if (job.status === 'PRINT_UNKNOWN') {
-              <div class="flex gap-2 justify-content-end">
+            <div class="flex gap-2 justify-content-end align-items-center">
+              @if (previewEnabled()) {
+                <p-button
+                  icon="pi pi-eye"
+                  label="View"
+                  size="small"
+                  severity="secondary"
+                  [text]="true"
+                  [loading]="previewingId() === job.id"
+                  (onClick)="viewDocument(job)"
+                  pTooltip="Preview this document"
+                />
+              }
+              @if (job.status === 'PRINT_ELIGIBLE' || job.status === 'AGENT_OFFLINE' || job.status === 'PRINT_FAILED') {
+                <p-button label="PRINT" icon="pi pi-print" size="small" (onClick)="confirmPrint(job)" />
+              }
+              @if (job.status === 'PRINT_UNKNOWN') {
                 <p-button label="Mark Printed" size="small" severity="success" [text]="true" (onClick)="reconcile(job, 'PRINTED')" />
                 <p-button label="Mark Failed" size="small" severity="danger" [text]="true" (onClick)="reconcile(job, 'PRINT_FAILED')" />
-              </div>
-            }
+              }
+            </div>
           </td>
         </tr>
       </ng-template>
@@ -62,6 +75,8 @@ import { StatusTagComponent } from '../../shared/components/status-tag/status-ta
 export class QueueComponent implements OnInit {
   jobs = signal<PrintJobRow[]>([]);
   loading = signal(true);
+  previewEnabled = signal(false);
+  previewingId = signal<string | null>(null);
 
   constructor(
     private readonly shopkeeperService: ShopkeeperService,
@@ -71,6 +86,20 @@ export class QueueComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.shopkeeperService.profile().subscribe((res) => {
+      this.previewEnabled.set(!!res.shop?.printSettings?.documentPreviewEnabled);
+    });
+  }
+
+  viewDocument(job: PrintJobRow): void {
+    this.previewingId.set(job.id);
+    this.shopkeeperService.previewUrl(job.documentId).subscribe({
+      next: (res) => {
+        this.previewingId.set(null);
+        window.open(res.url, '_blank', 'noopener');
+      },
+      error: () => this.previewingId.set(null),
+    });
   }
 
   load(): void {
