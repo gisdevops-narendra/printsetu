@@ -78,4 +78,9 @@ export class ShopkeeperService {
   deletePricing(id: string) {
     return this.http.delete<void>(`${BASE}/shop/pricing/${id}`);
   }
+
+  // ---- QR (SRS §12: view/download own QR; regenerating stays admin-only) ----
+  getQr() {
+    return this.http.get<{ dataUrl: string; url: string; code: string }>(`${BASE}/shop/qr`);
+  }
 }

@@ -85,6 +85,11 @@ export const routes: Routes = [
           import('./shopkeeper/pricing/pricing.component').then((m) => m.ShopPricingComponent),
       },
       {
+        path: 'qr',
+        loadComponent: () =>
+          import('./shopkeeper/qr/qr.component').then((m) => m.ShopQrComponent),
+      },
+      {
         path: 'notifications',
         loadComponent: () =>
           import('./shopkeeper/notifications/notifications.component').then(

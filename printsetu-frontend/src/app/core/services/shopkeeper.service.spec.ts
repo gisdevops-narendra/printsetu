@@ -80,6 +80,13 @@ describe('ShopkeeperService (SRS §7 shopkeeper module)', () => {
     req.flush([]);
   });
 
+  it('getQr() GETs the shop\'s own QR code (SRS §12)', () => {
+    service.getQr().subscribe();
+    const req = httpMock.expectOne(`${BASE}/shop/qr`);
+    expect(req.request.method).toBe('GET');
+    req.flush({ dataUrl: 'data:image/png;base64,', url: 'http://localhost:54200/s/abc', code: 'abc' });
+  });
+
   it('setPricing() POSTs a new rate for the shop\'s own pricing', () => {
     const dto = { paperSize: 'A4', colorMode: 'BW', sideMode: 'SIMPLEX', pricePerPage: 2 };
     service.setPricing(dto).subscribe();
