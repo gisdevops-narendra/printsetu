@@ -223,15 +223,17 @@ app-root {
 }
 
 .cell-ellipsis:hover .cell-ellipsis__text.is-truncated {
-  animation: cell-marquee 5s linear infinite;
-  animation-delay: 0.4s;
+  /* alternate + no delay/hold: movement starts the instant you hover,
+     even a brief hover shows it sliding, then it ping-pongs back and
+     forth for as long as you stay hovered (no abrupt reset-snap). */
+  animation: cell-marquee 3.5s ease-in-out infinite alternate;
 }
 
 @keyframes cell-marquee {
-  0%, 12% {
+  from {
     transform: translateX(0);
   }
-  88%, 100% {
+  to {
     /* -100% of the text's own width, plus 100% of the container's width,
        i.e. shift left by exactly (text width - container width) — the
        overflow amount — regardless of how long the text actually is. */
