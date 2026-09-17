@@ -1,0 +1,18 @@
+# Dependencies (OS/arch-specific — always reinstall via npm install / pip install)
+node_modules/
+
+# Build output
+dist/
+.angular/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+
+# Editor/OS
+.DS_Store
+Thumbs.db

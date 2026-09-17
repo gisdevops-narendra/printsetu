@@ -1,1 +1,0 @@
-{"version":3,"file":"document-queue.constants.js","sourceRoot":"","sources":["../../src/documents/document-queue.constants.ts"],"names":[],"mappings":";;;AAAa,QAAA,uBAAuB,GAAG,mBAAmB,CAAC;AAG9C,QAAA,0BAA0B,GAAG;IACxC,QAAQ,EAAE,CAAC;IACX,OAAO,EAAE,EAAE,IAAI,EAAE,aAAsB,EAAE,KAAK,EAAE,KAAK,EAAE;IACvD,gBAAgB,EAAE,IAAI;IACtB,YAAY,EAAE,KAAK;CACpB,CAAC"}
