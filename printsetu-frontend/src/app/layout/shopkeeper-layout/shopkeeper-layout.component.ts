@@ -4,45 +4,91 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { AuthService } from '../../core/auth/auth.service';
 
+interface NavItem {
+  label: string;
+  icon: string;
+  route: string;
+}
+
 @Component({
   selector: 'app-shopkeeper-layout',
   standalone: true,
   imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ButtonModule],
   template: `
-    <div class="flex flex-column min-h-screen">
-      <header class="topbar">
-        <span class="brand">PrintSetu</span>
-        <nav class="flex gap-4">
-          <a routerLink="/shop/queue" routerLinkActive="active" class="nav-link">Print Queue</a>
-          <a routerLink="/shop/history" routerLinkActive="active" class="nav-link">History</a>
-          <a routerLink="/shop/notifications" routerLinkActive="active" class="nav-link"
-            >Notifications</a
-          >
-          <a routerLink="/shop/profile" routerLinkActive="active" class="nav-link">Shop Profile</a>
-          <a routerLink="/shop/pricing" routerLinkActive="active" class="nav-link">Pricing</a>
-          <a routerLink="/shop/qr" routerLinkActive="active" class="nav-link">QR Code</a>
-          <a routerLink="/shop/print-agent" routerLinkActive="active" class="nav-link"
-            >Print Agent</a
-          >
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">PrintSetu</div>
+        <nav class="flex flex-column gap-1">
+          @for (item of navItems; track item.route) {
+            <a
+              [routerLink]="item.route"
+              routerLinkActive="active"
+              class="nav-link"
+            >
+              <i [class]="item.icon"></i>
+              <span>{{ item.label }}</span>
+            </a>
+          }
         </nav>
-        <div class="flex align-items-center gap-3">
-          <span class="text-sm text-color-secondary">{{ auth.user()?.email }}</span>
-          <p-button
-            label="Logout"
-            size="small"
-            severity="secondary"
-            [text]="true"
-            (onClick)="auth.logout()"
-          />
-        </div>
-      </header>
-      <main class="app-shell-content flex-1">
-        <router-outlet />
-      </main>
+      </aside>
+      <div class="main">
+        <header class="topbar">
+          <span class="text-color-secondary">Shop Portal</span>
+          <div class="flex align-items-center gap-3">
+            <span class="text-sm">{{ auth.user()?.email }}</span>
+            <p-button label="Logout" size="small" severity="secondary" [text]="true" (onClick)="auth.logout()" />
+          </div>
+        </header>
+        <main class="app-shell-content">
+          <router-outlet />
+        </main>
+      </div>
     </div>
   `,
   styles: [
     `
+      .shell {
+        display: flex;
+        min-height: 100vh;
+      }
+      .sidebar {
+        width: 240px;
+        background: #0f172a;
+        color: #e2e8f0;
+        padding: 1.5rem 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+      .brand {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: white;
+        padding: 0 0.5rem;
+      }
+      .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.6rem 0.75rem;
+        border-radius: 8px;
+        color: #cbd5e1;
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+      .nav-link:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .nav-link.active {
+        background: var(--p-primary-600);
+        color: white;
+      }
+      .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
       .topbar {
         height: 64px;
         display: flex;
@@ -51,27 +97,20 @@ import { AuthService } from '../../core/auth/auth.service';
         padding: 0 2rem;
         background: white;
         border-bottom: 1px solid #e2e8f0;
-        gap: 2rem;
-      }
-      .brand {
-        font-weight: 700;
-        font-size: 1.15rem;
-        color: var(--p-primary-600);
-      }
-      .nav-link {
-        text-decoration: none;
-        color: #64748b;
-        font-weight: 500;
-        padding: 0.4rem 0;
-        border-bottom: 2px solid transparent;
-      }
-      .nav-link.active {
-        color: var(--p-primary-600);
-        border-bottom-color: var(--p-primary-600);
       }
     `,
   ],
 })
 export class ShopkeeperLayoutComponent {
+  navItems: NavItem[] = [
+    { label: 'Print Queue', icon: 'pi pi-inbox', route: '/shop/queue' },
+    { label: 'History', icon: 'pi pi-history', route: '/shop/history' },
+    { label: 'Notifications', icon: 'pi pi-bell', route: '/shop/notifications' },
+    { label: 'Shop Profile', icon: 'pi pi-building', route: '/shop/profile' },
+    { label: 'Pricing', icon: 'pi pi-tag', route: '/shop/pricing' },
+    { label: 'QR Code', icon: 'pi pi-qrcode', route: '/shop/qr' },
+    { label: 'Print Agent', icon: 'pi pi-desktop', route: '/shop/print-agent' },
+  ];
+
   constructor(public readonly auth: AuthService) {}
 }

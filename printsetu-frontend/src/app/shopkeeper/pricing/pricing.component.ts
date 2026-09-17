@@ -93,7 +93,11 @@ import { PricingRate } from '../../core/models/models';
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr><td colspan="6" class="text-center text-color-secondary p-4">No pricing configured yet.</td></tr>
+        <tr>
+          <td colspan="6">
+            <div class="table-empty"><i class="pi pi-tag"></i><span>No pricing configured yet.</span></div>
+          </td>
+        </tr>
       </ng-template>
     </p-table>
   `,

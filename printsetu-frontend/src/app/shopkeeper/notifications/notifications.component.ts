@@ -53,7 +53,9 @@ const EVENT_META: Record<
       </ng-template>
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="2" class="text-center text-color-secondary p-4">No notifications yet.</td>
+          <td colspan="2">
+            <div class="table-empty"><i class="pi pi-bell"></i><span>No notifications yet.</span></div>
+          </td>
         </tr>
       </ng-template>
     </p-table>

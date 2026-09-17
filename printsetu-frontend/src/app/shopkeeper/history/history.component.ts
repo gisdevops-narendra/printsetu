@@ -37,7 +37,11 @@ import { StatusTagComponent } from '../../shared/components/status-tag/status-ta
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr><td colspan="6" class="text-center text-color-secondary p-4">No history yet.</td></tr>
+        <tr>
+          <td colspan="6">
+            <div class="table-empty"><i class="pi pi-history"></i><span>No history yet.</span></div>
+          </td>
+        </tr>
       </ng-template>
     </p-table>
   `,

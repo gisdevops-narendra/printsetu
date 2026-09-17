@@ -60,7 +60,11 @@ import { PrinterRow, Shop } from '../../core/models/models';
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr><td colspan="5" class="text-center text-color-secondary p-4">No printers registered yet.</td></tr>
+        <tr>
+          <td colspan="5">
+            <div class="table-empty"><i class="pi pi-print"></i><span>No printers registered yet.</span></div>
+          </td>
+        </tr>
       </ng-template>
     </p-table>
 

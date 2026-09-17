@@ -96,8 +96,11 @@ import { Shop } from '../../core/models/models';
       </ng-template>
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="6" class="text-center text-color-secondary p-4">
-            No shops yet — create the first one.
+          <td colspan="6">
+            <div class="table-empty">
+              <i class="pi pi-building"></i>
+              <span>No shops yet — create the first one.</span>
+            </div>
           </td>
         </tr>
       </ng-template>
@@ -225,10 +228,6 @@ export class ShopsComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
-    // TEMP visual test
-    this.settingsShop.set({ name: 'Test Shop' } as Shop);
-    this.settingsForm = { retentionMinutes: 30, maxFileSizeMb: 25, documentPreviewEnabled: true };
-    this.settingsVisible = true;
   }
 
   load(): void {

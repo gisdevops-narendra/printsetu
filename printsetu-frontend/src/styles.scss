@@ -9,10 +9,16 @@ body {
   background: #f8fafc;
   color: #1e293b;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
   box-sizing: border-box;
+}
+
+:focus-visible {
+  outline: 2px solid var(--p-primary-400);
+  outline-offset: 2px;
 }
 
 .app-shell-content {
@@ -21,27 +27,162 @@ body {
   margin: 0 auto;
 }
 
-.surface-card-flat {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+@media (max-width: 768px) {
+  .app-shell-content {
+    padding: 1.25rem;
+  }
 }
 
-.price-summary-card .p-card-body {
-  padding: 1.25rem;
-}
+/* ---------- Page headers ---------- */
 
 .page-title {
   font-size: 1.5rem;
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: #0f172a;
   margin: 0 0 0.25rem 0;
 }
 
 .page-subtitle {
   color: #64748b;
+  font-size: 0.9375rem;
+  line-height: 1.5;
   margin: 0 0 1.5rem 0;
+}
+
+/* ---------- Cards / surfaces ---------- */
+
+.surface-card-flat {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.surface-card-hover:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.price-summary-card .p-card-body {
+  padding: 1.25rem;
+}
+
+/* Stat tiles (dashboard-style metric cards) */
+
+.stat-tile {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+}
+
+.stat-tile__icon {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  background: var(--p-primary-50);
+  color: var(--p-primary-600);
+}
+
+.stat-tile__icon.success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.stat-tile__icon.danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.stat-tile__icon.warn {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+/* ---------- PrimeNG table refinement ---------- */
+
+.p-datatable.surface-card-flat {
+  overflow: hidden;
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.p-datatable .p-datatable-tbody > tr > td {
+  padding: 0.875rem 1.25rem;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.p-datatable .p-datatable-tbody > tr:last-child > td {
+  border-bottom: none;
+}
+
+/* Empty-state rows */
+
+.table-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+}
+
+.table-empty i {
+  font-size: 1.75rem;
+  color: #cbd5e1;
+}
+
+.table-empty span {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+/* Form labels inside dialogs and forms-in-cards */
+
+.p-dialog-content label,
+.surface-card-flat label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.p-datatable .p-datatable-tbody > tr:hover > td {
+  background: #f8fafc;
+}
+
+/* ---------- Dialog refinement ---------- */
+
+.p-dialog .p-dialog-header {
+  padding: 1.25rem 1.5rem;
+}
+
+.p-dialog .p-dialog-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.p-dialog .p-dialog-content {
+  padding: 0 1.5rem 1.25rem 1.5rem;
+}
+
+.p-dialog .p-dialog-footer {
+  padding: 1rem 1.5rem 1.25rem 1.5rem;
 }
 
 ::-webkit-scrollbar {

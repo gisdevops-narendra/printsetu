@@ -35,7 +35,11 @@ import { AuditLogRow } from '../../core/models/models';
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr><td colspan="4" class="text-center text-color-secondary p-4">No audit events recorded yet.</td></tr>
+        <tr>
+          <td colspan="4">
+            <div class="table-empty"><i class="pi pi-shield"></i><span>No audit events recorded yet.</span></div>
+          </td>
+        </tr>
       </ng-template>
     </p-table>
   `,

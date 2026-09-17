@@ -39,7 +39,11 @@ import { StatusTagComponent } from '../../shared/components/status-tag/status-ta
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr><td colspan="7" class="text-center text-color-secondary p-4">No print jobs yet.</td></tr>
+        <tr>
+          <td colspan="7">
+            <div class="table-empty"><i class="pi pi-history"></i><span>No print jobs yet.</span></div>
+          </td>
+        </tr>
       </ng-template>
     </p-table>
   `,

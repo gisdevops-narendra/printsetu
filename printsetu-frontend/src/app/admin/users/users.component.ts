@@ -54,7 +54,11 @@ import { RoleName, Shop, UserRow } from '../../core/models/models';
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr><td colspan="6" class="text-center text-color-secondary p-4">No users yet.</td></tr>
+        <tr>
+          <td colspan="6">
+            <div class="table-empty"><i class="pi pi-users"></i><span>No users yet.</span></div>
+          </td>
+        </tr>
       </ng-template>
     </p-table>
 

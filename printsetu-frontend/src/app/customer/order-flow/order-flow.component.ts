@@ -9,6 +9,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { ButtonModule } from 'primeng/button';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { MessageModule } from 'primeng/message';
+import { DividerModule } from 'primeng/divider';
 import { MenuItem, MessageService } from 'primeng/api';
 import { CustomerService } from '../../core/services/customer.service';
 import { PriceSummaryCardComponent, PriceSummaryLine } from '../../shared/components/price-summary-card/price-summary-card.component';
@@ -31,139 +32,152 @@ const DOC_STATUS_POLL_MS = 2000;
     ButtonModule,
     ProgressSpinnerModule,
     MessageModule,
+    DividerModule,
     PriceSummaryCardComponent,
     StatusTagComponent,
   ],
   template: `
     <div class="order-page">
       <div class="order-container">
-        <div class="text-center mb-4">
-          <h1 class="text-2xl font-bold m-0" style="color: var(--p-primary-600)">PrintSetu</h1>
+        <div class="text-center mb-5">
+          <h1 class="text-2xl font-bold m-0" style="color: var(--p-primary-600); letter-spacing: -0.01em">PrintSetu</h1>
           @if (shopName()) {
             <p class="text-color-secondary mt-1 mb-0">{{ shopName() }}</p>
           }
         </div>
 
-        <p-steps [model]="stepItems" [activeIndex]="currentStep()" [readonly]="true" class="mb-5" />
+        <div class="order-card">
+          <p-steps [model]="stepItems" [activeIndex]="currentStep()" [readonly]="true" class="mb-5" />
 
-        @if (resolvingShop()) {
-          <div class="flex justify-content-center p-6"><p-progressSpinner strokeWidth="4" /></div>
-        } @else if (shopError()) {
-          <p-message severity="error" [text]="shopError()!" />
-        } @else {
-          <!-- Step 0: Upload -->
-          @if (currentStep() === 0) {
-            <div class="surface-card-flat p-4">
-              <h3 class="mt-0">Upload your document</h3>
-              <p class="text-color-secondary text-sm">PDF, JPG or PNG, up to 25&nbsp;MB.</p>
+          @if (resolvingShop()) {
+            <div class="flex justify-content-center p-6"><p-progressSpinner strokeWidth="4" /></div>
+          } @else if (shopError()) {
+            <p-message severity="error" [text]="shopError()!" />
+          } @else {
+            <!-- Step 0: Upload -->
+            @if (currentStep() === 0) {
+              <div>
+                <h3 class="mt-0 mb-1">Upload your document</h3>
+                <p class="text-color-secondary text-sm mt-0">PDF, JPG or PNG, up to 25&nbsp;MB.</p>
 
-              @if (analysisError()) {
-                <p-message severity="error" [text]="analysisError()!" styleClass="w-full mb-3" />
-              }
+                @if (analysisError()) {
+                  <p-message severity="error" [text]="analysisError()!" styleClass="w-full mb-3" />
+                }
 
-              @if (!analyzing()) {
-                <p-fileUpload
-                  mode="basic"
-                  chooseLabel="Choose File"
-                  [customUpload]="true"
-                  (uploadHandler)="onUpload($event)"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  [maxFileSize]="26214400"
-                  [auto]="true"
+                @if (!analyzing()) {
+                  <div class="dropzone flex flex-column align-items-center gap-3 text-center">
+                    <div class="dropzone__icon"><i class="pi pi-cloud-upload"></i></div>
+                    <p-fileUpload
+                      mode="basic"
+                      chooseLabel="Choose File"
+                      [customUpload]="true"
+                      (uploadHandler)="onUpload($event)"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      [maxFileSize]="26214400"
+                      [auto]="true"
+                    />
+                    <p class="text-xs text-color-secondary m-0">or drag and drop it here</p>
+                  </div>
+                }
+                @if (uploading()) {
+                  <div class="flex align-items-center gap-2 mt-3 text-color-secondary">
+                    <p-progressSpinner strokeWidth="6" [style]="{ width: '24px', height: '24px' }" />
+                    <span>Uploading document...</span>
+                  </div>
+                } @else if (analyzing()) {
+                  <div class="flex align-items-center gap-2 mt-3 text-color-secondary">
+                    <p-progressSpinner strokeWidth="6" [style]="{ width: '24px', height: '24px' }" />
+                    <span>Analyzing document (counting pages, checking color)...</span>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Step 1: Options -->
+            @if (currentStep() === 1 && upload(); as doc) {
+              <div>
+                <h3 class="mt-0 mb-1 flex align-items-center gap-2">
+                  <i class="pi pi-file text-color-secondary"></i>
+                  <span>{{ doc.originalName }}</span>
+                </h3>
+                <p class="text-color-secondary text-sm mt-0 mb-3">
+                  {{ doc.pageCount ?? '?' }} page(s) detected
+                  @if (doc.colorPages) { &middot; {{ doc.colorPages }} color page(s) }
+                </p>
+
+                <div class="grid">
+                  <div class="col-12 sm:col-6 flex flex-column gap-2">
+                    <label class="text-sm font-medium">Paper size</label>
+                    <p-select [options]="paperSizes" [(ngModel)]="options.paperSize" (onChange)="recalculate()" />
+                  </div>
+                  <div class="col-12 sm:col-6 flex flex-column gap-2">
+                    <label class="text-sm font-medium">Color mode</label>
+                    <p-select [options]="colorModes" [(ngModel)]="options.colorMode" (onChange)="recalculate()" />
+                  </div>
+                  <div class="col-12 sm:col-6 flex flex-column gap-2">
+                    <label class="text-sm font-medium">Sides</label>
+                    <p-select [options]="sideModes" [(ngModel)]="options.sideMode" (onChange)="recalculate()" />
+                  </div>
+                  <div class="col-12 sm:col-6 flex flex-column gap-2">
+                    <label class="text-sm font-medium">Copies</label>
+                    <p-inputNumber [(ngModel)]="options.copies" [min]="1" [max]="999" (onInput)="recalculate()" />
+                  </div>
+                </div>
+
+                <p-divider />
+              </div>
+
+              @if (quote(); as q) {
+                <app-price-summary-card
+                  [lines]="summaryLines(q)"
+                  [amount]="q.amount"
+                  [currency]="q.currency"
                 />
+                <div class="flex justify-content-end mt-4">
+                  <p-button label="Continue to Confirm" icon="pi pi-arrow-right" iconPos="right" (onClick)="currentStep.set(2)" />
+                </div>
+              } @else if (quoting()) {
+                <div class="flex justify-content-center p-4"><p-progressSpinner strokeWidth="4" /></div>
               }
-              @if (uploading()) {
-                <div class="flex align-items-center gap-2 mt-3 text-color-secondary">
-                  <p-progressSpinner strokeWidth="6" [style]="{ width: '24px', height: '24px' }" />
-                  <span>Uploading document...</span>
-                </div>
-              } @else if (analyzing()) {
-                <div class="flex align-items-center gap-2 mt-3 text-color-secondary">
-                  <p-progressSpinner strokeWidth="6" [style]="{ width: '24px', height: '24px' }" />
-                  <span>Analyzing document (counting pages, checking color)...</span>
-                </div>
-              }
-            </div>
-          }
+            }
 
-          <!-- Step 1: Options -->
-          @if (currentStep() === 1 && upload(); as doc) {
-            <div class="surface-card-flat p-4 mb-4">
-              <h3 class="mt-0">{{ doc.originalName }}</h3>
-              <p class="text-color-secondary text-sm">
-                {{ doc.pageCount ?? '?' }} page(s) detected
-                @if (doc.colorPages) { &middot; {{ doc.colorPages }} color page(s) }
-              </p>
-
-              <div class="grid mt-2">
-                <div class="col-12 sm:col-6 flex flex-column gap-2">
-                  <label class="text-sm">Paper size</label>
-                  <p-select [options]="paperSizes" [(ngModel)]="options.paperSize" (onChange)="recalculate()" />
-                </div>
-                <div class="col-12 sm:col-6 flex flex-column gap-2">
-                  <label class="text-sm">Color mode</label>
-                  <p-select [options]="colorModes" [(ngModel)]="options.colorMode" (onChange)="recalculate()" />
-                </div>
-                <div class="col-12 sm:col-6 flex flex-column gap-2">
-                  <label class="text-sm">Sides</label>
-                  <p-select [options]="sideModes" [(ngModel)]="options.sideMode" (onChange)="recalculate()" />
-                </div>
-                <div class="col-12 sm:col-6 flex flex-column gap-2">
-                  <label class="text-sm">Copies</label>
-                  <p-inputNumber [(ngModel)]="options.copies" [min]="1" [max]="999" (onInput)="recalculate()" />
-                </div>
+            <!-- Step 2: Confirm -->
+            @if (currentStep() === 2 && quote(); as q) {
+              <div class="mb-4">
+                <h3 class="mt-0 mb-1">Review your order</h3>
+                <p class="text-color-secondary text-sm mt-0">
+                  No payment is collected online — pay the shop directly at the counter if required.
+                </p>
+                <p-divider />
               </div>
-            </div>
-
-            @if (quote(); as q) {
-              <app-price-summary-card
-                [lines]="summaryLines(q)"
-                [amount]="q.amount"
-                [currency]="q.currency"
-              />
-              <div class="flex justify-content-end mt-4">
-                <p-button label="Continue to Confirm" icon="pi pi-arrow-right" iconPos="right" (onClick)="currentStep.set(2)" />
+              <app-price-summary-card [lines]="summaryLines(q)" [amount]="q.amount" [currency]="q.currency" />
+              <div class="flex justify-content-between mt-4">
+                <p-button label="Back" severity="secondary" [text]="true" (onClick)="currentStep.set(1)" />
+                <p-button label="Confirm Print Request" icon="pi pi-check" [loading]="confirming()" (onClick)="confirm()" />
               </div>
-            } @else if (quoting()) {
-              <div class="flex justify-content-center p-4"><p-progressSpinner strokeWidth="4" /></div>
+            }
+
+            <!-- Step 3: Status -->
+            @if (currentStep() === 3 && jobStatus(); as job) {
+              <div class="text-center py-3">
+                <div class="mb-3"><app-status-tag [status]="job.status" /></div>
+                <h3 class="mt-0 mb-2">
+                  @switch (job.status) {
+                    @case ('PRINT_ELIGIBLE') { Your print request is confirmed. }
+                    @case ('QUEUED') { The shop has queued your print job. }
+                    @case ('PRINTING') { Printing in progress... }
+                    @case ('PRINTED') { All done — please collect your printout. }
+                    @case ('RETENTION_PENDING') { All done — please collect your printout. }
+                    @case ('PRINT_FAILED') { Printing failed. Please check with the shop. }
+                    @case ('AGENT_OFFLINE') { The shop's printer is currently offline. Your job is still queued. }
+                    @default { Tracking your order... }
+                  }
+                </h3>
+                <p class="text-color-secondary text-sm">Order reference: {{ jobId() }}</p>
+              </div>
             }
           }
-
-          <!-- Step 2: Confirm -->
-          @if (currentStep() === 2 && quote(); as q) {
-            <div class="surface-card-flat p-4 mb-4">
-              <h3 class="mt-0">Review your order</h3>
-              <p class="text-color-secondary text-sm">
-                No payment is collected online — pay the shop directly at the counter if required.
-              </p>
-            </div>
-            <app-price-summary-card [lines]="summaryLines(q)" [amount]="q.amount" [currency]="q.currency" />
-            <div class="flex justify-content-between mt-4">
-              <p-button label="Back" severity="secondary" [text]="true" (onClick)="currentStep.set(1)" />
-              <p-button label="Confirm Print Request" icon="pi pi-check" [loading]="confirming()" (onClick)="confirm()" />
-            </div>
-          }
-
-          <!-- Step 3: Status -->
-          @if (currentStep() === 3 && jobStatus(); as job) {
-            <div class="surface-card-flat p-5 text-center">
-              <div class="mb-3"><app-status-tag [status]="job.status" /></div>
-              <h3 class="mt-0 mb-2">
-                @switch (job.status) {
-                  @case ('PRINT_ELIGIBLE') { Your print request is confirmed. }
-                  @case ('QUEUED') { The shop has queued your print job. }
-                  @case ('PRINTING') { Printing in progress... }
-                  @case ('PRINTED') { All done — please collect your printout. }
-                  @case ('RETENTION_PENDING') { All done — please collect your printout. }
-                  @case ('PRINT_FAILED') { Printing failed. Please check with the shop. }
-                  @case ('AGENT_OFFLINE') { The shop's printer is currently offline. Your job is still queued. }
-                  @default { Tracking your order... }
-                }
-              </h3>
-              <p class="text-color-secondary text-sm">Order reference: {{ jobId() }}</p>
-            </div>
-          }
-        }
+        </div>
       </div>
     </div>
   `,
@@ -171,12 +185,42 @@ const DOC_STATUS_POLL_MS = 2000;
     `
       .order-page {
         min-height: 100vh;
-        background: #f8fafc;
-        padding: 2rem 1rem;
+        background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 60%);
+        padding: 2.5rem 1rem;
       }
       .order-container {
-        max-width: 560px;
+        max-width: 600px;
         margin: 0 auto;
+      }
+      .order-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+        padding: 2rem;
+      }
+      @media (max-width: 640px) {
+        .order-card {
+          padding: 1.25rem;
+          border-radius: 12px;
+        }
+      }
+      .dropzone {
+        border: 1.5px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 2rem 1.5rem;
+        background: #f8fafc;
+      }
+      .dropzone__icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--p-primary-50);
+        color: var(--p-primary-600);
+        font-size: 1.4rem;
       }
     `,
   ],
