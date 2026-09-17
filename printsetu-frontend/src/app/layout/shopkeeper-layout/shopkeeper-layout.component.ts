@@ -19,6 +19,7 @@ import { AuthService } from '../../core/auth/auth.service';
             >Notifications</a
           >
           <a routerLink="/shop/profile" routerLinkActive="active" class="nav-link">Shop Profile</a>
+          <a routerLink="/shop/pricing" routerLinkActive="active" class="nav-link">Pricing</a>
         </nav>
         <div class="flex align-items-center gap-3">
           <span class="text-sm text-color-secondary">{{ auth.user()?.email }}</span>

@@ -68,13 +68,6 @@ import { Shop } from '../../core/models/models';
           </td>
           <td class="flex gap-2 justify-content-end">
             <p-button
-              icon="pi pi-tags"
-              size="small"
-              [text]="true"
-              [routerLink]="['/admin/shops', shop.id, 'pricing']"
-              pTooltip="Pricing"
-            />
-            <p-button
               icon="pi pi-qrcode"
               size="small"
               [text]="true"

@@ -1,25 +1,30 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
-import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
-import { AdminService } from '../../core/services/admin.service';
+import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { PricingRate } from '../../core/models/models';
 
 @Component({
-  selector: 'app-pricing',
+  selector: 'app-shop-pricing',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TableModule, ButtonModule, SelectModule, InputNumberModule, TagModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TableModule,
+    ButtonModule,
+    SelectModule,
+    InputNumberModule,
+  ],
   template: `
-    <a routerLink="/admin/shops" class="text-sm" style="color: var(--p-primary-600)">&larr; Back to shops</a>
-    <h1 class="page-title mt-2">Pricing</h1>
+    <h1 class="page-title">Pricing</h1>
     <p class="page-subtitle">
-      Rates are versioned — changing a rate never alters the price already locked into past orders.
+      Set your own shop's print rates. Rates are versioned — changing a rate never alters the
+      price already locked into past orders.
     </p>
 
     <div class="surface-card-flat p-4 mb-4">
@@ -70,8 +75,7 @@ import { PricingRate } from '../../core/models/models';
     </p-table>
   `,
 })
-export class PricingComponent implements OnInit {
-  shopId!: string;
+export class ShopPricingComponent implements OnInit {
   rates = signal<PricingRate[]>([]);
   loading = signal(true);
   saving = signal(false);
@@ -88,19 +92,17 @@ export class PricingComponent implements OnInit {
   };
 
   constructor(
-    private readonly route: ActivatedRoute,
-    private readonly adminService: AdminService,
+    private readonly shopkeeperService: ShopkeeperService,
     private readonly messageService: MessageService,
   ) {}
 
   ngOnInit(): void {
-    this.shopId = this.route.snapshot.paramMap.get('shopId')!;
     this.load();
   }
 
   load(): void {
     this.loading.set(true);
-    this.adminService.listPricing(this.shopId).subscribe((rates) => {
+    this.shopkeeperService.listPricing().subscribe((rates) => {
       this.rates.set(rates);
       this.loading.set(false);
     });
@@ -109,8 +111,8 @@ export class PricingComponent implements OnInit {
   save(): void {
     if (!this.form.pricePerPage) return;
     this.saving.set(true);
-    this.adminService
-      .setPricing(this.shopId, {
+    this.shopkeeperService
+      .setPricing({
         paperSize: this.form.paperSize,
         colorMode: this.form.colorMode,
         sideMode: this.form.sideMode,

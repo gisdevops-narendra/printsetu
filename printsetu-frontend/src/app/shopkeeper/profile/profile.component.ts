@@ -1,5 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
@@ -8,10 +9,10 @@ import { PricingRate, Shop } from '../../core/models/models';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, TableModule, ProgressSpinnerModule],
+  imports: [CommonModule, RouterLink, TableModule, ProgressSpinnerModule],
   template: `
     <h1 class="page-title">Shop Profile</h1>
-    <p class="page-subtitle">Read-only — contact an administrator to change shop details or pricing.</p>
+    <p class="page-subtitle">Read-only — contact an administrator to change shop details.</p>
 
     @if (loading()) {
       <div class="flex justify-content-center p-6"><p-progressSpinner strokeWidth="4" /></div>
@@ -26,7 +27,10 @@ import { PricingRate, Shop } from '../../core/models/models';
         </div>
       </div>
 
-      <h3 class="mb-3">Current pricing</h3>
+      <div class="flex align-items-center justify-content-between mb-3">
+        <h3 class="m-0">Current pricing</h3>
+        <a routerLink="/shop/pricing" class="text-sm" style="color: var(--p-primary-600)">Manage pricing &rarr;</a>
+      </div>
       <p-table [value]="pricing()" styleClass="surface-card-flat">
         <ng-template pTemplate="header">
           <tr><th>Paper</th><th>Color</th><th>Side</th><th>Price / page</th></tr>

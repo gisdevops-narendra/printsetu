@@ -65,4 +65,27 @@ describe('ShopkeeperService (SRS §7 shopkeeper module)', () => {
     expect(req.request.params.get('pageSize')).toBe('20');
     req.flush({ items: [], total: 0, page: 2, pageSize: 20 });
   });
+
+  it('listPricing() GETs the shop\'s own active pricing (SRS §10)', () => {
+    service.listPricing().subscribe();
+    const req = httpMock.expectOne(`${BASE}/shop/pricing`);
+    expect(req.request.method).toBe('GET');
+    req.flush([]);
+  });
+
+  it('listPricingHistory() GETs the shop\'s own pricing history', () => {
+    service.listPricingHistory().subscribe();
+    const req = httpMock.expectOne(`${BASE}/shop/pricing/history`);
+    expect(req.request.method).toBe('GET');
+    req.flush([]);
+  });
+
+  it('setPricing() POSTs a new rate for the shop\'s own pricing', () => {
+    const dto = { paperSize: 'A4', colorMode: 'BW', sideMode: 'SIMPLEX', pricePerPage: 2 };
+    service.setPricing(dto).subscribe();
+    const req = httpMock.expectOne(`${BASE}/shop/pricing`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(dto);
+    req.flush({});
+  });
 });

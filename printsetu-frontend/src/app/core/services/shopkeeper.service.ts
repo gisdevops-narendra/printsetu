@@ -3,6 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { NotificationRow, PricingRate, PrintJobRow, Shop } from '../models/models';
 
+export interface SetPricingDto {
+  paperSize: string;
+  colorMode: string;
+  sideMode: string;
+  pricePerPage: number;
+}
+
 const BASE = environment.apiBaseUrl;
 
 @Injectable({ providedIn: 'root' })
@@ -56,5 +63,16 @@ export class ShopkeeperService {
       page: number;
       pageSize: number;
     }>(`${BASE}/shop/notifications`, { params: { page, pageSize } });
+  }
+
+  // ---- Pricing (SRS §10: the shop owns its own rates) ----
+  listPricing() {
+    return this.http.get<PricingRate[]>(`${BASE}/shop/pricing`);
+  }
+  listPricingHistory() {
+    return this.http.get<PricingRate[]>(`${BASE}/shop/pricing/history`);
+  }
+  setPricing(dto: SetPricingDto) {
+    return this.http.post<PricingRate>(`${BASE}/shop/pricing`, dto);
   }
 }

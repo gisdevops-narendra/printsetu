@@ -93,15 +93,6 @@ describe('AdminService (thin HTTP wrapper over SRS §17 admin endpoints)', () =>
     req.flush({});
   });
 
-  it('setPricing() POSTs the pricing rule for a shop', () => {
-    const dto = { paperSize: 'A4', colorMode: 'BW', sideMode: 'SIMPLEX', pricePerPage: 2 };
-    service.setPricing('shop-1', dto).subscribe();
-    const req = httpMock.expectOne(`${BASE}/admin/shops/shop-1/pricing`);
-    expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual(dto);
-    req.flush({});
-  });
-
   it('getQr() GETs the QR code for a shop', () => {
     service.getQr('shop-1').subscribe();
     const req = httpMock.expectOne(`${BASE}/admin/qr/shop-1`);

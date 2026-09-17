@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import {
   AuditLogRow,
-  PricingRate,
   PrinterRow,
   PrintJobRow,
   PrintSettings,
@@ -58,20 +57,6 @@ export class AdminService {
   }
   setUserStatus(id: string, status: 'ACTIVE' | 'DISABLED') {
     return this.http.patch<UserRow>(`${BASE}/admin/users/${id}/status`, { status });
-  }
-
-  // ---- Pricing ----
-  listPricing(shopId: string) {
-    return this.http.get<PricingRate[]>(`${BASE}/admin/shops/${shopId}/pricing`);
-  }
-  listPricingHistory(shopId: string) {
-    return this.http.get<PricingRate[]>(`${BASE}/admin/shops/${shopId}/pricing/history`);
-  }
-  setPricing(
-    shopId: string,
-    dto: { paperSize: string; colorMode: string; sideMode: string; pricePerPage: number },
-  ) {
-    return this.http.post<PricingRate>(`${BASE}/admin/shops/${shopId}/pricing`, dto);
   }
 
   // ---- QR ----

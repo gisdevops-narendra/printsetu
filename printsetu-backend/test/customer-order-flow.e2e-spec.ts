@@ -2,6 +2,7 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { createTestApp, closeTestApp } from './support/app';
 import { getAccessToken } from './support/keycloak';
+import { makeTestPasswordPermanent } from './support/keycloak-admin';
 import { buildMinimalPdf } from './support/fixtures';
 
 /**
@@ -12,11 +13,13 @@ import { buildMinimalPdf } from './support/fixtures';
  * document-analysis worker added for the Upload/Processing pipeline.
  *
  * This suite provisions its OWN throwaway shop/QR/pricing via the admin
- * API rather than depending on the shared seeded demo shop
+ * and shop APIs rather than depending on the shared seeded demo shop
  * (SHOP-DEMO001) — that fixture is also the one a human operator explores
  * the running dev app with, and any real admin action against it (e.g.
  * regenerating its QR code from the Admin UI) would otherwise make this
  * suite flaky. A dedicated shop per run has no such shared-state risk.
+ * Pricing (SRS §10) is owned by the shop itself, so this needs a
+ * throwaway shopkeeper login, not the admin token.
  */
 describe('Customer order flow (e2e)', () => {
   let app: INestApplication;
@@ -43,9 +46,18 @@ describe('Customer order flow (e2e)', () => {
       .expect(201);
     const shopId = shopRes.body.id;
 
-    await request(server)
-      .post(`/api/admin/shops/${shopId}/pricing`)
+    const shopkeeperEmail = `e2e-orderflow-shopkeeper-${Date.now()}@printsetu.local`;
+    const userRes = await request(server)
+      .post('/api/admin/users')
       .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'E2E Shopkeeper', email: shopkeeperEmail, role: 'SHOPKEEPER', shopId })
+      .expect(201);
+    await makeTestPasswordPermanent(userRes.body.keycloakUserId, userRes.body.temporaryPassword);
+    const shopkeeperToken = await getAccessToken(shopkeeperEmail, userRes.body.temporaryPassword);
+
+    await request(server)
+      .post('/api/shop/pricing')
+      .set('Authorization', `Bearer ${shopkeeperToken}`)
       .send({ paperSize: 'A4', colorMode: 'BW', sideMode: 'SIMPLEX', pricePerPage: 2 })
       .expect(201);
 

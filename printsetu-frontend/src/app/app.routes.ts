@@ -29,11 +29,6 @@ export const routes: Routes = [
         loadComponent: () => import('./admin/shops/shops.component').then((m) => m.ShopsComponent),
       },
       {
-        path: 'shops/:shopId/pricing',
-        loadComponent: () =>
-          import('./admin/pricing/pricing.component').then((m) => m.PricingComponent),
-      },
-      {
         path: 'shops/:shopId/qr',
         loadComponent: () => import('./admin/qr/qr.component').then((m) => m.QrComponent),
       },
@@ -83,6 +78,11 @@ export const routes: Routes = [
         path: 'profile',
         loadComponent: () =>
           import('./shopkeeper/profile/profile.component').then((m) => m.ProfileComponent),
+      },
+      {
+        path: 'pricing',
+        loadComponent: () =>
+          import('./shopkeeper/pricing/pricing.component').then((m) => m.ShopPricingComponent),
       },
       {
         path: 'notifications',

@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { PricingService } from './pricing.service';
-import { AdminPricingController } from './admin-pricing.controller';
+import { ShopPricingController } from './shop-pricing.controller';
 
 @Module({
-  controllers: [AdminPricingController],
+  controllers: [ShopPricingController],
   providers: [PricingService],
   exports: [PricingService],
 })
