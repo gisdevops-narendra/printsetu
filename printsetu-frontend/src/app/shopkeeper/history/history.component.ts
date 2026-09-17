@@ -4,29 +4,42 @@ import { TableModule } from 'primeng/table';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { PrintJobRow } from '../../core/models/models';
 import { StatusTagComponent } from '../../shared/components/status-tag/status-tag.component';
+import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [CommonModule, TableModule, StatusTagComponent],
+  imports: [CommonModule, TableModule, StatusTagComponent, EllipsisDirective],
   template: `
     <h1 class="page-title">Print History</h1>
     <p class="page-subtitle">Every job submitted to your shop, most recent first.</p>
 
-    <p-table [value]="jobs()" [loading]="loading()" styleClass="surface-card-flat" [paginator]="true" [rows]="15">
+    <p-table
+      [value]="jobs()"
+      [loading]="loading()"
+      styleClass="surface-card-flat table-fill"
+      [scrollable]="true"
+      scrollHeight="flex"
+      [paginator]="true"
+      [rows]="15"
+    >
       <ng-template pTemplate="header">
         <tr>
-          <th>Document</th>
-          <th>Options</th>
-          <th>Amount</th>
-          <th>Status</th>
-          <th>Created</th>
-          <th>Printed</th>
+          <th style="width: 26%">Document</th>
+          <th style="width: 20%">Options</th>
+          <th style="width: 12%">Amount</th>
+          <th style="width: 14%">Status</th>
+          <th style="width: 14%">Created</th>
+          <th style="width: 14%">Printed</th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-job>
         <tr>
-          <td>{{ job.document?.originalName }}</td>
+          <td>
+            <span appEllipsis #docRef="appEllipsis"
+              ><span class="cell-ellipsis__text" [class.is-truncated]="docRef.isTruncated">{{ job.document?.originalName }}</span></span
+            >
+          </td>
           <td class="text-xs">
             {{ job.optionsJson.paperSize }} · {{ job.optionsJson.colorMode }} · {{ job.optionsJson.sideMode }} ×{{ job.optionsJson.copies }}
           </td>

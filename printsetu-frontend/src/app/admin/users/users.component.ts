@@ -10,11 +10,22 @@ import { TagModule } from 'primeng/tag';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { AdminService } from '../../core/services/admin.service';
 import { RoleName, Shop, UserRow } from '../../core/models/models';
+import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, FormsModule, TableModule, ButtonModule, DialogModule, InputTextModule, SelectModule, TagModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TableModule,
+    ButtonModule,
+    DialogModule,
+    InputTextModule,
+    SelectModule,
+    TagModule,
+    EllipsisDirective,
+  ],
   template: `
     <div class="flex justify-content-between align-items-center mb-4">
       <div>
@@ -24,23 +35,43 @@ import { RoleName, Shop, UserRow } from '../../core/models/models';
       <p-button label="New User" icon="pi pi-plus" (onClick)="openCreate()" />
     </div>
 
-    <p-table [value]="users()" [loading]="loading()" styleClass="surface-card-flat" [paginator]="true" [rows]="10">
+    <p-table
+      [value]="users()"
+      [loading]="loading()"
+      styleClass="surface-card-flat table-fill"
+      [scrollable]="true"
+      scrollHeight="flex"
+      [paginator]="true"
+      [rows]="10"
+    >
       <ng-template pTemplate="header">
         <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Shop</th>
-          <th>Status</th>
-          <th></th>
+          <th style="width: 20%">Name</th>
+          <th style="width: 26%">Email</th>
+          <th style="width: 14%">Role</th>
+          <th style="width: 18%">Shop</th>
+          <th style="width: 12%">Status</th>
+          <th style="width: 10%"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-user>
         <tr>
-          <td>{{ user.name }}</td>
-          <td>{{ user.email }}</td>
+          <td>
+            <span appEllipsis #nameRef="appEllipsis"
+              ><span class="cell-ellipsis__text" [class.is-truncated]="nameRef.isTruncated">{{ user.name }}</span></span
+            >
+          </td>
+          <td>
+            <span appEllipsis #emailRef="appEllipsis"
+              ><span class="cell-ellipsis__text" [class.is-truncated]="emailRef.isTruncated">{{ user.email }}</span></span
+            >
+          </td>
           <td>{{ user.role.name }}</td>
-          <td>{{ user.shop?.name || '—' }}</td>
+          <td>
+            <span appEllipsis #shopRef="appEllipsis"
+              ><span class="cell-ellipsis__text" [class.is-truncated]="shopRef.isTruncated">{{ user.shop?.name || '—' }}</span></span
+            >
+          </td>
           <td><p-tag [value]="user.status" [severity]="user.status === 'ACTIVE' ? 'success' : 'danger'" /></td>
           <td class="text-right">
             <p-button

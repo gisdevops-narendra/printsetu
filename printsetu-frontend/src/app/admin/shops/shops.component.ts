@@ -13,6 +13,7 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { AdminService } from '../../core/services/admin.service';
 import { Shop } from '../../core/models/models';
+import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 
 @Component({
   selector: 'app-shops',
@@ -29,6 +30,7 @@ import { Shop } from '../../core/models/models';
     TagModule,
     TooltipModule,
     ToggleSwitchModule,
+    EllipsisDirective,
   ],
   template: `
     <div class="flex justify-content-between align-items-center mb-4">
@@ -42,26 +44,40 @@ import { Shop } from '../../core/models/models';
     <p-table
       [value]="shops()"
       [loading]="loading()"
-      styleClass="surface-card-flat"
+      styleClass="surface-card-flat table-fill"
+      [scrollable]="true"
+      scrollHeight="flex"
       [paginator]="true"
       [rows]="10"
     >
       <ng-template pTemplate="header">
         <tr>
-          <th>Shop Code</th>
-          <th>Name</th>
-          <th>Owner</th>
-          <th>City</th>
-          <th>Status</th>
-          <th></th>
+          <th style="width: 12%">Shop Code</th>
+          <th style="width: 26%">Name</th>
+          <th style="width: 22%">Owner</th>
+          <th style="width: 16%">City</th>
+          <th style="width: 12%">Status</th>
+          <th style="width: 12%"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-shop>
         <tr>
           <td>{{ shop.shopCode }}</td>
-          <td>{{ shop.name }}</td>
-          <td>{{ shop.ownerName }}</td>
-          <td>{{ shop.city }}</td>
+          <td>
+            <span appEllipsis #nameRef="appEllipsis"
+              ><span class="cell-ellipsis__text" [class.is-truncated]="nameRef.isTruncated">{{ shop.name }}</span></span
+            >
+          </td>
+          <td>
+            <span appEllipsis #ownerRef="appEllipsis"
+              ><span class="cell-ellipsis__text" [class.is-truncated]="ownerRef.isTruncated">{{ shop.ownerName }}</span></span
+            >
+          </td>
+          <td>
+            <span appEllipsis #cityRef="appEllipsis"
+              ><span class="cell-ellipsis__text" [class.is-truncated]="cityRef.isTruncated">{{ shop.city }}</span></span
+            >
+          </td>
           <td>
             <p-tag
               [value]="shop.status"

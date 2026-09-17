@@ -11,6 +11,7 @@ import { MessageModule } from 'primeng/message';
 import { MessageService } from 'primeng/api';
 import { AdminService } from '../../core/services/admin.service';
 import { PrinterRow, Shop } from '../../core/models/models';
+import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 
 @Component({
   selector: 'app-printers',
@@ -25,6 +26,7 @@ import { PrinterRow, Shop } from '../../core/models/models';
     SelectModule,
     TagModule,
     MessageModule,
+    EllipsisDirective,
   ],
   template: `
     <div class="flex justify-content-between align-items-center mb-4">
@@ -35,20 +37,36 @@ import { PrinterRow, Shop } from '../../core/models/models';
       <p-button label="Register Printer" icon="pi pi-plus" (onClick)="openRegister()" />
     </div>
 
-    <p-table [value]="printers()" [loading]="loading()" styleClass="surface-card-flat" [paginator]="true" [rows]="10">
+    <p-table
+      [value]="printers()"
+      [loading]="loading()"
+      styleClass="surface-card-flat table-fill"
+      [scrollable]="true"
+      scrollHeight="flex"
+      [paginator]="true"
+      [rows]="10"
+    >
       <ng-template pTemplate="header">
         <tr>
-          <th>Printer</th>
-          <th>Shop</th>
-          <th>Agent ID</th>
-          <th>Status</th>
-          <th>Last heartbeat</th>
+          <th style="width: 26%">Printer</th>
+          <th style="width: 22%">Shop</th>
+          <th style="width: 20%">Agent ID</th>
+          <th style="width: 14%">Status</th>
+          <th style="width: 18%">Last heartbeat</th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-p>
         <tr>
-          <td>{{ p.printerName }}</td>
-          <td>{{ shopName(p.shopId) }}</td>
+          <td>
+            <span appEllipsis #printerRef="appEllipsis"
+              ><span class="cell-ellipsis__text" [class.is-truncated]="printerRef.isTruncated">{{ p.printerName }}</span></span
+            >
+          </td>
+          <td>
+            <span appEllipsis #shopRef="appEllipsis"
+              ><span class="cell-ellipsis__text" [class.is-truncated]="shopRef.isTruncated">{{ shopName(p.shopId) }}</span></span
+            >
+          </td>
           <td><code class="text-xs">{{ p.agentId }}</code></td>
           <td>
             <p-tag

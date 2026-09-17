@@ -55,15 +55,21 @@ import { PricingRate } from '../../core/models/models';
       </div>
     </div>
 
-    <p-table [value]="rates()" [loading]="loading()" styleClass="surface-card-flat">
+    <p-table
+      [value]="rates()"
+      [loading]="loading()"
+      styleClass="surface-card-flat table-fill"
+      [scrollable]="true"
+      scrollHeight="flex"
+    >
       <ng-template pTemplate="header">
         <tr>
-          <th>Paper</th>
-          <th>Color</th>
-          <th>Side</th>
-          <th>Price / page</th>
-          <th>Effective from</th>
-          <th></th>
+          <th style="width: 18%">Paper</th>
+          <th style="width: 18%">Color</th>
+          <th style="width: 18%">Side</th>
+          <th style="width: 18%">Price / page</th>
+          <th style="width: 18%">Effective from</th>
+          <th style="width: 10%"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-rate>

@@ -7,11 +7,12 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { PrintJobRow } from '../../core/models/models';
 import { StatusTagComponent } from '../../shared/components/status-tag/status-tag.component';
+import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 
 @Component({
   selector: 'app-queue',
   standalone: true,
-  imports: [CommonModule, TableModule, ButtonModule, TooltipModule, StatusTagComponent],
+  imports: [CommonModule, TableModule, ButtonModule, TooltipModule, StatusTagComponent, EllipsisDirective],
   template: `
     <div class="flex justify-content-between align-items-center mb-4">
       <div>
@@ -21,20 +22,32 @@ import { StatusTagComponent } from '../../shared/components/status-tag/status-ta
       <p-button icon="pi pi-refresh" label="Refresh" severity="secondary" [text]="true" (onClick)="load()" />
     </div>
 
-    <p-table [value]="jobs()" [loading]="loading()" styleClass="surface-card-flat" [paginator]="true" [rows]="10">
+    <p-table
+      [value]="jobs()"
+      [loading]="loading()"
+      styleClass="surface-card-flat table-fill"
+      [scrollable]="true"
+      scrollHeight="flex"
+      [paginator]="true"
+      [rows]="10"
+    >
       <ng-template pTemplate="header">
         <tr>
-          <th>Document</th>
-          <th>Options</th>
-          <th>Amount</th>
-          <th>Status</th>
-          <th>Received</th>
-          <th></th>
+          <th style="width: 26%">Document</th>
+          <th style="width: 22%">Options</th>
+          <th style="width: 12%">Amount</th>
+          <th style="width: 14%">Status</th>
+          <th style="width: 14%">Received</th>
+          <th style="width: 12%"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-job>
         <tr>
-          <td>{{ job.document?.originalName }}</td>
+          <td>
+            <span appEllipsis #docRef="appEllipsis"
+              ><span class="cell-ellipsis__text" [class.is-truncated]="docRef.isTruncated">{{ job.document?.originalName }}</span></span
+            >
+          </td>
           <td class="text-xs">
             {{ job.optionsJson.paperSize }} · {{ job.optionsJson.colorMode }} · {{ job.optionsJson.sideMode }} ×{{ job.optionsJson.copies }}
           </td>

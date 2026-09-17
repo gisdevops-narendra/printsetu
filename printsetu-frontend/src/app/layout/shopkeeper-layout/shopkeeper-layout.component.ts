@@ -49,16 +49,19 @@ interface NavItem {
     `
       .shell {
         display: flex;
-        min-height: 100vh;
+        height: 100vh;
+        overflow: hidden;
       }
       .sidebar {
         width: 240px;
+        flex-shrink: 0;
         background: #0f172a;
         color: #e2e8f0;
         padding: 1.5rem 1rem;
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
+        overflow-y: auto;
       }
       .brand {
         font-size: 1.25rem;
@@ -88,9 +91,11 @@ interface NavItem {
         display: flex;
         flex-direction: column;
         min-width: 0;
+        min-height: 0;
       }
       .topbar {
         height: 64px;
+        flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: space-between;

@@ -29,14 +29,16 @@ const EVENT_META: Record<
     <p-table
       [value]="notifications()"
       [loading]="loading()"
-      styleClass="surface-card-flat"
+      styleClass="surface-card-flat table-fill"
+      [scrollable]="true"
+      scrollHeight="flex"
       [paginator]="true"
       [rows]="20"
     >
       <ng-template pTemplate="header">
         <tr>
-          <th>Event</th>
-          <th>When</th>
+          <th style="width: 60%">Event</th>
+          <th style="width: 40%">When</th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-n>

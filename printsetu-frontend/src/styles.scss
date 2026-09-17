@@ -12,6 +12,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+app-root {
+  display: block;
+  height: 100%;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -21,10 +26,42 @@ body {
   outline-offset: 2px;
 }
 
+/* ---------- No visible scrollbars anywhere ----------
+   Layouts are sized to fit the viewport (see .shell / .app-shell-content /
+   .table-fill below) so scrolling is rarely needed at all. Where content
+   genuinely can't fit (an edge-case short viewport, a long dropdown list),
+   the container still scrolls on wheel/touch/keyboard — it just never
+   shows scrollbar chrome. */
+
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 .app-shell-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   padding: 2rem;
   max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
+}
+
+/* Every routed page becomes a column that fills the remaining shell height,
+   so a page's own table/list can flex to fill it in turn. Non-table pages
+   (dashboard, profile, QR, ...) simply don't stretch their content further —
+   they render top-aligned as before. */
+.app-shell-content > *:not(router-outlet) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
 }
 
 @media (max-width: 768px) {
@@ -107,8 +144,28 @@ body {
 
 /* ---------- PrimeNG table refinement ---------- */
 
+/* Makes a <p-table> grow to fill whatever flex column it sits in (the page
+   root above), and — combined with [scrollable]="true" scrollHeight="flex"
+   on the component — keeps the header fixed, scrolls only the body region
+   internally if a page genuinely has more rows than fit, and always keeps
+   the paginator docked to the bottom of that filled area. */
+.table-fill {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .p-datatable.surface-card-flat {
   overflow: hidden;
+}
+
+/* Without this, table-layout defaults to "auto" and a column simply grows
+   to fit its widest cell's content — which defeats both the [th] width
+   hints below and any ellipsis truncation inside a cell, since the column
+   never actually gets narrower than the text. Fixed layout makes the [th]
+   widths authoritative, so long content truncates instead of stretching
+   the table. */
+.p-datatable-table {
+  table-layout: fixed;
 }
 
 .p-datatable .p-datatable-thead > tr > th {
@@ -132,13 +189,66 @@ body {
   border-bottom: none;
 }
 
+.p-datatable .p-datatable-tbody > tr:hover > td {
+  background: #f8fafc;
+}
+
+.p-datatable .p-paginator {
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+/* Long free-text cells (file names, shop names, ...): ellipsis at rest.
+   On hover, if — and only if — the text is actually too long to fit
+   (.is-truncated, set by EllipsisDirective), the inner text slides left
+   just far enough to reveal everything, then loops. No tooltip involved,
+   and text that already fits never animates or reacts to hover at all. */
+.cell-ellipsis {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  container-type: inline-size;
+}
+
+.cell-ellipsis:hover {
+  /* let the marquee show real characters instead of fighting the "…" */
+  text-overflow: clip;
+}
+
+.cell-ellipsis__text {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.cell-ellipsis:hover .cell-ellipsis__text.is-truncated {
+  animation: cell-marquee 5s linear infinite;
+  animation-delay: 0.4s;
+}
+
+@keyframes cell-marquee {
+  0%, 12% {
+    transform: translateX(0);
+  }
+  88%, 100% {
+    /* -100% of the text's own width, plus 100% of the container's width,
+       i.e. shift left by exactly (text width - container width) — the
+       overflow amount — regardless of how long the text actually is. */
+    transform: translateX(calc(-100% + 100cqw));
+  }
+}
+
 /* Empty-state rows */
 
 .table-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  height: 100%;
+  min-height: 12rem;
   padding: 2.5rem 1rem;
 }
 
@@ -161,10 +271,6 @@ body {
   color: #475569;
 }
 
-.p-datatable .p-datatable-tbody > tr:hover > td {
-  background: #f8fafc;
-}
-
 /* ---------- Dialog refinement ---------- */
 
 .p-dialog .p-dialog-header {
@@ -183,13 +289,4 @@ body {
 
 .p-dialog .p-dialog-footer {
   padding: 1rem 1.5rem 1.25rem 1.5rem;
-}
-
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
 }
