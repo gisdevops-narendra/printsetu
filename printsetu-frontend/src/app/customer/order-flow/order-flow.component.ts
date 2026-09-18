@@ -1,18 +1,10 @@
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { FileUpload, FileUploadModule, FileUploadHandlerEvent } from 'primeng/fileupload';
-import { SelectModule } from 'primeng/select';
-import { InputNumberModule } from 'primeng/inputnumber';
-import { ButtonModule } from 'primeng/button';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { MessageModule } from 'primeng/message';
-import { DividerModule } from 'primeng/divider';
-import { MenuItem, MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { CustomerService } from '../../core/services/customer.service';
-import { PriceSummaryCardComponent, PriceSummaryLine } from '../../shared/components/price-summary-card/price-summary-card.component';
 import { StatusTagComponent } from '../../shared/components/status-tag/status-tag.component';
 import {
   ColorMode,
@@ -21,12 +13,15 @@ import {
   PaperSize,
   PrintJobStatus,
   QuoteItemRequest,
+  QuoteItemResponse,
   QuoteResponse,
   SideMode,
 } from '../../core/models/models';
 
 const STATUS_POLL_MS = 4000;
 const DOC_STATUS_POLL_MS = 2000;
+const MAX_FILE_BYTES = 25 * 1024 * 1024;
+const QUOTE_DEBOUNCE_MS = 250;
 const TERMINAL_JOB_STATUSES: PrintJobStatus[] = ['PRINTED', 'RETENTION_PENDING', 'DELETED', 'PRINT_FAILED', 'CANCELLED'];
 
 interface DocOptions {
@@ -64,441 +59,1023 @@ interface PersistedOrderSession {
 @Component({
   selector: 'app-order-flow',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    FileUploadModule,
-    SelectModule,
-    InputNumberModule,
-    ButtonModule,
-    ProgressSpinnerModule,
-    MessageModule,
-    DividerModule,
-    PriceSummaryCardComponent,
-    StatusTagComponent,
-  ],
+  imports: [CommonModule, ProgressSpinnerModule, StatusTagComponent],
   template: `
-    <div class="order-page">
-      <div class="order-container">
-        <div class="text-center mb-5">
-          <h1 class="text-2xl font-bold m-0" style="color: var(--p-primary-600); letter-spacing: -0.01em">PrintSetu</h1>
-          @if (shopName()) {
-            <p class="text-color-secondary mt-1 mb-0">{{ shopName() }}</p>
-          }
-        </div>
-
-        <div class="order-card">
-          <div class="stepper" aria-hidden="true">
-            @for (item of stepItems; track item.label; let i = $index) {
-              <div class="stepper__item" [class.is-active]="i === currentStep()" [class.is-done]="i < currentStep()">
-                <span class="stepper__dot">
-                  @if (i < currentStep()) { <i class="pi pi-check"></i> } @else { {{ i + 1 }} }
-                </span>
-              </div>
-              @if (i < stepItems.length - 1) {
-                <span class="stepper__line" [class.is-done]="i < currentStep()"></span>
+    <div class="page">
+      <!-- ================= App bar ================= -->
+      <header class="appbar">
+        <div class="wrap">
+          <div class="appbar__row">
+            <div class="appbar__side">
+              @if (canGoBack()) {
+                <button type="button" class="icon-btn" (click)="goBack()" aria-label="Back">
+                  <i class="pi pi-arrow-left"></i>
+                </button>
               }
+            </div>
+            <div class="appbar__title">
+              <span class="brand">PrintSetu</span>
+              @if (shopName()) {
+                <span class="shop">{{ shopName() }}</span>
+              }
+            </div>
+            <div class="appbar__side appbar__side--end">
+              @if (canStartOver()) {
+                <button type="button" class="text-link" (click)="confirmStartOver()">Start over</button>
+              }
+            </div>
+          </div>
+          <div
+            class="progress"
+            role="progressbar"
+            aria-valuemin="1"
+            [attr.aria-valuemax]="stepItems.length"
+            [attr.aria-valuenow]="currentStep() + 1"
+            [attr.aria-label]="'Step ' + (currentStep() + 1) + ' of ' + stepItems.length + ': ' + stepItems[currentStep()].label"
+          >
+            @for (s of stepItems; track s.label; let i = $index) {
+              <span class="progress__seg" [class.is-on]="i <= currentStep()"></span>
             }
           </div>
-          <p class="stepper__label">Step {{ currentStep() + 1 }} of {{ stepItems.length }} &middot; {{ stepItems[currentStep()].label }}</p>
+          <p class="progress__label">
+            Step {{ currentStep() + 1 }} of {{ stepItems.length }} &middot;&nbsp;<strong>{{ stepItems[currentStep()].label }}</strong>
+          </p>
+        </div>
+      </header>
 
-          @if (!resolvingShop() && !shopError() && (sessionId() || jobId())) {
-            <div class="text-center mb-3">
-              <button type="button" class="reset-link" (click)="startNewOrder()">
-                @if (jobId()) { Print something else / start over } @else { Not what you meant to upload? Start over }
-              </button>
-            </div>
-          }
-
+      <!-- ================= Content ================= -->
+      <main class="content">
+        <div class="wrap">
           @if (resolvingShop()) {
-            <div class="flex justify-content-center p-6"><p-progressSpinner strokeWidth="4" /></div>
+            <div class="center-block"><p-progressSpinner strokeWidth="4" /></div>
           } @else if (shopError()) {
-            <p-message severity="error" [text]="shopError()!" />
+            <div class="state-card state-card--error">
+              <i class="pi pi-exclamation-circle"></i>
+              <p>{{ shopError() }}</p>
+            </div>
           } @else {
-            <!-- Step 0: Upload -->
+            <!-- ---------- Step 1: Upload & set up ---------- -->
             @if (currentStep() === 0) {
-              <div>
-                <h3 class="mt-0 mb-1">Upload your documents</h3>
-                <p class="text-color-secondary text-sm mt-0">PDF, JPG or PNG, up to 25&nbsp;MB each &mdash; add as many as you need.</p>
+              <h1 class="title">Upload &amp; set up</h1>
+              <p class="lead">Add your files, then choose how each one should be printed.</p>
 
-                @if (uploadError()) {
-                  <p-message severity="error" [text]="uploadError()!" styleClass="w-full mb-3" />
-                }
+              @if (uploadError()) {
+                <div class="notice notice--error" role="alert">
+                  <i class="pi pi-exclamation-circle"></i>
+                  <span>{{ uploadError() }}</span>
+                </div>
+              }
 
-                @if (uploads().length > 0) {
-                  <div class="upload-list mb-3">
-                    @for (u of uploads(); track u.documentId) {
-                      <div class="upload-row">
-                        <i class="pi upload-row__icon" [class.pi-file]="u.status !== 'ANALYSIS_FAILED'" [class.pi-exclamation-triangle]="u.status === 'ANALYSIS_FAILED'"></i>
-                        <span class="upload-row__name">{{ u.originalName }}</span>
+              @if (uploads().length === 0) {
+                <label class="dropzone" [class.is-drag]="dragging()" (dragover)="onDragOver($event)" (dragleave)="dragging.set(false)" (drop)="onDrop($event)">
+                  <input class="sr-only" type="file" multiple accept=".pdf,.jpg,.jpeg,.png" (change)="onFilesChosen($event)" />
+                  <span class="dropzone__icon"><i class="pi pi-cloud-upload"></i></span>
+                  <span class="dropzone__title">Choose files to print</span>
+                  <span class="dropzone__hint">PDF, JPG or PNG &middot; up to 25&nbsp;MB each</span>
+                  <span class="dropzone__cta"><i class="pi pi-plus"></i> Select files</span>
+                </label>
+              } @else {
+                <div class="files">
+                  @for (u of uploads(); track u.documentId) {
+                    <article class="file" [id]="'doc-' + u.documentId" [class.is-flash]="highlightId() === u.documentId">
+                      <button type="button" class="file__head" (click)="toggleName(u.documentId)" [attr.aria-expanded]="isExpanded(u.documentId)" [title]="u.originalName">
+                        <span class="file__icon" [class.is-pdf]="isPdf(u)" [class.is-bad]="u.status === 'ANALYSIS_FAILED'">
+                          <i class="pi" [ngClass]="u.status === 'ANALYSIS_FAILED' ? 'pi-exclamation-triangle' : isPdf(u) ? 'pi-file-pdf' : 'pi-image'"></i>
+                        </span>
+                        <span class="fname" [class.is-open]="isExpanded(u.documentId)">
+                          <span class="fname__base">{{ nameParts(u.originalName).base }}</span>
+                          <span class="fname__ext">{{ nameParts(u.originalName).ext }}</span>
+                        </span>
                         @if (u.status === 'PROCESSED') {
-                          <span class="upload-row__meta">{{ u.pageCount }} pg</span>
+                          <span class="file__meta">{{ u.pageCount }} {{ u.pageCount === 1 ? 'page' : 'pages' }}</span>
                         } @else if (u.status === 'ANALYSIS_FAILED') {
-                          <span class="upload-row__meta upload-row__meta--error">failed</span>
+                          <span class="file__meta file__meta--error">Failed</span>
                         } @else {
-                          <p-progressSpinner strokeWidth="8" [style]="{ width: '16px', height: '16px' }" />
+                          <p-progressSpinner strokeWidth="8" [style]="{ width: '18px', height: '18px' }" />
                         }
-                      </div>
-                    }
-                  </div>
-                }
+                      </button>
 
-                <div class="dropzone flex flex-column align-items-center gap-3 text-center">
-                  <div class="dropzone__icon"><i class="pi pi-cloud-upload"></i></div>
-                  <p-fileUpload
-                    #fu
-                    mode="basic"
-                    [chooseLabel]="uploads().length ? 'Add More Files' : 'Choose Files'"
-                    [customUpload]="true"
-                    [multiple]="true"
-                    (uploadHandler)="onFilesSelected($event, fu)"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    [maxFileSize]="26214400"
-                    [auto]="true"
-                  />
-                  <p class="text-xs text-color-secondary m-0">or drag and drop them here</p>
-                </div>
+                      @if (u.status === 'PROCESSED') {
+                        <div class="opts">
+                          <div class="opt">
+                            <span class="opt__label">Paper</span>
+                            <div class="seg" role="radiogroup" aria-label="Paper size">
+                              @for (p of paperSizes; track p) {
+                                <button type="button" class="seg__btn" role="radio" [attr.aria-checked]="u.options.paperSize === p" [class.is-on]="u.options.paperSize === p" (click)="setOption(u, 'paperSize', p)">
+                                  {{ paperLabel(p) }}
+                                </button>
+                              }
+                            </div>
+                          </div>
 
-                @if (uploading()) {
-                  <div class="flex align-items-center gap-2 mt-3 text-color-secondary">
-                    <p-progressSpinner strokeWidth="6" [style]="{ width: '24px', height: '24px' }" />
-                    <span>Uploading...</span>
-                  </div>
-                }
+                          <div class="opts__pair">
+                            <div class="opt">
+                              <span class="opt__label">Color</span>
+                              <div class="seg" role="radiogroup" aria-label="Color">
+                                @for (c of colorModes; track c) {
+                                  <button type="button" class="seg__btn" role="radio" [attr.aria-checked]="u.options.colorMode === c" [class.is-on]="u.options.colorMode === c" (click)="setOption(u, 'colorMode', c)">
+                                    {{ c === 'BW' ? 'B&W' : 'Color' }}
+                                  </button>
+                                }
+                              </div>
+                            </div>
+                            <div class="opt">
+                              <span class="opt__label">Sides</span>
+                              <div class="seg" role="radiogroup" aria-label="Sides">
+                                @for (s of sideModes; track s) {
+                                  <button type="button" class="seg__btn" role="radio" [attr.aria-checked]="u.options.sideMode === s" [class.is-on]="u.options.sideMode === s" (click)="setOption(u, 'sideMode', s)">
+                                    {{ s === 'SIMPLEX' ? 'Single' : 'Double' }}
+                                  </button>
+                                }
+                              </div>
+                            </div>
+                          </div>
 
-                @if (canContinueToOptions()) {
-                  <div class="flex justify-content-end mt-4">
-                    <p-button label="Continue to Options" icon="pi pi-arrow-right" iconPos="right" (onClick)="goToOptions()" />
-                  </div>
-                }
-              </div>
-            }
+                          <div class="opt opt--row">
+                            <span class="opt__label">Copies</span>
+                            <div class="qty" role="group" aria-label="Copies">
+                              <button type="button" class="qty__btn" (click)="stepCopies(u, -1)" [disabled]="u.options.copies <= 1" aria-label="Fewer copies">
+                                <i class="pi pi-minus"></i>
+                              </button>
+                              <input
+                                class="qty__input"
+                                type="text"
+                                inputmode="numeric"
+                                pattern="[0-9]*"
+                                maxlength="3"
+                                aria-label="Number of copies"
+                                [value]="u.options.copies"
+                                (focus)="$any($event.target).select()"
+                                (change)="setCopies(u, $any($event.target))"
+                                (keydown.enter)="$any($event.target).blur()"
+                              />
+                              <button type="button" class="qty__btn" (click)="stepCopies(u, 1)" [disabled]="u.options.copies >= 999" aria-label="More copies">
+                                <i class="pi pi-plus"></i>
+                              </button>
+                            </div>
+                          </div>
 
-            <!-- Step 1: Options (per document — SRS extension: multi-document requests) -->
-            @if (currentStep() === 1) {
-              <div>
-                <button type="button" class="back-link mb-2" (click)="currentStep.set(0)">
-                  <i class="pi pi-arrow-left"></i> Add more files
-                </button>
-                <h3 class="mt-0 mb-1">Set print options</h3>
-                <p class="text-color-secondary text-sm mt-0 mb-3">Each document can have its own paper size, color, sides and copies.</p>
-
-                @for (doc of processedUploads(); track doc.documentId) {
-                  <div class="doc-options-card mb-3">
-                    <div class="flex align-items-center gap-2 mb-2 doc-name-row">
-                      <i class="pi pi-file text-color-secondary"></i>
-                      <span class="doc-name font-medium">{{ doc.originalName }}</span>
-                      <span class="text-color-secondary text-xs ml-auto white-space-nowrap">{{ doc.pageCount }} pg</span>
-                    </div>
-                    <div class="grid">
-                      <div class="col-6 sm:col-3 flex flex-column gap-2">
-                        <label class="text-xs font-medium">Paper</label>
-                        <p-select [options]="paperSizes" [(ngModel)]="doc.options.paperSize" (onChange)="recalculate()" />
-                      </div>
-                      <div class="col-6 sm:col-3 flex flex-column gap-2">
-                        <label class="text-xs font-medium">Color</label>
-                        <p-select [options]="colorModes" [(ngModel)]="doc.options.colorMode" (onChange)="recalculate()" />
-                      </div>
-                      <div class="col-6 sm:col-3 flex flex-column gap-2">
-                        <label class="text-xs font-medium">Sides</label>
-                        <p-select [options]="sideModes" [(ngModel)]="doc.options.sideMode" (onChange)="recalculate()" />
-                      </div>
-                      <div class="col-6 sm:col-3 flex flex-column gap-2">
-                        <label class="text-xs font-medium">Copies</label>
-                        <p-inputNumber [(ngModel)]="doc.options.copies" [min]="1" [max]="999" (onInput)="recalculate()" />
-                      </div>
-                    </div>
-                  </div>
-                }
-
-                <p-divider />
-
-                @if (quote(); as q) {
-                  <app-price-summary-card [lines]="summaryLines(q)" [amount]="q.amount" [currency]="q.currency" />
-                  <div class="flex justify-content-end mt-4">
-                    <p-button label="Continue to Confirm" icon="pi pi-arrow-right" iconPos="right" (onClick)="currentStep.set(2)" />
-                  </div>
-                } @else if (quoting()) {
-                  <div class="flex justify-content-center p-4"><p-progressSpinner strokeWidth="4" /></div>
-                }
-              </div>
-            }
-
-            <!-- Step 2: Confirm -->
-            @if (currentStep() === 2 && quote(); as q) {
-              <div class="mb-4">
-                <h3 class="mt-0 mb-1">Review your order</h3>
-                <p class="text-color-secondary text-sm mt-0">
-                  No payment is collected online — pay the shop directly at the counter if required.
-                </p>
-                <p-divider />
-              </div>
-              <app-price-summary-card [lines]="summaryLines(q)" [amount]="q.amount" [currency]="q.currency" />
-              <div class="confirm-actions mt-4">
-                <p-button label="Back" severity="secondary" [text]="true" (onClick)="currentStep.set(1)" />
-                <p-button label="Confirm Print Request" icon="pi pi-check" [loading]="confirming()" (onClick)="confirm()" />
-              </div>
-            }
-
-            <!-- Step 3: Status -->
-            @if (currentStep() === 3 && jobStatus(); as job) {
-              <div class="text-center py-3">
-                <div class="token-badge">
-                  <span class="token-badge__label">Your token number</span>
-                  <span class="token-badge__value">#{{ tokenNumber() }}</span>
-                </div>
-                <p class="text-color-secondary text-xs mt-2 mb-4">
-                  Quote this token number for anything to do with this order — it's how the shop and PrintSetu trace it.
-                </p>
-                <div class="mb-3"><app-status-tag [status]="job.status" /></div>
-                <h3 class="mt-0 mb-2">
-                  @switch (job.status) {
-                    @case ('PRINT_ELIGIBLE') { Your print request is confirmed. }
-                    @case ('QUEUED') { The shop has queued your print job. }
-                    @case ('PRINTING') { Printing in progress... }
-                    @case ('PRINTED') { All done — please collect your printout. }
-                    @case ('RETENTION_PENDING') { All done — please collect your printout. }
-                    @case ('PRINT_FAILED') { Printing failed. Please check with the shop. }
-                    @case ('AGENT_OFFLINE') { The shop's printer is currently offline. Your job is still queued. }
-                    @default { Tracking your order... }
+                          @if (lineFor(u.documentId); as line) {
+                            <div class="file__price">
+                              <span>{{ line.billablePages }} {{ line.billablePages === 1 ? 'page' : 'pages' }} to print</span>
+                              <strong>{{ money(line.amount) }}</strong>
+                            </div>
+                          }
+                        </div>
+                      } @else if (u.status === 'ANALYSIS_FAILED') {
+                        <p class="file__note file__note--error">We couldn't read this file. Try a different PDF, JPG or PNG.</p>
+                      } @else {
+                        <p class="file__note">Checking your file&hellip;</p>
+                      }
+                    </article>
                   }
-                </h3>
-              </div>
+                </div>
+
+                <label class="add-more" [class.is-drag]="dragging()" (dragover)="onDragOver($event)" (dragleave)="dragging.set(false)" (drop)="onDrop($event)">
+                  <input class="sr-only" type="file" multiple accept=".pdf,.jpg,.jpeg,.png" (change)="onFilesChosen($event)" />
+                  <i class="pi pi-plus"></i> Add more files
+                </label>
+              }
+
+              @if (uploading()) {
+                <div class="uploading"><p-progressSpinner strokeWidth="6" [style]="{ width: '20px', height: '20px' }" /> Uploading&hellip;</div>
+              }
+            }
+
+            <!-- ---------- Step 2: Review ---------- -->
+            @if (currentStep() === 1) {
+              <h1 class="title">Review your order</h1>
+              <p class="lead">Check the details, then confirm to send it to the shop.</p>
+
+              @if (quote(); as q) {
+                <section class="review">
+                  @for (line of reviewLines(); track line.documentId) {
+                    <div class="rline">
+                      <div class="rline__main">
+                        <span class="fname">
+                          <span class="fname__base">{{ nameParts(line.name).base }}</span>
+                          <span class="fname__ext">{{ nameParts(line.name).ext }}</span>
+                        </span>
+                        <span class="rline__meta">{{ line.summary }}</span>
+                        <button type="button" class="text-link text-link--small" (click)="editDoc(line.documentId)">Edit</button>
+                      </div>
+                      <strong class="rline__amount">{{ money(line.amount) }}</strong>
+                    </div>
+                  }
+                  <div class="rtotal">
+                    <span>Total</span>
+                    <strong>{{ money(q.amount) }}</strong>
+                  </div>
+                </section>
+
+                <div class="notice notice--info">
+                  <i class="pi pi-info-circle"></i>
+                  <span>No online payment. Pay at the shop counter if required.</span>
+                </div>
+              } @else {
+                <div class="center-block"><p-progressSpinner strokeWidth="4" /></div>
+              }
+            }
+
+            <!-- ---------- Step 3: Done ---------- -->
+            @if (currentStep() === 2 && jobStatus(); as job) {
+              <section class="done">
+                <span class="done__icon" [class.is-warn]="statusTone(job.status) === 'warn'" [class.is-bad]="statusTone(job.status) === 'bad'">
+                  <i class="pi" [ngClass]="statusTone(job.status) === 'bad' ? 'pi-times' : statusTone(job.status) === 'warn' ? 'pi-clock' : 'pi-check'"></i>
+                </span>
+                <h1 class="title title--center">{{ statusCopy(job.status) }}</h1>
+                <div class="token">
+                  <span class="token__label">Your token</span>
+                  <strong class="token__value">#{{ tokenNumber() }}</strong>
+                </div>
+                <app-status-tag [status]="job.status" />
+                <p class="hint">Show or quote this number at the counter for anything about this order.</p>
+              </section>
             }
           }
         </div>
-      </div>
+      </main>
+
+      <!-- ================= Bottom action bar ================= -->
+      @if (!resolvingShop() && !shopError()) {
+        @if (currentStep() === 0) {
+          <footer class="actionbar">
+            <div class="wrap">
+              @if (uploads().length > 0) {
+                <div class="summary">
+                  <span class="summary__label">
+                    {{ processedUploads().length }} {{ processedUploads().length === 1 ? 'file' : 'files' }} ready
+                    @if (pendingCount() > 0) { <span class="summary__pending">&middot; {{ pendingCount() }} checking</span> }
+                  </span>
+                  @if (quote(); as q) {
+                    <strong class="summary__total" [class.is-stale]="quoting()">{{ money(q.amount) }}</strong>
+                  } @else if (quoting()) {
+                    <p-progressSpinner strokeWidth="8" [style]="{ width: '18px', height: '18px' }" />
+                  }
+                </div>
+              }
+              <button type="button" class="btn btn--primary" [disabled]="!canContinue()" (click)="goToReview()">
+                @if (uploads().length === 0) { Add a file to continue } @else { Continue <i class="pi pi-arrow-right"></i> }
+              </button>
+            </div>
+          </footer>
+        }
+        @if (currentStep() === 1 && quote(); as q) {
+          <footer class="actionbar">
+            <div class="wrap">
+              <div class="summary">
+                <span class="summary__label">Total</span>
+                <strong class="summary__total">{{ money(q.amount) }}</strong>
+              </div>
+              <button type="button" class="btn btn--primary" [disabled]="confirming()" (click)="confirm()">
+                @if (confirming()) { <i class="pi pi-spin pi-spinner"></i> Sending&hellip; } @else { <i class="pi pi-check"></i> Confirm order }
+              </button>
+            </div>
+          </footer>
+        }
+        @if (currentStep() === 2 && jobStatus()) {
+          <footer class="actionbar">
+            <div class="wrap">
+              <button type="button" class="btn btn--secondary" (click)="confirmStartOver()">Print something else</button>
+            </div>
+          </footer>
+        }
+      }
     </div>
   `,
   styles: [
     `
-      .order-page {
-        /* mobile browsers size 100vh against the viewport *with* the
-           address bar shown, so it falls short once the bar collapses,
-           exposing a gap below — 100dvh tracks the real visible area
-           and is only applied where supported (it overrides the vh
-           fallback above it, never the other way round). */
+      /* Customer flow: mobile-first. 8px spacing grid, one column, 48px+ touch
+         targets, and every text run is allowed to shrink (min-width: 0) so
+         nothing — file names, inputs — can push past the screen edge. */
+      :host {
+        display: block;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: #e6eaf2;
+        --surface: #ffffff;
+        --soft: #f3f5fa;
+        --radius: 16px;
+      }
+      .page {
         min-height: 100vh;
         min-height: 100dvh;
-        background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 60%);
-        padding: 2.5rem 1rem;
+        display: flex;
+        flex-direction: column;
+        background: linear-gradient(180deg, #eef2ff 0, #f7f8fc 240px);
+        color: var(--ink);
       }
-      .order-container {
-        /* Grows a little on big screens so the flow isn't a thin strip. */
-        max-width: clamp(600px, 46vw, 760px);
+      .wrap {
+        width: 100%;
+        max-width: 640px;
         margin: 0 auto;
+        padding-inline: 16px;
       }
-      .order-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
-        padding: 2rem;
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
       }
-      @media (max-width: 640px) {
-        .order-page {
-          padding: 1.25rem 0.75rem;
-        }
-        .order-card {
-          padding: 1.25rem;
-          border-radius: 12px;
-        }
+
+      /* ---------- App bar ---------- */
+      .appbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        padding-top: env(safe-area-inset-top);
+        background: rgba(255, 255, 255, 0.86);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--line);
       }
-      .dropzone {
-        border: 1.5px dashed #cbd5e1;
+      .appbar__row {
+        display: grid;
+        grid-template-columns: 72px minmax(0, 1fr) 72px;
+        align-items: center;
+        min-height: 56px;
+      }
+      .appbar__side {
+        display: flex;
+        align-items: center;
+      }
+      .appbar__side--end {
+        justify-content: flex-end;
+      }
+      .appbar__title {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 0;
+        line-height: 1.2;
+      }
+      .brand {
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: var(--p-primary-600);
+      }
+      .shop {
+        max-width: 100%;
+        font-size: 0.75rem;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .icon-btn {
+        width: 44px;
+        height: 44px;
+        margin-left: -8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
         border-radius: 12px;
-        padding: 2rem 1.5rem;
-        background: #f8fafc;
+        background: transparent;
+        color: #334155;
+        font-size: 1.125rem;
+        cursor: pointer;
       }
-      @media (max-width: 400px) {
-        .dropzone {
-          padding: 1.5rem 1rem;
-        }
+      .icon-btn:active {
+        background: var(--soft);
+      }
+      .text-link {
+        padding: 8px 0 8px 8px;
+        border: none;
+        background: none;
+        font: inherit;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--muted);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .text-link:hover {
+        color: var(--p-primary-600);
+      }
+      .text-link--small {
+        padding: 0;
+        font-size: 0.75rem;
+        color: var(--p-primary-600);
+      }
+
+      .progress {
+        display: flex;
+        gap: 6px;
+        padding-top: 4px;
+      }
+      .progress__seg {
+        flex: 1 1 0;
+        height: 4px;
+        border-radius: 999px;
+        background: #dfe4ee;
+        transition: background 0.2s ease;
+      }
+      .progress__seg.is-on {
+        background: var(--p-primary-600);
+      }
+      .progress__label {
+        margin: 0;
+        padding: 8px 0 12px;
+        text-align: center;
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+      .progress__label strong {
+        color: #334155;
+        font-weight: 600;
+      }
+
+      /* ---------- Content ---------- */
+      .content {
+        flex: 1 1 auto;
+        padding-block: 24px 32px;
+      }
+      .title {
+        margin: 0 0 4px;
+        font-size: 1.5rem;
+        line-height: 1.25;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .title--center {
+        text-align: center;
+      }
+      .lead {
+        margin: 0 0 24px;
+        font-size: 0.9375rem;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      .center-block {
+        display: flex;
+        justify-content: center;
+        padding: 48px 0;
+      }
+      .uploading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 16px;
+        font-size: 0.875rem;
+        color: var(--muted);
+      }
+
+      .notice {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin: 0 0 16px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: 0.875rem;
+        line-height: 1.4;
+      }
+      .notice i {
+        margin-top: 2px;
+      }
+      .notice--error {
+        background: #fef2f2;
+        color: #b91c1c;
+      }
+      .notice--info {
+        margin: 16px 0 0;
+        background: #eef2ff;
+        color: #3730a3;
+      }
+      .state-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 32px 24px;
+        border-radius: var(--radius);
+        background: var(--surface);
+        border: 1px solid var(--line);
+        text-align: center;
+      }
+      .state-card i {
+        font-size: 1.75rem;
+      }
+      .state-card p {
+        margin: 0;
+        line-height: 1.5;
+      }
+      .state-card--error i,
+      .state-card--error p {
+        color: #b91c1c;
+      }
+
+      /* ---------- Upload ---------- */
+      .dropzone {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 40px 24px;
+        border: 2px dashed #cbd5f5;
+        border-radius: 20px;
+        background: var(--surface);
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.15s ease, background 0.15s ease;
+      }
+      .dropzone.is-drag {
+        border-color: var(--p-primary-500);
+        background: var(--p-primary-50);
       }
       .dropzone__icon {
-        width: 3rem;
-        height: 3rem;
-        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
+        width: 64px;
+        height: 64px;
+        margin-bottom: 8px;
+        border-radius: 50%;
         background: var(--p-primary-50);
         color: var(--p-primary-600);
-        font-size: 1.4rem;
+        font-size: 1.75rem;
       }
-
-      .upload-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
+      .dropzone__title {
+        font-size: 1.0625rem;
+        font-weight: 700;
       }
-      .upload-row {
+      .dropzone__hint {
+        font-size: 0.8125rem;
+        color: var(--muted);
+      }
+      .dropzone__cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 16px;
+        min-height: 48px;
+        padding: 0 24px;
+        border-radius: 14px;
+        background: var(--p-primary-600);
+        color: #fff;
+        font-weight: 600;
+      }
+      .add-more {
         display: flex;
         align-items: center;
-        gap: 0.625rem;
-        padding: 0.625rem 0.875rem;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        background: #f8fafc;
+        justify-content: center;
+        gap: 8px;
+        min-height: 52px;
+        margin-top: 16px;
+        border: 2px dashed #cbd5f5;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.6);
+        color: var(--p-primary-600);
+        font-weight: 600;
+        cursor: pointer;
       }
-      .upload-row__icon {
-        color: #94a3b8;
-        flex-shrink: 0;
+      .add-more.is-drag {
+        background: var(--p-primary-50);
+        border-color: var(--p-primary-500);
       }
-      .upload-row__name {
+
+      /* ---------- File cards ---------- */
+      .files {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .file {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        overflow: hidden;
+        transition: box-shadow 0.3s ease, border-color 0.3s ease;
+      }
+      .file.is-flash {
+        border-color: var(--p-primary-400);
+        box-shadow: 0 0 0 4px var(--p-primary-100);
+      }
+      .file__head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        min-width: 0;
+        padding: 16px;
+        border: none;
+        background: none;
+        text-align: left;
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+      }
+      .file__icon {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: var(--p-primary-50);
+        color: var(--p-primary-600);
+        font-size: 1.125rem;
+      }
+      .file__icon.is-pdf {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+      .file__icon.is-bad {
+        background: #fef3c7;
+        color: #d97706;
+      }
+      .file__meta {
+        flex: 0 0 auto;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .file__meta--error {
+        color: #dc2626;
+      }
+      .file__note {
+        margin: 0;
+        padding: 0 16px 16px;
+        font-size: 0.8125rem;
+        color: var(--muted);
+      }
+      .file__note--error {
+        color: #b91c1c;
+      }
+
+      /* File names: shrink in the middle so the extension always shows;
+         tapping the row expands the whole name onto multiple lines. */
+      .fname {
         flex: 1 1 auto;
+        display: flex;
+        min-width: 0;
+        font-size: 0.9375rem;
+        font-weight: 600;
+      }
+      .fname__base {
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        font-size: 0.875rem;
       }
-      .upload-row__meta {
-        flex-shrink: 0;
-        font-size: 0.75rem;
-        color: #64748b;
+      .fname__ext {
+        flex: 0 0 auto;
+        white-space: nowrap;
       }
-      .upload-row__meta--error {
-        color: #dc2626;
-        font-weight: 600;
+      .fname.is-open {
+        flex-wrap: wrap;
+        word-break: break-all;
       }
-
-      .doc-options-card {
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 1rem;
-        background: #f8fafc;
+      .fname.is-open .fname__base {
+        overflow: visible;
+        white-space: normal;
       }
 
-      .token-badge {
-        display: inline-flex;
+      /* ---------- Options ---------- */
+      .opts {
+        display: flex;
         flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+        border-top: 1px solid var(--line);
+        background: #fbfcfe;
+      }
+      .opts__pair {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .opt {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+      }
+      .opt--row {
+        flex-direction: row;
         align-items: center;
-        gap: 0.125rem;
-        padding: 0.875rem 2rem;
-        border-radius: 14px;
-        background: var(--p-primary-50);
-        border: 1px solid var(--p-primary-100);
+        justify-content: space-between;
+        gap: 16px;
       }
-      .token-badge__label {
+      .opt__label {
         font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
+        font-weight: 700;
         letter-spacing: 0.04em;
-        color: var(--p-primary-600);
+        text-transform: uppercase;
+        color: var(--muted);
       }
-      .token-badge__value {
-        font-size: 2.5rem;
-        font-weight: 800;
-        line-height: 1.1;
-        color: var(--p-primary-700, var(--p-primary-600));
+      .seg {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
+        gap: 2px;
+        padding: 3px;
+        border-radius: 12px;
+        background: #e9edf5;
+      }
+      .seg__btn {
+        min-height: 40px;
+        padding: 0 4px;
+        border: none;
+        border-radius: 9px;
+        background: transparent;
+        font: inherit;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #475569;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background 0.12s ease, color 0.12s ease;
+      }
+      .seg__btn.is-on {
+        background: var(--surface);
+        color: var(--p-primary-700);
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14);
+      }
+
+      /* Copies: – [n] + . A grid with a fixed-width input, so it can never
+         spill out of the row the way a raw number field did. */
+      .qty {
+        display: inline-grid;
+        grid-template-columns: 44px 56px 44px;
+        align-items: center;
+        max-width: 100%;
+        padding: 3px;
+        border-radius: 12px;
+        background: #e9edf5;
+      }
+      .qty__btn {
+        width: 44px;
+        height: 44px;
+        border: none;
+        border-radius: 10px;
+        background: var(--surface);
+        color: var(--p-primary-700);
+        font-size: 0.875rem;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14);
+      }
+      .qty__btn:disabled {
+        background: transparent;
+        color: #a3aec2;
+        box-shadow: none;
+        cursor: default;
+      }
+      .qty__btn:active:not(:disabled) {
+        background: var(--p-primary-50);
+      }
+      .qty__input {
+        width: 100%;
+        min-width: 0;
+        height: 44px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        text-align: center;
+        font: inherit;
+        font-size: 1.0625rem;
+        font-weight: 700;
+        color: var(--ink);
+        outline: none;
+      }
+      .file__price {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-top: 12px;
+        border-top: 1px dashed var(--line);
+        font-size: 0.8125rem;
+        color: var(--muted);
+      }
+      .file__price strong {
+        font-size: 1rem;
+        color: var(--ink);
+      }
+
+      /* ---------- Review ---------- */
+      .review {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+      .rline {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      .rline__main {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+      .rline__main .fname {
+        width: 100%;
+      }
+      .rline__meta {
+        font-size: 0.8125rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+      .rline__amount {
+        flex: 0 0 auto;
+        font-size: 1rem;
+      }
+      .rtotal {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 16px;
+        background: #f6f8fd;
+        font-weight: 600;
+      }
+      .rtotal strong {
+        font-size: 1.5rem;
         letter-spacing: -0.02em;
       }
 
-      /* ---------- Compact step indicator ----------
-         PrimeNG's p-steps lays every step's full text label out in one row,
-         which either overlaps or forces horizontal scroll below ~380px.
-         This shows small numbered dots + a connecting line (always fits
-         four steps on any phone width) and the *current* step's label as
-         a single centered line underneath instead. */
-      .stepper {
+      /* ---------- Done ---------- */
+      .done {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        padding-top: 24px;
+        text-align: center;
+      }
+      .done__icon {
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 0.625rem;
-      }
-      .stepper__item {
-        display: flex;
-        flex-shrink: 0;
-      }
-      .stepper__dot {
-        width: 1.75rem;
-        height: 1.75rem;
-        min-width: 1.75rem;
+        width: 72px;
+        height: 72px;
         border-radius: 50%;
+        background: #dcfce7;
+        color: #16a34a;
+        font-size: 2rem;
+      }
+      .done__icon.is-warn {
+        background: #fef3c7;
+        color: #d97706;
+      }
+      .done__icon.is-bad {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+      .token {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        justify-content: center;
+        gap: 4px;
+        min-width: 200px;
+        padding: 16px 32px;
+        border-radius: 20px;
+        background: var(--p-primary-50);
+        border: 1px solid var(--p-primary-100);
+      }
+      .token__label {
         font-size: 0.75rem;
         font-weight: 700;
-        background: #e2e8f0;
-        color: #64748b;
-        transition: background 0.15s ease, color 0.15s ease;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--p-primary-600);
       }
-      .stepper__item.is-active .stepper__dot {
+      .token__value {
+        font-size: 3rem;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        color: var(--p-primary-700);
+      }
+      .hint {
+        margin: 0;
+        max-width: 28ch;
+        font-size: 0.8125rem;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      /* ---------- Bottom action bar (thumb zone) ---------- */
+      .actionbar {
+        position: sticky;
+        bottom: 0;
+        z-index: 20;
+        padding-block: 12px;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-top: 1px solid var(--line);
+        box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.06);
+      }
+      .summary {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .summary__label {
+        font-size: 0.8125rem;
+        color: var(--muted);
+      }
+      .summary__pending {
+        color: #d97706;
+      }
+      .summary__total {
+        font-size: 1.25rem;
+        letter-spacing: -0.02em;
+        transition: opacity 0.15s ease;
+      }
+      .summary__total.is-stale {
+        opacity: 0.45;
+      }
+      .btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 56px;
+        padding: 0 24px;
+        border: none;
+        border-radius: 16px;
+        font: inherit;
+        font-size: 1.0625rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
+      }
+      .btn:active:not(:disabled) {
+        transform: scale(0.985);
+      }
+      .btn--primary {
         background: var(--p-primary-600);
         color: #fff;
+        box-shadow: 0 8px 20px rgba(79, 70, 229, 0.28);
       }
-      .stepper__item.is-done .stepper__dot {
-        background: var(--p-primary-100);
-        color: var(--p-primary-600);
+      .btn--primary:hover:not(:disabled) {
+        background: var(--p-primary-700);
       }
-      .stepper__line {
-        width: 2.5rem;
-        max-width: 8vw;
-        height: 2px;
-        background: #e2e8f0;
-        margin: 0 0.375rem;
+      .btn--primary:disabled {
+        background: #d5dbe8;
+        color: #7c889d;
+        box-shadow: none;
+        cursor: default;
       }
-      .stepper__line.is-done {
-        background: var(--p-primary-300);
-      }
-      .stepper__label {
-        text-align: center;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        color: #475569;
-        margin: 0 0 1.5rem 0;
+      .btn--secondary {
+        background: var(--surface);
+        color: var(--p-primary-700);
+        border: 1.5px solid #cfd6f0;
       }
 
-      .reset-link,
-      .back-link {
-        background: none;
-        border: none;
-        padding: 0;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        color: #64748b;
-        cursor: pointer;
-        text-decoration: underline;
-        text-underline-offset: 2px;
-      }
-      .reset-link:hover,
-      .back-link:hover {
-        color: var(--p-primary-600);
-      }
-      .back-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-        text-decoration: none;
-      }
-      .back-link:hover {
-        text-decoration: underline;
-      }
-
-      .doc-name-row {
-        min-width: 0;
-      }
-      .doc-name {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        min-width: 0;
-      }
-
-      .confirm-actions {
-        display: flex;
-        justify-content: space-between;
-        gap: 0.75rem;
-      }
-      @media (max-width: 420px) {
-        .confirm-actions {
-          flex-direction: column-reverse;
+      /* ---------- Larger screens ---------- */
+      @media (min-width: 900px) {
+        .wrap {
+          padding-inline: 24px;
         }
-        .confirm-actions ::ng-deep .p-button {
-          width: 100%;
-          justify-content: center;
+        .content {
+          padding-block: 40px 56px;
+        }
+        .title {
+          font-size: 1.75rem;
+        }
+        .actionbar .wrap {
+          display: flex;
+          align-items: center;
+          gap: 24px;
+        }
+        .actionbar .summary {
+          flex: 1 1 auto;
+          margin: 0;
+        }
+        .actionbar .btn {
+          width: auto;
+          min-width: 240px;
+        }
+        .opts {
+          padding: 24px;
+        }
+        .file__head {
+          padding: 20px 24px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
         }
       }
     `,
@@ -506,7 +1083,8 @@ interface PersistedOrderSession {
 })
 export class OrderFlowComponent implements OnInit, OnDestroy {
   currentStep = signal(0);
-  stepItems: MenuItem[] = [{ label: 'Upload' }, { label: 'Options' }, { label: 'Confirm' }, { label: 'Status' }];
+  /** Three steps: upload + set up options, review, done (confirmation / live status). */
+  stepItems: { label: string }[] = [{ label: 'Upload' }, { label: 'Review' }, { label: 'Done' }];
 
   resolvingShop = signal(true);
   shopError = signal<string | null>(null);
@@ -517,7 +1095,10 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
   private sessionToken = '';
   uploads = signal<UploadEntry[]>([]);
   processedUploads = computed(() => this.uploads().filter((u) => u.status === 'PROCESSED'));
-  canContinueToOptions = computed(() => this.processedUploads().length > 0);
+  pendingCount = computed(() => this.uploads().filter((u) => u.status === 'UPLOADED' || u.status === 'PROCESSING').length);
+  dragging = signal(false);
+  highlightId = signal<string | null>(null);
+  private expanded = signal<ReadonlySet<string>>(new Set());
 
   uploading = signal(false);
   uploadError = signal<string | null>(null);
@@ -529,6 +1110,40 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
 
   quoting = signal(false);
   quote = signal<QuoteResponse | null>(null);
+  private quoteSeq = 0;
+  private recalcTimer?: ReturnType<typeof setTimeout>;
+  private processedKey = '';
+
+  canContinue = computed(
+    () =>
+      this.processedUploads().length > 0 &&
+      this.pendingCount() === 0 &&
+      !this.uploading() &&
+      !this.quoting() &&
+      !!this.quote(),
+  );
+  canGoBack = computed(() => this.currentStep() === 1);
+  canStartOver = computed(
+    () => !this.resolvingShop() && !this.shopError() && this.currentStep() !== 2 && (!!this.sessionId() || !!this.jobId()),
+  );
+  reviewLines = computed(() => {
+    const q = this.quote();
+    if (!q) return [];
+    const byId = new Map(this.uploads().map((u) => [u.documentId, u]));
+    return q.items.map((item) => {
+      const u = byId.get(item.documentId);
+      const o = u?.options;
+      const pages = `${item.billablePages} ${item.billablePages === 1 ? 'page' : 'pages'}`;
+      return {
+        documentId: item.documentId,
+        name: u?.originalName ?? 'Document',
+        amount: item.amount,
+        summary: o
+          ? `${this.paperLabel(o.paperSize)} · ${o.colorMode === 'BW' ? 'B&W' : 'Color'} · ${o.sideMode === 'SIMPLEX' ? 'Single-sided' : 'Double-sided'} · ×${o.copies} · ${pages}`
+          : pages,
+      };
+    });
+  });
 
   confirming = signal(false);
   jobId = signal<string | null>(null);
@@ -541,6 +1156,7 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
     private readonly route: ActivatedRoute,
     private readonly customerService: CustomerService,
     private readonly messageService: MessageService,
+    private readonly confirmationService: ConfirmationService,
   ) {}
 
   ngOnInit(): void {
@@ -561,6 +1177,7 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.pollHandle) clearInterval(this.pollHandle);
     if (this.docPollHandle) clearInterval(this.docPollHandle);
+    if (this.recalcTimer) clearTimeout(this.recalcTimer);
   }
 
   /** Reload-resilience (SRS extension): recover a still-pending upload session or print job from localStorage. */
@@ -581,7 +1198,7 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
           this.jobStatusToken = saved.jobStatusToken!;
           this.tokenNumber.set(saved.tokenNumber ?? null);
           this.jobStatus.set({ status: job.status });
-          this.currentStep.set(3);
+          this.currentStep.set(2);
           this.startPolling();
           this.messageService.add({ severity: 'info', summary: 'Resumed your print request' });
         },
@@ -600,10 +1217,6 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
           this.sessionId.set(saved.sessionId);
           this.sessionToken = saved.sessionToken;
           this.mergeSessionDocuments(docs);
-          if (this.canContinueToOptions()) {
-            this.currentStep.set(1);
-            this.recalculate();
-          }
           this.startAnalysisPollingIfNeeded();
           this.messageService.add({ severity: 'info', summary: 'Restored your uploaded documents' });
         },
@@ -632,6 +1245,11 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
 
     this.quote.set(null);
     this.quoting.set(false);
+    this.quoteSeq++;
+    this.processedKey = '';
+    if (this.recalcTimer) clearTimeout(this.recalcTimer);
+    this.expanded.set(new Set());
+    this.highlightId.set(null);
 
     this.confirming.set(false);
     this.jobId.set(null);
@@ -640,15 +1258,64 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
     this.jobStatus.set(null);
 
     this.currentStep.set(0);
+    this.scrollTop();
   }
 
-  async onFilesSelected(event: FileUploadHandlerEvent, fu: FileUpload): Promise<void> {
-    const files = event.files;
-    if (!files || files.length === 0) return;
-    this.uploadError.set(null);
-    this.uploading.set(true);
+  /** Asks first — starting over throws away the current files/settings. */
+  confirmStartOver(): void {
+    const status = this.jobStatus()?.status;
+    if (this.jobId() && status && TERMINAL_JOB_STATUSES.includes(status)) {
+      this.startNewOrder();
+      return;
+    }
+    this.confirmationService.confirm({
+      header: 'Start over?',
+      message: this.jobId()
+        ? 'This stops tracking the current order on this phone. The shop still has your request, so keep your token number.'
+        : 'Your current files and print settings will be cleared.',
+      icon: 'pi pi-refresh',
+      acceptLabel: 'Start over',
+      rejectLabel: 'Keep going',
+      accept: () => this.startNewOrder(),
+    });
+  }
 
-    for (const file of files) {
+  onFilesChosen(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = ''; // lets the same file be picked again
+    void this.uploadFiles(files);
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.dragging.set(true);
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.dragging.set(false);
+    void this.uploadFiles(Array.from(event.dataTransfer?.files ?? []));
+  }
+
+  private async uploadFiles(files: File[]): Promise<void> {
+    if (files.length === 0) return;
+    this.uploadError.set(null);
+    const problems: string[] = [];
+    const valid = files.filter((file) => {
+      if (!/\.(pdf|jpe?g|png)$/i.test(file.name)) {
+        problems.push(`"${file.name}" isn't a PDF, JPG or PNG.`);
+        return false;
+      }
+      if (file.size > MAX_FILE_BYTES) {
+        problems.push(`"${file.name}" is larger than 25 MB.`);
+        return false;
+      }
+      return true;
+    });
+
+    this.uploading.set(true);
+    for (const file of valid) {
       try {
         const res = await firstValueFrom(this.customerService.upload(this.shopCode, file, this.sessionId() ?? undefined));
         this.sessionId.set(res.sessionId);
@@ -667,13 +1334,14 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
         ]);
         this.persist();
       } catch {
-        this.uploadError.set(`"${file.name}" could not be uploaded. Please try again.`);
+        problems.push(`"${file.name}" could not be uploaded. Please try again.`);
       }
     }
-
     this.uploading.set(false);
-    fu.clear();
+    if (problems.length) this.uploadError.set(problems.join(' '));
+    this.processedKey = this.processedUploads().map((u) => u.documentId).join(',');
     this.startAnalysisPollingIfNeeded();
+    this.recalculate();
   }
 
   private defaultOptionsFor(mimeType: string): DocOptions {
@@ -701,6 +1369,12 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
         };
       }),
     );
+    // A file just finished being analysed (or was restored): price it.
+    const key = this.processedUploads().map((u) => u.documentId).join(',');
+    if (key !== this.processedKey) {
+      this.processedKey = key;
+      this.recalculate();
+    }
   }
 
   private startAnalysisPollingIfNeeded(): void {
@@ -730,34 +1404,151 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
     });
   }
 
-  goToOptions(): void {
+  // ---------- Navigation ----------
+
+  goToReview(): void {
+    if (!this.canContinue()) return;
     this.currentStep.set(1);
-    this.recalculate();
+    this.scrollTop();
+  }
+
+  goBack(): void {
+    if (this.currentStep() === 1) {
+      this.currentStep.set(0);
+      this.scrollTop();
+    }
+  }
+
+  /** "Edit" on the review screen: back to the file's card, highlighted. */
+  editDoc(documentId: string): void {
+    this.currentStep.set(0);
+    this.highlightId.set(documentId);
+    setTimeout(() => document.getElementById('doc-' + documentId)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
+    setTimeout(() => this.highlightId.set(null), 1800);
+  }
+
+  private scrollTop(): void {
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ---------- File cards ----------
+
+  paperLabel(p: PaperSize): string {
+    return p === 'LETTER' ? 'Letter' : p === 'LEGAL' ? 'Legal' : p;
+  }
+
+  isPdf(u: UploadEntry): boolean {
+    return u.mimeType === 'application/pdf';
+  }
+
+  /** Splits "report_final.pdf" so the extension can stay visible when the name is shortened. */
+  nameParts(name: string): { base: string; ext: string } {
+    const dot = name.lastIndexOf('.');
+    return dot > 0 && name.length - dot <= 6 ? { base: name.slice(0, dot), ext: name.slice(dot) } : { base: name, ext: '' };
+  }
+
+  isExpanded(id: string): boolean {
+    return this.expanded().has(id);
+  }
+
+  toggleName(id: string): void {
+    this.expanded.update((set) => {
+      const next = new Set(set);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  }
+
+  setOption<K extends keyof DocOptions>(doc: UploadEntry, key: K, value: DocOptions[K]): void {
+    if (doc.options[key] === value) return;
+    doc.options[key] = value;
+    this.scheduleRecalc();
+  }
+
+  stepCopies(doc: UploadEntry, delta: number): void {
+    this.setCopiesValue(doc, doc.options.copies + delta);
+  }
+
+  setCopies(doc: UploadEntry, input: HTMLInputElement): void {
+    const n = parseInt(input.value.replace(/\D/g, ''), 10);
+    this.setCopiesValue(doc, Number.isFinite(n) ? n : doc.options.copies);
+    input.value = String(doc.options.copies);
+  }
+
+  private setCopiesValue(doc: UploadEntry, value: number): void {
+    const copies = Math.min(999, Math.max(1, Math.round(value)));
+    if (copies === doc.options.copies) return;
+    doc.options.copies = copies;
+    this.scheduleRecalc();
+  }
+
+  // ---------- Pricing ----------
+
+  lineFor(documentId: string): QuoteItemResponse | null {
+    return this.quote()?.items.find((i) => i.documentId === documentId) ?? null;
+  }
+
+  money(amount: string | number): string {
+    const currency = this.quote()?.currency ?? 'INR';
+    return currency === 'INR' ? `₹${amount}` : `${currency} ${amount}`;
+  }
+
+  /** Option taps come in bursts (e.g. holding +): mark the price stale now, ask the server once things settle. */
+  private scheduleRecalc(): void {
+    this.quoting.set(true);
+    if (this.recalcTimer) clearTimeout(this.recalcTimer);
+    this.recalcTimer = setTimeout(() => this.recalculate(), QUOTE_DEBOUNCE_MS);
   }
 
   recalculate(): void {
     const docs = this.processedUploads();
     if (docs.length === 0) {
+      this.quoteSeq++;
       this.quote.set(null);
+      this.quoting.set(false);
       return;
     }
+    const seq = ++this.quoteSeq;
     this.quoting.set(true);
     const items: QuoteItemRequest[] = docs.map((d) => ({ documentId: d.documentId, ...d.options }));
     this.customerService.quote(items, this.sessionToken).subscribe({
       next: (q) => {
+        if (seq !== this.quoteSeq) return; // a newer quote is already on its way
         this.quote.set(q);
         this.quoting.set(false);
       },
-      error: () => this.quoting.set(false),
+      error: () => {
+        if (seq === this.quoteSeq) this.quoting.set(false);
+      },
     });
   }
 
-  summaryLines(q: QuoteResponse): PriceSummaryLine[] {
-    const byId = new Map(this.uploads().map((u) => [u.documentId, u]));
-    return q.items.map((item) => ({
-      label: byId.get(item.documentId)?.originalName ?? 'Document',
-      value: `${item.billablePages} pg · ₹${item.amount}`,
-    }));
+  // ---------- Status copy ----------
+
+  statusCopy(status: PrintJobStatus): string {
+    switch (status) {
+      case 'PRINT_ELIGIBLE':
+        return 'Order confirmed';
+      case 'QUEUED':
+        return 'Queued at the shop';
+      case 'PRINTING':
+        return 'Printing now…';
+      case 'PRINTED':
+      case 'RETENTION_PENDING':
+        return 'All done. Please collect your printout';
+      case 'PRINT_FAILED':
+        return 'Printing failed. Please check with the shop';
+      case 'AGENT_OFFLINE':
+        return "The shop's printer is offline. Your order is still queued";
+      default:
+        return 'Tracking your order…';
+    }
+  }
+
+  statusTone(status: PrintJobStatus): 'ok' | 'warn' | 'bad' {
+    if (status === 'PRINT_FAILED') return 'bad';
+    if (status === 'AGENT_OFFLINE') return 'warn';
+    return 'ok';
   }
 
   confirm(): void {
@@ -771,10 +1562,10 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
         this.tokenNumber.set(res.tokenNumber);
         this.jobStatusToken = res.statusToken;
         this.jobStatus.set({ status: res.status });
-        this.currentStep.set(3);
+        this.currentStep.set(2);
+        this.scrollTop();
         this.persist();
         this.startPolling();
-        this.messageService.add({ severity: 'success', summary: 'Print request confirmed' });
       },
       error: () => this.confirming.set(false),
     });
