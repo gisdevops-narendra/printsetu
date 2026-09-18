@@ -20,6 +20,7 @@ import { PrintersModule } from './printers/printers.module';
 import { RetentionModule } from './retention/retention.module';
 import { ReportsModule } from './reports/reports.module';
 import { SystemSettingsModule } from './system-settings/system-settings.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { SystemSettingsModule } from './system-settings/system-settings.module';
     RetentionModule,
     ReportsModule,
     SystemSettingsModule,
+    SubscriptionsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

@@ -59,6 +59,7 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
       pricingService as any,
       {} as any, // ConfigService
       {} as any, // dispatch queue
+      { assertShopCanPrint: jest.fn(), assertCustomerCanOrder: jest.fn() } as any, // SubscriptionAccessService
     );
   });
 

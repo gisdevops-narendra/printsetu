@@ -85,6 +85,7 @@ interface PersistedOrderSession {
               }
             </div>
           </div>
+          @if (!shopUnavailable()) {
           <div
             class="progress"
             role="progressbar"
@@ -100,6 +101,7 @@ interface PersistedOrderSession {
           <p class="progress__label">
             Step {{ currentStep() + 1 }} of {{ stepItems.length }} &middot;&nbsp;<strong>{{ stepItems[currentStep()].label }}</strong>
           </p>
+          }
         </div>
       </header>
 
@@ -108,6 +110,13 @@ interface PersistedOrderSession {
         <div class="wrap">
           @if (resolvingShop()) {
             <div class="center-block"><p-progressSpinner strokeWidth="4" /></div>
+          } @else if (shopUnavailable(); as unavailable) {
+            <div class="state-card state-card--unavailable" role="status">
+              <i class="pi pi-clock"></i>
+              <h2>This shop is temporarily unavailable</h2>
+              <p>{{ unavailableDetail(unavailable) }}</p>
+              <p class="state-card__shop">{{ shopName() }}</p>
+            </div>
           } @else if (shopError()) {
             <div class="state-card state-card--error">
               <i class="pi pi-exclamation-circle"></i>
@@ -297,7 +306,7 @@ interface PersistedOrderSession {
       </main>
 
       <!-- ================= Bottom action bar ================= -->
-      @if (!resolvingShop() && !shopError()) {
+      @if (!resolvingShop() && !shopError() && !shopUnavailable()) {
         @if (currentStep() === 0) {
           <footer class="actionbar">
             <div class="wrap">
@@ -567,6 +576,40 @@ interface PersistedOrderSession {
       .state-card--error i,
       .state-card--error p {
         color: #b91c1c;
+      }
+      .state-card--unavailable {
+        gap: 10px;
+        padding: 40px 24px;
+      }
+      .state-card--unavailable i {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 64px;
+        height: 64px;
+        margin-bottom: 4px;
+        border-radius: 50%;
+        background: #fef3c7;
+        font-size: 1.75rem;
+        color: #b45309;
+      }
+      .state-card--unavailable h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        line-height: 1.3;
+        color: #0f172a;
+      }
+      .state-card--unavailable p {
+        color: #64748b;
+      }
+      .state-card__shop {
+        margin-top: 6px !important;
+        padding: 4px 14px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #475569 !important;
       }
 
       /* ---------- Upload ---------- */
@@ -1088,6 +1131,12 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
 
   resolvingShop = signal(true);
   shopError = signal<string | null>(null);
+  /** The heading already says "temporarily unavailable", so only show what the server adds to it. */
+  unavailableDetail(message: string): string {
+    return message.replace(/^This shop is temporarily unavailable\.?\s*/i, '').trim() || 'Please try again later.';
+  }
+  /** The shop exists but is not taking orders (suspended, overdue, or at its plan limit). */
+  shopUnavailable = signal<string | null>(null);
   shopName = signal<string | null>(null);
   shopCode!: string;
 
@@ -1124,7 +1173,7 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
   );
   canGoBack = computed(() => this.currentStep() === 1);
   canStartOver = computed(
-    () => !this.resolvingShop() && !this.shopError() && this.currentStep() !== 2 && (!!this.sessionId() || !!this.jobId()),
+    () => !this.resolvingShop() && !this.shopError() && !this.shopUnavailable() && this.currentStep() !== 2 && (!!this.sessionId() || !!this.jobId()),
   );
   reviewLines = computed(() => {
     const q = this.quote();
@@ -1165,6 +1214,10 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.shopName.set(res.shopName);
         this.resolvingShop.set(false);
+        if (res.available === false) {
+          this.shopUnavailable.set(res.unavailableMessage ?? 'Please try again later.');
+          return;
+        }
         this.restoreSession();
       },
       error: () => {

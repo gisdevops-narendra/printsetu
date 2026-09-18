@@ -57,12 +57,12 @@ describe('NotificationsService (SRS §20 in-app notification baseline)', () => {
     const result = await service.listForShop('shop-1', 2, 10);
 
     expect(prisma.notification.findMany).toHaveBeenCalledWith({
-      where: { shopId: 'shop-1' },
+      where: { shopId: 'shop-1', channel: 'IN_APP' },
       orderBy: { createdAt: 'desc' },
       take: 10,
       skip: 10,
     });
-    expect(prisma.notification.count).toHaveBeenCalledWith({ where: { shopId: 'shop-1' } });
+    expect(prisma.notification.count).toHaveBeenCalledWith({ where: { shopId: 'shop-1', channel: 'IN_APP' } });
     expect(result).toEqual({
       items: [{ id: 'n1', shopId: 'shop-1' }],
       total: 1,

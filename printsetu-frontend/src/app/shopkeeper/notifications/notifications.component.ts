@@ -20,6 +20,16 @@ const EVENT_META: Record<
   PRINT_QUEUED: { label: 'Print queued', icon: 'pi pi-clock', severity: 'info' },
   PRINT_COMPLETED: { label: 'Print completed', icon: 'pi pi-check-circle', severity: 'success' },
   PRINT_FAILED: { label: 'Print failed', icon: 'pi pi-times-circle', severity: 'danger' },
+  SUBSCRIPTION_RENEWAL_REMINDER: { label: 'Renewal reminder', icon: 'pi pi-calendar', severity: 'info' },
+  SUBSCRIPTION_TRIAL_ENDING: { label: 'Trial ending', icon: 'pi pi-clock', severity: 'info' },
+  SUBSCRIPTION_PAYMENT_FAILED: { label: 'Payment failed', icon: 'pi pi-exclamation-triangle', severity: 'warn' },
+  SUBSCRIPTION_GRACE_REMINDER: { label: 'Payment reminder', icon: 'pi pi-bell', severity: 'warn' },
+  SUBSCRIPTION_FINAL_WARNING: { label: 'Final warning', icon: 'pi pi-exclamation-circle', severity: 'danger' },
+  SUBSCRIPTION_PAST_DUE: { label: 'Payment overdue', icon: 'pi pi-exclamation-circle', severity: 'danger' },
+  SUBSCRIPTION_SUSPENDED: { label: 'Shop suspended', icon: 'pi pi-lock', severity: 'danger' },
+  SUBSCRIPTION_PAID: { label: 'Payment received', icon: 'pi pi-check-circle', severity: 'success' },
+  SUBSCRIPTION_REACTIVATED: { label: 'Shop reactivated', icon: 'pi pi-lock-open', severity: 'success' },
+  SUBSCRIPTION_CANCELLED: { label: 'Subscription cancelled', icon: 'pi pi-ban', severity: 'secondary' },
 };
 
 /** SRS §20: the in-application notification baseline's read surface (upload/queue/complete/fail events). */
@@ -76,6 +86,7 @@ const EVENT_META: Record<
               [icon]="meta(n.eventType).icon"
               [severity]="meta(n.eventType).severity"
             />
+            @if (n.message) { <p class="notif-msg">{{ n.message }}</p> }
           </td>
           <td data-label="When">{{ n.createdAt | date: 'medium' }}</td>
         </tr>

@@ -5,6 +5,7 @@ import { DocumentsService } from './documents.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_SERVICE } from '../storage/storage.interface';
 import { QrService } from '../qr/qr.service';
+import { SubscriptionAccessService } from '../subscriptions/subscription-access.service';
 import { FileValidationService } from './file-validation.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { DOCUMENT_ANALYSIS_QUEUE } from './document-queue.constants';
@@ -70,6 +71,7 @@ describe('DocumentsService.upload (SRS §9 Upload stage)', () => {
           },
         },
         { provide: getQueueToken(DOCUMENT_ANALYSIS_QUEUE), useValue: queue },
+        { provide: SubscriptionAccessService, useValue: { assertCustomerCanOrder: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
 

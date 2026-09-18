@@ -105,6 +105,56 @@ enum NotificationEvent {
   PRINT_QUEUED
   PRINT_COMPLETED
   PRINT_FAILED
+  // Billing / subscription lifecycle
+  SUBSCRIPTION_RENEWAL_REMINDER
+  SUBSCRIPTION_PAYMENT_FAILED
+  SUBSCRIPTION_GRACE_REMINDER
+  SUBSCRIPTION_FINAL_WARNING
+  SUBSCRIPTION_PAST_DUE
+  SUBSCRIPTION_SUSPENDED
+  SUBSCRIPTION_PAID
+  SUBSCRIPTION_REACTIVATED
+  SUBSCRIPTION_CANCELLED
+  SUBSCRIPTION_TRIAL_ENDING
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAYMENT_PENDING
+  PAST_DUE
+  SUSPENDED
+  CANCELLED
+  EXPIRED
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+enum InvoiceStatus {
+  OPEN
+  PAID
+  FAILED
+  VOID
+  PARTIALLY_REFUNDED
+  REFUNDED
+}
+
+enum InvoiceKind {
+  INITIAL
+  RENEWAL
+  UPGRADE
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  UPI
+  CARD
+  GATEWAY
+  OTHER
 }
 
 // ------------------------------------------------------------------
@@ -112,35 +162,38 @@ enum NotificationEvent {
 // ------------------------------------------------------------------
 
 model Shop {
-  id         String     @id @default(uuid())
-  shopCode   String     @unique @map("shop_code")
-  name       String
-  ownerName  String     @map("owner_name")
-  mobile     String
-  email      String
-  address    String
-  city       String
-  status     ShopStatus @default(ACTIVE)
+  id           String     @id @default(uuid())
+  shopCode     String     @unique @map("shop_code")
+  name         String
+  ownerName    String     @map("owner_name")
+  mobile       String
+  email        String
+  address      String
+  city         String
+  status       ShopStatus @default(ACTIVE)
   // Shop-owner-editable public profile (the fields above stay admin-managed).
   description  String?
   // Weekly opening hours: { mon: { open: boolean, from: "09:00", to: "18:00" }, ... }
-  openingHours Json?    @map("opening_hours")
+  openingHours Json?      @map("opening_hours")
   // Object-storage keys for the logo / cover banner (served via signed URLs).
-  logoKey      String?  @map("logo_key")
-  bannerKey    String?  @map("banner_key")
-  createdAt  DateTime   @default(now()) @map("created_at")
-  updatedAt  DateTime   @updatedAt @map("updated_at")
+  logoKey      String?    @map("logo_key")
+  bannerKey    String?    @map("banner_key")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
 
-  users         User[]
-  printSessions PrintSession[]
-  documents     Document[]
-  printJobs     PrintJob[]
-  pricing       Pricing[]
-  qrCodes       QrCode[]
-  printers      Printer[]
-  printSettings PrintSettings?
-  auditLogs     AuditLog[]
-  notifications Notification[]
+  users              User[]
+  printSessions      PrintSession[]
+  documents          Document[]
+  printJobs          PrintJob[]
+  pricing            Pricing[]
+  qrCodes            QrCode[]
+  printers           Printer[]
+  printSettings      PrintSettings?
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+  subscription       ShopSubscription?
+  invoices           Invoice[]
+  subscriptionEvents SubscriptionEvent[]
 
   @@map("shops")
 }
@@ -156,21 +209,21 @@ model Role {
 }
 
 model User {
-  id                String     @id @default(uuid())
-  shopId            String?    @map("shop_id")
-  roleId            String     @map("role_id")
-  name              String
-  mobile            String?
-  email             String     @unique
+  id             String     @id @default(uuid())
+  shopId         String?    @map("shop_id")
+  roleId         String     @map("role_id")
+  name           String
+  mobile         String?
+  email          String     @unique
   // Credentials are owned by Keycloak (SRS §18); this column exists only
   // to match the SRS's literal DB Design table and is never written to or
   // read for auth decisions by the application.
-  passwordHash      String?    @map("password_hash")
-  keycloakUserId    String?    @unique @map("keycloak_user_id")
-  status            UserStatus @default(ACTIVE)
-  lastLoginAt       DateTime?  @map("last_login_at")
-  createdAt         DateTime   @default(now()) @map("created_at")
-  updatedAt         DateTime   @updatedAt @map("updated_at")
+  passwordHash   String?    @map("password_hash")
+  keycloakUserId String?    @unique @map("keycloak_user_id")
+  status         UserStatus @default(ACTIVE)
+  lastLoginAt    DateTime?  @map("last_login_at")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
 
   shop Shop? @relation(fields: [shopId], references: [id])
   role Role  @relation(fields: [roleId], references: [id])
@@ -205,19 +258,19 @@ model PrintSession {
 }
 
 model Document {
-  id           String         @id @default(uuid())
-  shopId       String         @map("shop_id")
-  sessionId    String         @map("session_id")
-  originalName String         @map("original_name")
-  s3Key        String         @map("s3_key")
-  mimeType     String         @map("mime_type")
-  sizeBytes    Int            @map("size_bytes")
-  pageCount    Int?           @map("page_count")
-  colorPages   Int?           @map("color_pages")
-  colorDetectionConfidence String? @map("color_detection_confidence") // "HIGH" | "LOW" | "UNKNOWN"
-  status       DocumentStatus @default(UPLOADED)
-  uploadedAt   DateTime       @default(now()) @map("uploaded_at")
-  deletedAt    DateTime?      @map("deleted_at")
+  id                       String         @id @default(uuid())
+  shopId                   String         @map("shop_id")
+  sessionId                String         @map("session_id")
+  originalName             String         @map("original_name")
+  s3Key                    String         @map("s3_key")
+  mimeType                 String         @map("mime_type")
+  sizeBytes                Int            @map("size_bytes")
+  pageCount                Int?           @map("page_count")
+  colorPages               Int?           @map("color_pages")
+  colorDetectionConfidence String?        @map("color_detection_confidence") // "HIGH" | "LOW" | "UNKNOWN"
+  status                   DocumentStatus @default(UPLOADED)
+  uploadedAt               DateTime       @default(now()) @map("uploaded_at")
+  deletedAt                DateTime?      @map("deleted_at")
 
   shop       Shop             @relation(fields: [shopId], references: [id])
   session    PrintSession     @relation(fields: [sessionId], references: [id])
@@ -243,7 +296,7 @@ model PrintQuote {
   sessionId          String    @map("session_id")
   amount             Decimal   @db.Decimal(10, 2)
   currency           String    @default("INR")
-  statusTokenClaimId String    @unique @map("status_token_claim_id") @default(uuid())
+  statusTokenClaimId String    @unique @default(uuid()) @map("status_token_claim_id")
   expiresAt          DateTime  @map("expires_at")
   consumedAt         DateTime? @map("consumed_at")
   createdAt          DateTime  @default(now()) @map("created_at")
@@ -302,10 +355,10 @@ model PrintJob {
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
 
-  shop     Shop        @relation(fields: [shopId], references: [id])
-  printer  Printer?    @relation(fields: [printerId], references: [id])
-  quote    PrintQuote? @relation(fields: [quoteId], references: [id])
-  items    PrintJobItem[]
+  shop    Shop           @relation(fields: [shopId], references: [id])
+  printer Printer?       @relation(fields: [printerId], references: [id])
+  quote   PrintQuote?    @relation(fields: [quoteId], references: [id])
+  items   PrintJobItem[]
 
   events        PrintJobEvent[]
   notifications Notification[]
@@ -364,20 +417,20 @@ model PrintJobEvent {
 }
 
 model PrintSettings {
-  id                      String   @id @default(uuid())
-  shopId                  String   @unique @map("shop_id")
-  defaultPrinterId        String?  @map("default_printer_id")
-  retentionMinutes        Int      @default(30) @map("retention_minutes")
-  maxFileSizeBytes        Int      @default(26214400) @map("max_file_size")
+  id                     String   @id @default(uuid())
+  shopId                 String   @unique @map("shop_id")
+  defaultPrinterId       String?  @map("default_printer_id")
+  retentionMinutes       Int      @default(30) @map("retention_minutes")
+  maxFileSizeBytes       Int      @default(26214400) @map("max_file_size")
   // Admin-controlled, per-shop (off by default): lets the shopkeeper preview
   // a document before printing it, via a short-lived signed URL.
-  documentPreviewEnabled  Boolean  @default(false) @map("document_preview_enabled")
+  documentPreviewEnabled Boolean  @default(false) @map("document_preview_enabled")
   // Shopkeeper-controlled (off by default): confirmed customer orders are sent
   // straight to the printer instead of waiting for the shopkeeper's PRINT tap.
-  autoAcceptOrders        Boolean  @default(false) @map("auto_accept_orders")
+  autoAcceptOrders       Boolean  @default(false) @map("auto_accept_orders")
   // In-portal alert preferences: { newOrderSound, desktopAlerts, failureAlerts }
-  notificationPrefs       Json?    @map("notification_prefs")
-  updatedAt               DateTime @updatedAt @map("updated_at")
+  notificationPrefs      Json?    @map("notification_prefs")
+  updatedAt              DateTime @updatedAt @map("updated_at")
 
   shop Shop @relation(fields: [shopId], references: [id])
 
@@ -392,25 +445,25 @@ model Pricing {
   paperSize     PaperSize
   colorMode     ColorMode
   sideMode      SideMode
-  pricePerPage  Decimal   @db.Decimal(10, 2) @map("price_per_page")
+  pricePerPage  Decimal   @map("price_per_page") @db.Decimal(10, 2)
   effectiveFrom DateTime  @default(now()) @map("effective_from")
   active        Boolean   @default(true)
   createdAt     DateTime  @default(now()) @map("created_at")
 
   shop Shop @relation(fields: [shopId], references: [id])
 
-  @@index([shopId, active])
   @@unique([shopId, paperSize, colorMode, sideMode, effectiveFrom])
+  @@index([shopId, active])
   @@map("pricing")
 }
 
 model QrCode {
-  id          String   @id @default(uuid())
-  shopId      String   @map("shop_id")
-  publicCode  String   @unique @map("public_code")
-  targetPath  String   @map("target_path")
-  status      QrStatus @default(ACTIVE)
-  generatedAt DateTime @default(now()) @map("generated_at")
+  id          String    @id @default(uuid())
+  shopId      String    @map("shop_id")
+  publicCode  String    @unique @map("public_code")
+  targetPath  String    @map("target_path")
+  status      QrStatus  @default(ACTIVE)
+  generatedAt DateTime  @default(now()) @map("generated_at")
   revokedAt   DateTime? @map("revoked_at")
 
   shop Shop @relation(fields: [shopId], references: [id])
@@ -420,17 +473,17 @@ model QrCode {
 }
 
 model Printer {
-  id                String        @id @default(uuid())
-  shopId            String        @map("shop_id")
-  agentId           String        @unique @map("agent_id")
-  agentKeyHash      String        @map("agent_key_hash")
-  printerName       String        @map("printer_name")
-  driverName        String?       @map("driver_name")
-  status            PrinterStatus @default(UNKNOWN)
-  lastHeartbeatAt   DateTime?     @map("last_heartbeat_at")
-  capabilitiesJson  Json?         @map("capabilities_json")
-  createdAt         DateTime      @default(now()) @map("created_at")
-  updatedAt         DateTime      @updatedAt @map("updated_at")
+  id               String        @id @default(uuid())
+  shopId           String        @map("shop_id")
+  agentId          String        @unique @map("agent_id")
+  agentKeyHash     String        @map("agent_key_hash")
+  printerName      String        @map("printer_name")
+  driverName       String?       @map("driver_name")
+  status           PrinterStatus @default(UNKNOWN)
+  lastHeartbeatAt  DateTime?     @map("last_heartbeat_at")
+  capabilitiesJson Json?         @map("capabilities_json")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
 
   shop      Shop       @relation(fields: [shopId], references: [id])
   printJobs PrintJob[]
@@ -463,15 +516,17 @@ model AuditLog {
 // channel; EMAIL/SMS/WHATSAPP are modeled now so no schema change is
 // needed to add real providers later.
 model Notification {
-  id           String              @id @default(uuid())
-  shopId       String              @map("shop_id")
-  printJobId   String?             @map("print_job_id")
-  eventType    NotificationEvent   @map("event_type")
-  channel      NotificationChannel @default(IN_APP)
-  destination  String?
-  status       NotificationStatus  @default(PENDING)
-  providerRef  String?             @map("provider_ref")
-  createdAt    DateTime            @default(now()) @map("created_at")
+  id          String              @id @default(uuid())
+  shopId      String              @map("shop_id")
+  printJobId  String?             @map("print_job_id")
+  eventType   NotificationEvent   @map("event_type")
+  channel     NotificationChannel @default(IN_APP)
+  destination String?
+  status      NotificationStatus  @default(PENDING)
+  // Human-readable text for events not tied to a print job (billing).
+  message     String?
+  providerRef String?             @map("provider_ref")
+  createdAt   DateTime            @default(now()) @map("created_at")
 
   shop     Shop      @relation(fields: [shopId], references: [id])
   printJob PrintJob? @relation(fields: [printJobId], references: [id])
@@ -486,4 +541,145 @@ model SystemSetting {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("system_settings")
+}
+
+// ------------------------------------------------------------------
+// Subscriptions & billing
+// ------------------------------------------------------------------
+
+model SubscriptionPlan {
+  id                String   @id @default(uuid())
+  name              String   @unique
+  description       String?
+  monthlyPrice      Decimal  @map("monthly_price") @db.Decimal(10, 2)
+  yearlyPrice       Decimal  @map("yearly_price") @db.Decimal(10, 2)
+  currency          String   @default("INR")
+  trialDays         Int      @default(0) @map("trial_days")
+  // Feature limits; null means unlimited.
+  maxPrintsPerMonth Int?     @map("max_prints_per_month")
+  maxTokensPerDay   Int?     @map("max_tokens_per_day")
+  maxPrinters       Int?     @map("max_printers")
+  prioritySupport   Boolean  @default(false) @map("priority_support")
+  analyticsAccess   Boolean  @default(false) @map("analytics_access")
+  // Free-text selling points shown on plan cards.
+  highlights        String[]
+  // Retire a plan without deleting the history that references it.
+  isActive          Boolean  @default(true) @map("is_active")
+  sortOrder         Int      @default(0) @map("sort_order")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  subscriptions ShopSubscription[]
+  invoices      Invoice[]
+
+  @@map("subscription_plans")
+}
+
+model ShopSubscription {
+  id                   String             @id @default(uuid())
+  shopId               String             @unique @map("shop_id")
+  planId               String             @map("plan_id")
+  cycle                BillingCycle       @default(MONTHLY)
+  status               SubscriptionStatus @default(ACTIVE)
+  startDate            DateTime           @default(now()) @map("start_date")
+  currentPeriodStart   DateTime           @default(now()) @map("current_period_start")
+  // The next billing / renewal date.
+  currentPeriodEnd     DateTime           @map("current_period_end")
+  trialEndsAt          DateTime?          @map("trial_ends_at")
+  graceEndsAt          DateTime?          @map("grace_ends_at")
+  pastDueSince         DateTime?          @map("past_due_since")
+  autoRenew            Boolean            @default(true) @map("auto_renew")
+  // "MANUAL" = offline payments recorded by an admin; anything else is a gateway adapter.
+  gateway              String             @default("MANUAL")
+  cancelAtPeriodEnd    Boolean            @default(false) @map("cancel_at_period_end")
+  cancelledAt          DateTime?          @map("cancelled_at")
+  cancelReason         String?            @map("cancel_reason")
+  // A scheduled plan change (downgrade at cycle end, or upgrade next cycle).
+  pendingPlanId        String?            @map("pending_plan_id")
+  pendingCycle         BillingCycle?      @map("pending_cycle")
+  // Admin override: automation leaves the shop alone until released / expired.
+  automationPaused     Boolean            @default(false) @map("automation_paused")
+  pausedUntil          DateTime?          @map("paused_until")
+  // null = use the platform default channels.
+  notificationChannels Json?              @map("notification_channels")
+  // Keys of reminders already sent, so each is sent once per period.
+  remindersSent        Json               @default("[]") @map("reminders_sent")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  shop Shop             @relation(fields: [shopId], references: [id])
+  plan SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  @@index([status])
+  @@index([currentPeriodEnd])
+  @@map("shop_subscriptions")
+}
+
+model Invoice {
+  id               String         @id @default(uuid())
+  number           String         @unique
+  shopId           String         @map("shop_id")
+  planId           String?        @map("plan_id")
+  // Snapshot so old invoices keep reading correctly after plan edits.
+  planName         String         @map("plan_name")
+  cycle            BillingCycle
+  kind             InvoiceKind    @default(RENEWAL)
+  description      String
+  periodStart      DateTime       @map("period_start")
+  periodEnd        DateTime       @map("period_end")
+  amount           Decimal        @db.Decimal(10, 2)
+  currency         String         @default("INR")
+  status           InvoiceStatus  @default(OPEN)
+  dueDate          DateTime       @map("due_date")
+  paidAt           DateTime?      @map("paid_at")
+  paymentMethod    PaymentMethod? @map("payment_method")
+  paymentReference String?        @map("payment_reference")
+  attemptCount     Int            @default(0) @map("attempt_count")
+  nextRetryAt      DateTime?      @map("next_retry_at")
+  lastFailure      String?        @map("last_failure")
+  refundedAmount   Decimal        @default(0) @map("refunded_amount") @db.Decimal(10, 2)
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  shop    Shop              @relation(fields: [shopId], references: [id])
+  plan    SubscriptionPlan? @relation(fields: [planId], references: [id])
+  refunds Refund[]
+
+  @@index([shopId, createdAt])
+  @@index([status])
+  @@map("invoices")
+}
+
+model Refund {
+  id          String   @id @default(uuid())
+  invoiceId   String   @map("invoice_id")
+  amount      Decimal  @db.Decimal(10, 2)
+  reason      String
+  actorUserId String?  @map("actor_user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+  @@map("refunds")
+}
+
+// Per-shop subscription / billing audit trail: every plan change, status
+// change and admin action, with who did it and why (actor null = system).
+model SubscriptionEvent {
+  id          String   @id @default(uuid())
+  shopId      String   @map("shop_id")
+  type        String
+  fromValue   String?  @map("from_value")
+  toValue     String?  @map("to_value")
+  reason      String?
+  actorUserId String?  @map("actor_user_id")
+  actorName   String?  @map("actor_name")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  shop Shop @relation(fields: [shopId], references: [id])
+
+  @@index([shopId, createdAt])
+  @@index([type, createdAt])
+  @@map("subscription_events")
 }

@@ -29,12 +29,12 @@ export class NotificationsService {
     const skip = (Math.max(page, 1) - 1) * take;
     const [items, total] = await Promise.all([
       this.prisma.notification.findMany({
-        where: { shopId },
+        where: { shopId, channel: NotificationChannel.IN_APP },
         orderBy: { createdAt: 'desc' },
         take,
         skip,
       }),
-      this.prisma.notification.count({ where: { shopId } }),
+      this.prisma.notification.count({ where: { shopId, channel: NotificationChannel.IN_APP } }),
     ]);
     return { items, total, page, pageSize: take };
   }

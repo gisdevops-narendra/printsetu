@@ -50,7 +50,7 @@ describe('OrderFlowComponent (SRS §5/§8/§9 customer QR -> upload -> options -
       'status',
     ]);
     customerService.resolveShop.and.returnValue(
-      of({ shopCode: 'demoShopQR001', shopName: 'PrintSetu Demo Shop', city: 'Ahmedabad' }),
+      of({ shopCode: 'demoShopQR001', shopName: 'PrintSetu Demo Shop', city: 'Ahmedabad', available: true, unavailableMessage: null }),
     );
 
     await TestBed.configureTestingModule({

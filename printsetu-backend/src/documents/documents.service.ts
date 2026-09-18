@@ -7,6 +7,7 @@ import { DocumentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_SERVICE, IStorageService } from '../storage/storage.interface';
 import { QrService } from '../qr/qr.service';
+import { SubscriptionAccessService } from '../subscriptions/subscription-access.service';
 import { FileValidationService } from './file-validation.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
@@ -33,6 +34,7 @@ export class DocumentsService {
     private readonly config: ConfigService<AppConfig, true>,
     @InjectQueue(DOCUMENT_ANALYSIS_QUEUE)
     private readonly analysisQueue: Queue<DocumentAnalysisJobData>,
+    private readonly subscriptionAccess: SubscriptionAccessService,
   ) {}
 
   /**
@@ -45,6 +47,7 @@ export class DocumentsService {
    */
   async upload(shopCode: string, file: Express.Multer.File, sessionId?: string) {
     const { shopId } = await this.qrService.resolvePublicCode(shopCode);
+    await this.subscriptionAccess.assertCustomerCanOrder(shopId);
 
     const settings = await this.prisma.printSettings.findUnique({ where: { shopId } });
     const maxSize =

@@ -17,6 +17,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/request-context';
 import { ShopAccessDeniedException } from '../common/exceptions/app.exceptions';
 import { ImageKind, ShopProfileService } from './shop-profile.service';
+import { SubscriptionAccessService } from '../subscriptions/subscription-access.service';
 import { UpdateShopProfileDto, UpdateShopSettingsDto } from './dto/shop-profile.dto';
 
 enum ImageKindParam {
@@ -34,7 +35,10 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 @Controller('shop')
 @Roles('SHOPKEEPER')
 export class ShopProfileController {
-  constructor(private readonly profiles: ShopProfileService) {}
+  constructor(
+    private readonly profiles: ShopProfileService,
+    private readonly subscriptionAccess: SubscriptionAccessService,
+  ) {}
 
   private shopIdOf(user: AuthenticatedUser): string {
     if (!user.shopId) throw new ShopAccessDeniedException('No shop assigned to this account.');
@@ -75,7 +79,9 @@ export class ShopProfileController {
   }
 
   @Get('stats')
-  stats(@CurrentUser() user: AuthenticatedUser) {
-    return this.profiles.stats(this.shopIdOf(user));
+  async stats(@CurrentUser() user: AuthenticatedUser) {
+    const shopId = this.shopIdOf(user);
+    await this.subscriptionAccess.assertFeature(shopId, 'analyticsAccess');
+    return this.profiles.stats(shopId);
   }
 }

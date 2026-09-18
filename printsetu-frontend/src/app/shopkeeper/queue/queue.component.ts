@@ -9,6 +9,7 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
+import { SubscriptionStatusService } from '../../core/services/subscription-status.service';
 import { PrintJobRow } from '../../core/models/models';
 import { StatusTagComponent } from '../../shared/components/status-tag/status-tag.component';
 import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
@@ -99,10 +100,12 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
                   pTooltip="View / edit documents"
                 />
               }
-              @if (job.status === 'PRINT_ELIGIBLE' || job.status === 'AGENT_OFFLINE' || job.status === 'PRINT_FAILED') {
+              @if (readOnly()) {
+                <span class="text-xs paused" title="Your subscription needs attention, so new print requests are paused."><i class="pi pi-pause-circle"></i> Paused</span>
+              } @else if (job.status === 'PRINT_ELIGIBLE' || job.status === 'AGENT_OFFLINE' || job.status === 'PRINT_FAILED') {
                 <p-button label="PRINT" icon="pi pi-print" size="small" (onClick)="confirmPrint(job)" />
               }
-              @if (job.status === 'PRINT_UNKNOWN') {
+              @if (job.status === 'PRINT_UNKNOWN' && !readOnly()) {
                 <p-button label="Mark Printed" size="small" severity="success" [outlined]="true" (onClick)="reconcile(job, 'PRINTED')" />
                 <p-button label="Mark Failed" size="small" severity="danger" [outlined]="true" (onClick)="reconcile(job, 'PRINT_FAILED')" />
               }
@@ -130,12 +133,15 @@ export class QueueComponent implements OnInit {
   );
   loading = signal(true);
   previewEnabled = signal(false);
+  /** Past due / expired / cancelled shops can look at orders but not print them. */
+  readOnly = () => this.subscriptionStatus.readOnly();
 
   constructor(
     private readonly shopkeeperService: ShopkeeperService,
     private readonly confirmationService: ConfirmationService,
     private readonly messageService: MessageService,
     private readonly router: Router,
+    private readonly subscriptionStatus: SubscriptionStatusService,
   ) {}
 
   ngOnInit(): void {

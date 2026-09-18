@@ -7,6 +7,7 @@ import { AppNotFoundException } from '../common/exceptions/app.exceptions';
 import { generateAgentSecret, hashSecret } from '../common/utils/secret.util';
 import { RegisterPrinterDto } from './dto/printer.dto';
 import { AgentConnectionRegistry } from '../agent-connection/agent-connection-registry.service';
+import { SubscriptionAccessService } from '../subscriptions/subscription-access.service';
 
 const agentIdAlphabet = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 20);
 const HEARTBEAT_STALE_MS = 90_000;
@@ -18,10 +19,12 @@ export class PrintersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly connections: AgentConnectionRegistry,
+    private readonly subscriptionAccess: SubscriptionAccessService,
   ) {}
 
   /** SRS §17: POST /api/agent/register — "One-time provisioning/admin-controlled". */
   async register(dto: RegisterPrinterDto) {
+    await this.subscriptionAccess.assertPrinterQuota(dto.shopId);
     const agentId = agentIdAlphabet();
     const agentSecret = generateAgentSecret();
     const printer = await this.prisma.printer.create({

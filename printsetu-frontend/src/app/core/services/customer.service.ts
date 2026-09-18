@@ -23,7 +23,14 @@ export class CustomerService {
   constructor(private readonly http: HttpClient) {}
 
   resolveShop(publicCode: string) {
-    return this.http.get<{ shopCode: string; shopName: string; city: string }>(
+    return this.http.get<{
+      shopCode: string;
+      shopName: string;
+      city: string;
+      /** false when the shop is suspended, overdue or over its plan limit. */
+      available: boolean;
+      unavailableMessage: string | null;
+    }>(
       `${BASE}/public/shops/${publicCode}`,
     );
   }

@@ -190,13 +190,28 @@ export interface UserRow {
 }
 
 export type NotificationEventType =
-  'UPLOAD_RECEIVED' | 'PRINT_QUEUED' | 'PRINT_COMPLETED' | 'PRINT_FAILED';
+  | 'UPLOAD_RECEIVED'
+  | 'PRINT_QUEUED'
+  | 'PRINT_COMPLETED'
+  | 'PRINT_FAILED'
+  | 'SUBSCRIPTION_RENEWAL_REMINDER'
+  | 'SUBSCRIPTION_PAYMENT_FAILED'
+  | 'SUBSCRIPTION_GRACE_REMINDER'
+  | 'SUBSCRIPTION_FINAL_WARNING'
+  | 'SUBSCRIPTION_PAST_DUE'
+  | 'SUBSCRIPTION_SUSPENDED'
+  | 'SUBSCRIPTION_PAID'
+  | 'SUBSCRIPTION_REACTIVATED'
+  | 'SUBSCRIPTION_CANCELLED'
+  | 'SUBSCRIPTION_TRIAL_ENDING';
 
 export interface NotificationRow {
   id: string;
   shopId: string;
   printJobId: string | null;
   eventType: NotificationEventType;
+  /** Billing messages carry their own text; print events do not. */
+  message?: string | null;
   channel: 'IN_APP' | 'EMAIL' | 'SMS' | 'WHATSAPP';
   status: 'PENDING' | 'SENT' | 'FAILED';
   createdAt: string;

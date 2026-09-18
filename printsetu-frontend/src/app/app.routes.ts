@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
+import { shopAccessGuard } from './core/auth/shop-access.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
@@ -33,6 +34,11 @@ export const routes: Routes = [
         loadComponent: () => import('./admin/qr/qr.component').then((m) => m.QrComponent),
       },
       {
+        path: 'subscriptions',
+        loadComponent: () =>
+          import('./admin/subscriptions/subscriptions.component').then((m) => m.SubscriptionsComponent),
+      },
+      {
         path: 'users',
         loadComponent: () => import('./admin/users/users.component').then((m) => m.UsersComponent),
       },
@@ -58,6 +64,7 @@ export const routes: Routes = [
   {
     path: 'shop',
     canActivate: [authGuard('SHOPKEEPER')],
+    canActivateChild: [shopAccessGuard],
     loadComponent: () =>
       import('./layout/shopkeeper-layout/shopkeeper-layout.component').then(
         (m) => m.ShopkeeperLayoutComponent,
@@ -109,6 +116,11 @@ export const routes: Routes = [
           import('./shopkeeper/notifications/notifications.component').then(
             (m) => m.NotificationsComponent,
           ),
+      },
+      {
+        path: 'billing',
+        loadComponent: () =>
+          import('./shopkeeper/billing/billing.component').then((m) => m.ShopBillingComponent),
       },
     ],
   },

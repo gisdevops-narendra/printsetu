@@ -17,6 +17,7 @@ export class AdminLayoutComponent {
   navItems: ShellNavItem[] = [
     { label: 'Dashboard', icon: 'pi pi-th-large', route: '/admin/dashboard' },
     { label: 'Shops', icon: 'pi pi-building', route: '/admin/shops' },
+    { label: 'Subscriptions', icon: 'pi pi-wallet', route: '/admin/subscriptions' },
     { label: 'Users', icon: 'pi pi-users', route: '/admin/users' },
     { label: 'Printers', icon: 'pi pi-print', route: '/admin/printers' },
     { label: 'Print History', icon: 'pi pi-history', route: '/admin/print-history' },

@@ -10,6 +10,7 @@ import { STORAGE_SERVICE, IStorageService } from '../storage/storage.interface';
 import { AgentConnectionRegistry } from '../agent-connection/agent-connection-registry.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditService } from '../audit/audit.service';
+import { SubscriptionAccessService } from '../subscriptions/subscription-access.service';
 import { PricingService } from '../pricing/pricing.service';
 import { signToken } from '../common/utils/signed-token.util';
 import { AppConfig } from '../config/configuration';
@@ -54,6 +55,7 @@ export class PrintJobsService {
     private readonly pricingService: PricingService,
     private readonly config: ConfigService<AppConfig, true>,
     @InjectQueue(PRINT_DISPATCH_QUEUE) private readonly dispatchQueue: Queue,
+    private readonly subscriptionAccess: SubscriptionAccessService,
   ) {}
 
   /**
@@ -83,6 +85,7 @@ export class PrintJobsService {
     }
 
     const shopId = quote.session.shopId;
+    await this.subscriptionAccess.assertCustomerCanOrder(shopId);
     const jobId = uuid();
     const statusToken = signToken(
       {
@@ -340,6 +343,7 @@ export class PrintJobsService {
 
   /** SRS §17.2 example: shopkeeper's PRINT action. QUEUED here means "handed to the print pipeline", not necessarily delivered yet. */
   async triggerPrint(jobId: string, shopId: string) {
+    await this.subscriptionAccess.assertShopCanPrint(shopId);
     const job = await this.prisma.printJob.findUnique({ where: { id: jobId } });
     if (!job || job.shopId !== shopId) throw new AppNotFoundException('Print job not found.');
 
