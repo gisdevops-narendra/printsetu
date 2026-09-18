@@ -1,7 +1,14 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { PrintJobsService } from './print-jobs.service';
-import { ConfirmPrintJobDto, ReconcileJobDto } from './dto/print.dto';
+import { PrintEditService } from './print-edit.service';
+import {
+  ConfirmPrintJobDto,
+  ReconcileJobDto,
+  ReorderItemsDto,
+  UpdateItemSettingsDto,
+  EditItemDto,
+} from './dto/print.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { StatusTokenGuard } from '../common/guards/status-token.guard';
@@ -35,7 +42,10 @@ export class PrintJobsController {
 @Controller('shop/print-jobs')
 @Roles('SHOPKEEPER')
 export class ShopPrintJobsController {
-  constructor(private readonly printJobsService: PrintJobsService) {}
+  constructor(
+    private readonly printJobsService: PrintJobsService,
+    private readonly printEditService: PrintEditService,
+  ) {}
 
   private requireShop(user: AuthenticatedUser): string {
     if (!user.shopId) throw new ShopAccessDeniedException('No shop assigned to this account.');
@@ -54,6 +64,68 @@ export class ShopPrintJobsController {
     @Query('pageSize') pageSize = '50',
   ) {
     return this.printJobsService.shopHistory(this.requireShop(user), parseInt(page, 10), parseInt(pageSize, 10));
+  }
+
+  /** Dedicated full-page document viewer/editor: fetch one job with its documents. */
+  @Get(':id')
+  getOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.printJobsService.getForShop(id, this.requireShop(user));
+  }
+
+  @Patch(':id/items/reorder')
+  reorderItems(
+    @Param('id') id: string,
+    @Body() dto: ReorderItemsDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.printJobsService.reorderItems(id, this.requireShop(user), dto);
+  }
+
+  @Delete(':id/items/:itemId')
+  deleteItem(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.printJobsService.deleteItem(id, this.requireShop(user), itemId);
+  }
+
+  @Patch(':id/items/:itemId/settings')
+  updateItemSettings(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() dto: UpdateItemSettingsDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.printJobsService.updateItemSettings(id, this.requireShop(user), itemId, dto);
+  }
+
+  @Patch(':id/items/:itemId/edit')
+  editItem(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() dto: EditItemDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.printEditService.applyEdit(id, this.requireShop(user), itemId, dto);
+  }
+
+  @Post(':id/items/:itemId/edit/reset')
+  resetItemEdit(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.printEditService.resetEdit(id, this.requireShop(user), itemId);
+  }
+
+  @Get(':id/items/:itemId/preview-url')
+  itemPreviewUrl(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.printEditService.getItemPreviewUrl(id, this.requireShop(user), itemId);
   }
 
   /** SRS §17.2 example. */

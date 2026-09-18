@@ -126,6 +126,18 @@ export interface ConfirmJobResponse {
   currency: string;
 }
 
+// Shop-side document editor: rotate/crop/brightness/contrast/sharpness
+// state for one PrintJobItem. Null on an item = unedited (prints the
+// original document). Coordinates in `crop` are 0..1, normalized against
+// the document's native page/image size.
+export interface EditState {
+  rotation: 0 | 90 | 180 | 270;
+  crop: { x: number; y: number; width: number; height: number } | null;
+  brightness: number;
+  contrast: number;
+  sharpness: number;
+}
+
 export interface PrintJobItemRow {
   id: string;
   documentId: string;
@@ -137,6 +149,8 @@ export interface PrintJobItemRow {
   billablePages: number;
   amount: string;
   printOrder: number;
+  editState?: EditState | null;
+  renderedS3Key?: string | null;
   document?: DocumentInfo;
 }
 

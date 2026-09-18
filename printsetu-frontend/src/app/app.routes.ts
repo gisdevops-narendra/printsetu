@@ -70,6 +70,13 @@ export const routes: Routes = [
           import('./shopkeeper/queue/queue.component').then((m) => m.QueueComponent),
       },
       {
+        path: 'print-jobs/:id/edit',
+        loadComponent: () =>
+          import('./shopkeeper/document-editor/document-editor.component').then(
+            (m) => m.DocumentEditorComponent,
+          ),
+      },
+      {
         path: 'history',
         loadComponent: () =>
           import('./shopkeeper/history/history.component').then((m) => m.HistoryComponent),

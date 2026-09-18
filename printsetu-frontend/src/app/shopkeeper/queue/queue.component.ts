@@ -1,5 +1,6 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
@@ -93,9 +94,8 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
                   size="small"
                   severity="secondary"
                   [text]="true"
-                  [loading]="previewingId() === job.id"
-                  (onClick)="viewDocuments(job)"
-                  [pTooltip]="job.items.length > 1 ? 'Preview these documents' : 'Preview this document'"
+                  (onClick)="openEditor(job)"
+                  pTooltip="View / edit documents"
                 />
               }
               @if (job.status === 'PRINT_ELIGIBLE' || job.status === 'AGENT_OFFLINE' || job.status === 'PRINT_FAILED') {
@@ -129,12 +129,12 @@ export class QueueComponent implements OnInit {
   );
   loading = signal(true);
   previewEnabled = signal(false);
-  previewingId = signal<string | null>(null);
 
   constructor(
     private readonly shopkeeperService: ShopkeeperService,
     private readonly confirmationService: ConfirmationService,
     private readonly messageService: MessageService,
+    private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -144,23 +144,9 @@ export class QueueComponent implements OnInit {
     });
   }
 
-  /** A print request can now bundle several documents (SRS extension) — preview each one in its own tab. */
-  viewDocuments(job: PrintJobRow): void {
-    this.previewingId.set(job.id);
-    let remaining = job.items.length;
-    const done = () => {
-      remaining -= 1;
-      if (remaining <= 0) this.previewingId.set(null);
-    };
-    for (const item of job.items) {
-      this.shopkeeperService.previewUrl(item.documentId).subscribe({
-        next: (res) => {
-          window.open(res.url, '_blank', 'noopener');
-          done();
-        },
-        error: done,
-      });
-    }
+  /** Dedicated full-page workspace to review/reorder/edit every document in this job before printing. */
+  openEditor(job: PrintJobRow): void {
+    this.router.navigate(['/shop/print-jobs', job.id, 'edit']);
   }
 
   load(): void {

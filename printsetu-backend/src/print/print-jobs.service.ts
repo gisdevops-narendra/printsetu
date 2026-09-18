@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { DocumentStatus, PrintJobStatus } from '@prisma/client';
+import { DocumentStatus, Prisma, PrintJobStatus } from '@prisma/client';
 import { v4 as uuid } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrintJobsRepository } from './print-jobs.repository';
@@ -10,6 +10,7 @@ import { STORAGE_SERVICE, IStorageService } from '../storage/storage.interface';
 import { AgentConnectionRegistry } from '../agent-connection/agent-connection-registry.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditService } from '../audit/audit.service';
+import { PricingService } from '../pricing/pricing.service';
 import { signToken } from '../common/utils/signed-token.util';
 import { AppConfig } from '../config/configuration';
 import { StatusTokenClaims } from '../common/types/request-context';
@@ -19,7 +20,13 @@ import {
   PrintAgentOfflineException,
   ShopAccessDeniedException,
 } from '../common/exceptions/app.exceptions';
-import { ConfirmPrintJobDto, AgentJobStatusDto, ReconcileJobDto } from './dto/print.dto';
+import {
+  ConfirmPrintJobDto,
+  AgentJobStatusDto,
+  ReconcileJobDto,
+  ReorderItemsDto,
+  UpdateItemSettingsDto,
+} from './dto/print.dto';
 import { PRINT_DISPATCH_QUEUE } from './print-queue.constants';
 
 const JOB_STATUS_TOKEN_TTL_SECONDS = 48 * 60 * 60;
@@ -33,6 +40,7 @@ export class PrintJobsService {
     private readonly agentConnections: AgentConnectionRegistry,
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
+    private readonly pricingService: PricingService,
     private readonly config: ConfigService<AppConfig, true>,
     @InjectQueue(PRINT_DISPATCH_QUEUE) private readonly dispatchQueue: Queue,
   ) {}
@@ -161,6 +169,110 @@ export class PrintJobsService {
     return { items, total, page, pageSize: take };
   }
 
+  async getForShop(jobId: string, shopId: string) {
+    const job = await this.prisma.printJob.findUnique({
+      where: { id: jobId },
+      include: { items: { include: { document: true }, orderBy: { printOrder: 'asc' } }, printer: true },
+    });
+    if (!job || job.shopId !== shopId) throw new AppNotFoundException('Print job not found.');
+    return job;
+  }
+
+  /**
+   * Shared guard for the shop-side document editor (reorder/delete/settings/
+   * edit) — these mutate PrintJobItem rows, not PrintJob.status, so they
+   * don't go through PrintJobsRepository.transition. They're only safe
+   * before the job has been handed to the print pipeline.
+   */
+  private async getEditableJobOrThrow(jobId: string, shopId: string) {
+    const job = await this.prisma.printJob.findUnique({
+      where: { id: jobId },
+      include: { items: true },
+    });
+    if (!job || job.shopId !== shopId) throw new AppNotFoundException('Print job not found.');
+    if (job.status !== PrintJobStatus.PRINT_ELIGIBLE) {
+      throw new InvalidPrintOptionException(
+        `Documents can only be edited while the job is awaiting print (current status: ${job.status}).`,
+      );
+    }
+    return job;
+  }
+
+  private async recomputeJobAmount(tx: Prisma.TransactionClient, jobId: string) {
+    const items = await tx.printJobItem.findMany({ where: { printJobId: jobId } });
+    const amount = items.reduce((sum, item) => sum + Number(item.amount), 0);
+    await tx.printJob.update({ where: { id: jobId }, data: { amount } });
+    return amount;
+  }
+
+  /** Shop editor: drag/up-down reordering of documents within a still-pending job. */
+  async reorderItems(jobId: string, shopId: string, dto: ReorderItemsDto) {
+    const job = await this.getEditableJobOrThrow(jobId, shopId);
+    const currentIds = new Set(job.items.map((item) => item.id));
+    const requestedIds = new Set(dto.itemIds);
+    if (
+      dto.itemIds.length !== job.items.length ||
+      currentIds.size !== requestedIds.size ||
+      ![...currentIds].every((id) => requestedIds.has(id))
+    ) {
+      throw new InvalidPrintOptionException('itemIds must exactly match the job\'s current documents.');
+    }
+
+    await this.prisma.$transaction(
+      dto.itemIds.map((itemId, index) =>
+        this.prisma.printJobItem.update({ where: { id: itemId }, data: { printOrder: index } }),
+      ),
+    );
+    return this.getForShop(jobId, shopId);
+  }
+
+  /** Shop editor: remove one document from a multi-document order. Refuses to empty out the job entirely. */
+  async deleteItem(jobId: string, shopId: string, itemId: string) {
+    const job = await this.getEditableJobOrThrow(jobId, shopId);
+    const item = job.items.find((i) => i.id === itemId);
+    if (!item) throw new AppNotFoundException('Print job item not found.');
+    if (job.items.length === 1) {
+      throw new InvalidPrintOptionException(
+        'Cannot remove the only document in this job — cancel the job instead.',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.printJobItem.delete({ where: { id: itemId } });
+      await tx.document.update({
+        where: { id: item.documentId },
+        data: { status: DocumentStatus.PROCESSED },
+      });
+      await this.recomputeJobAmount(tx, jobId);
+    });
+    return this.getForShop(jobId, shopId);
+  }
+
+  /** Shop editor: per-document paper/color/side/copies change, repriced against the shop's current active rate. */
+  async updateItemSettings(jobId: string, shopId: string, itemId: string, dto: UpdateItemSettingsDto) {
+    const job = await this.getEditableJobOrThrow(jobId, shopId);
+    const item = job.items.find((i) => i.id === itemId);
+    if (!item) throw new AppNotFoundException('Print job item not found.');
+
+    const paperSize = dto.paperSize ?? item.paperSize;
+    const colorMode = dto.colorMode ?? item.colorMode;
+    const sideMode = dto.sideMode ?? item.sideMode;
+    const copies = dto.copies ?? item.copies;
+
+    const rate = await this.pricingService.getActiveRateOrThrow(shopId, paperSize, colorMode, sideMode);
+    const billablePages = item.pageCount * copies;
+    const amount = Number(rate.pricePerPage) * billablePages;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.printJobItem.update({
+        where: { id: itemId },
+        data: { paperSize, colorMode, sideMode, copies, billablePages, amount },
+      });
+      await this.recomputeJobAmount(tx, jobId);
+    });
+    return this.getForShop(jobId, shopId);
+  }
+
   /** SRS §17.2 example: shopkeeper's PRINT action. QUEUED here means "handed to the print pipeline", not necessarily delivered yet. */
   async triggerPrint(jobId: string, shopId: string) {
     const job = await this.prisma.printJob.findUnique({ where: { id: jobId } });
@@ -235,7 +347,9 @@ export class PrintJobsService {
         documentId: item.documentId,
         originalName: item.document.originalName,
         mimeType: item.document.mimeType,
-        documentSignedUrl: await this.storage.getSignedDownloadUrl(item.document.s3Key),
+        documentSignedUrl: await this.storage.getSignedDownloadUrl(
+          item.renderedS3Key ?? item.document.s3Key,
+        ),
         options: {
           paperSize: item.paperSize,
           colorMode: item.colorMode,

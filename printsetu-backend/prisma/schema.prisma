@@ -322,6 +322,14 @@ model PrintJobItem {
   // Order the agent should print documents in — stable regardless of
   // whatever order Prisma happens to return rows in.
   printOrder    Int       @map("print_order")
+  // Shop-side editing (rotate/crop/brightness/contrast/sharpness), set via
+  // PrintEditService. Null editState/renderedS3Key = unedited, print the
+  // original Document.s3Key. The original is never overwritten — edits
+  // always produce a new derived object so the pristine upload stays
+  // recoverable.
+  editState     Json?     @map("edit_state")
+  renderedS3Key String?   @map("rendered_s3_key")
+  renderedAt    DateTime? @map("rendered_at")
 
   printJob PrintJob @relation(fields: [printJobId], references: [id])
   document Document @relation(fields: [documentId], references: [id])

@@ -1,4 +1,16 @@
-import { ArrayMinSize, IsArray, IsEnum, IsInt, IsNotEmpty, IsString, Max, Min, ValidateNested } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ColorMode, PaperSize, SideMode } from '@prisma/client';
 
@@ -39,4 +51,46 @@ export class ReconcileJobDto {
   outcome!: 'PRINTED' | 'PRINT_FAILED';
 
   message?: string;
+}
+
+// Shop-side document editor (dedicated full-page workspace) — reordering,
+// per-document settings, and rotate/crop/brightness/contrast/sharpness
+// editing, all scoped to a PrintJobItem within a still-PRINT_ELIGIBLE job.
+
+export class ReorderItemsDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  itemIds!: string[];
+}
+
+export class UpdateItemSettingsDto {
+  @IsOptional() @IsEnum(PaperSize) paperSize?: PaperSize;
+  @IsOptional() @IsEnum(ColorMode) colorMode?: ColorMode;
+  @IsOptional() @IsEnum(SideMode) sideMode?: SideMode;
+  @IsOptional() @IsInt() @Min(1) @Max(999) copies?: number;
+}
+
+// Normalized (0..1) crop rectangle relative to the document's native
+// page/image size — resolution-independent so the same rect applies
+// whether it was drawn against a thumbnail or a full-res preview.
+export class CropRectDto {
+  @IsNumber() @Min(0) @Max(1) x!: number;
+  @IsNumber() @Min(0) @Max(1) y!: number;
+  @IsNumber() @Min(0) @Max(1) width!: number;
+  @IsNumber() @Min(0) @Max(1) height!: number;
+}
+
+export class EditItemDto {
+  @IsOptional() @IsEnum([0, 90, 180, 270]) rotation?: 0 | 90 | 180 | 270;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CropRectDto)
+  crop?: CropRectDto | null;
+
+  // Images only (v1) — rejected for PDF documents when non-zero.
+  @IsOptional() @IsNumber() @Min(-100) @Max(100) brightness?: number;
+  @IsOptional() @IsNumber() @Min(-100) @Max(100) contrast?: number;
+  @IsOptional() @IsNumber() @Min(0) @Max(100) sharpness?: number;
 }

@@ -1,7 +1,32 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { NotificationRow, PricingRate, PrinterRow, PrintJobRow, Shop } from '../models/models';
+import {
+  EditState,
+  NotificationRow,
+  PaperSize,
+  ColorMode,
+  SideMode,
+  PricingRate,
+  PrinterRow,
+  PrintJobRow,
+  Shop,
+} from '../models/models';
+
+export interface UpdateItemSettingsRequest {
+  paperSize?: PaperSize;
+  colorMode?: ColorMode;
+  sideMode?: SideMode;
+  copies?: number;
+}
+
+export interface EditItemRequest {
+  rotation?: 0 | 90 | 180 | 270;
+  crop?: { x: number; y: number; width: number; height: number } | null;
+  brightness?: number;
+  contrast?: number;
+  sharpness?: number;
+}
 
 export interface SetPricingDto {
   paperSize: string;
@@ -53,6 +78,43 @@ export class ShopkeeperService {
   previewUrl(documentId: string) {
     return this.http.get<{ url: string; expiresInSeconds: number }>(
       `${BASE}/shop/documents/${documentId}/preview-url`,
+    );
+  }
+
+  // ---- Document viewer/editor (dedicated full-page workspace) ----
+  getJob(jobId: string) {
+    return this.http.get<PrintJobRow>(`${BASE}/shop/print-jobs/${jobId}`);
+  }
+
+  reorderItems(jobId: string, itemIds: string[]) {
+    return this.http.patch<PrintJobRow>(`${BASE}/shop/print-jobs/${jobId}/items/reorder`, { itemIds });
+  }
+
+  deleteItem(jobId: string, itemId: string) {
+    return this.http.delete<PrintJobRow>(`${BASE}/shop/print-jobs/${jobId}/items/${itemId}`);
+  }
+
+  updateItemSettings(jobId: string, itemId: string, dto: UpdateItemSettingsRequest) {
+    return this.http.patch<PrintJobRow>(`${BASE}/shop/print-jobs/${jobId}/items/${itemId}/settings`, dto);
+  }
+
+  editItem(jobId: string, itemId: string, dto: EditItemRequest) {
+    return this.http.patch<{ itemId: string; editState: EditState; renderedS3Key: string; renderedAt: string }>(
+      `${BASE}/shop/print-jobs/${jobId}/items/${itemId}/edit`,
+      dto,
+    );
+  }
+
+  resetItemEdit(jobId: string, itemId: string) {
+    return this.http.post<{ itemId: string }>(
+      `${BASE}/shop/print-jobs/${jobId}/items/${itemId}/edit/reset`,
+      {},
+    );
+  }
+
+  itemPreviewUrl(jobId: string, itemId: string) {
+    return this.http.get<{ url: string; expiresInSeconds: number }>(
+      `${BASE}/shop/print-jobs/${jobId}/items/${itemId}/preview-url`,
     );
   }
 
