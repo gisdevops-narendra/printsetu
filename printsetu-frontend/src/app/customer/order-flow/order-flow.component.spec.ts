@@ -353,6 +353,33 @@ describe('OrderFlowComponent (SRS §5/§8/§9 customer QR -> upload -> options -
       expect(component.currentStep()).toBe(0);
       expect(localStorage.getItem('printsetu.order.demoShopQR001')).toBeNull();
     });
+
+    it('startNewOrder() lets a customer abandon a restored session/job and upload something else', fakeAsync(() => {
+      localStorage.setItem(
+        'printsetu.order.demoShopQR001',
+        JSON.stringify({
+          sessionId: 'session-1',
+          sessionToken: 'session-token',
+          jobId: 'job-1',
+          jobStatusToken: 'job-token',
+          tokenNumber: 42,
+        }),
+      );
+      customerService.status.and.returnValue(of({ status: 'QUEUED' } as any));
+      fixture.detectChanges();
+      expect(component.currentStep()).toBe(3); // restored to the pending job
+
+      component.startNewOrder();
+
+      expect(component.currentStep()).toBe(0);
+      expect(component.sessionId()).toBeNull();
+      expect(component.jobId()).toBeNull();
+      expect(component.tokenNumber()).toBeNull();
+      expect(component.uploads()).toEqual([]);
+      expect(localStorage.getItem('printsetu.order.demoShopQR001')).toBeNull();
+
+      discardPeriodicTasks();
+    }));
   });
 
   it('ngOnDestroy() clears any running poll intervals', fakeAsync(() => {

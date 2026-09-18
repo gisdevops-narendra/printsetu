@@ -102,6 +102,14 @@ interface PersistedOrderSession {
           </div>
           <p class="stepper__label">Step {{ currentStep() + 1 }} of {{ stepItems.length }} &middot; {{ stepItems[currentStep()].label }}</p>
 
+          @if (!resolvingShop() && !shopError() && (sessionId() || jobId())) {
+            <div class="text-center mb-3">
+              <button type="button" class="reset-link" (click)="startNewOrder()">
+                @if (jobId()) { Print something else / start over } @else { Not what you meant to upload? Start over }
+              </button>
+            </div>
+          }
+
           @if (resolvingShop()) {
             <div class="flex justify-content-center p-6"><p-progressSpinner strokeWidth="4" /></div>
           } @else if (shopError()) {
@@ -169,6 +177,9 @@ interface PersistedOrderSession {
             <!-- Step 1: Options (per document — SRS extension: multi-document requests) -->
             @if (currentStep() === 1) {
               <div>
+                <button type="button" class="back-link mb-2" (click)="currentStep.set(0)">
+                  <i class="pi pi-arrow-left"></i> Add more files
+                </button>
                 <h3 class="mt-0 mb-1">Set print options</h3>
                 <p class="text-color-secondary text-sm mt-0 mb-3">Each document can have its own paper size, color, sides and copies.</p>
 
@@ -439,6 +450,32 @@ interface PersistedOrderSession {
         margin: 0 0 1.5rem 0;
       }
 
+      .reset-link,
+      .back-link {
+        background: none;
+        border: none;
+        padding: 0;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .reset-link:hover,
+      .back-link:hover {
+        color: var(--p-primary-600);
+      }
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        text-decoration: none;
+      }
+      .back-link:hover {
+        text-decoration: underline;
+      }
+
       .doc-name-row {
         min-width: 0;
       }
@@ -572,6 +609,36 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
         error: () => this.clearPersisted(),
       });
     }
+  }
+
+  /**
+   * Escape hatch for the reload-resilience restore above: without this,
+   * scanning the same QR code again after an earlier not-yet-printed
+   * upload/job just keeps showing that same upload/job with no way to
+   * upload something different.
+   */
+  startNewOrder(): void {
+    if (this.pollHandle) clearInterval(this.pollHandle);
+    if (this.docPollHandle) clearInterval(this.docPollHandle);
+    this.docPollHandle = undefined;
+    this.clearPersisted();
+
+    this.sessionId.set(null);
+    this.sessionToken = '';
+    this.uploads.set([]);
+    this.uploadError.set(null);
+    this.uploading.set(false);
+
+    this.quote.set(null);
+    this.quoting.set(false);
+
+    this.confirming.set(false);
+    this.jobId.set(null);
+    this.tokenNumber.set(null);
+    this.jobStatusToken = '';
+    this.jobStatus.set(null);
+
+    this.currentStep.set(0);
   }
 
   async onFilesSelected(event: FileUploadHandlerEvent, fu: FileUpload): Promise<void> {
