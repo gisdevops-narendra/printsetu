@@ -79,12 +79,12 @@ import { PricingRate } from '../../core/models/models';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 18%" pSortableColumn="paperSize">Paper <p-sortIcon field="paperSize" /></th>
-          <th style="width: 18%" pSortableColumn="colorMode">Color <p-sortIcon field="colorMode" /></th>
-          <th style="width: 18%" pSortableColumn="sideMode">Side <p-sortIcon field="sideMode" /></th>
-          <th style="width: 18%" pSortableColumn="pricePerPage">Price / page <p-sortIcon field="pricePerPage" /></th>
-          <th style="width: 18%" pSortableColumn="effectiveFrom">Effective from <p-sortIcon field="effectiveFrom" /></th>
-          <th style="width: 10%"></th>
+          <th style="width: 16.67%" pSortableColumn="paperSize">Paper <p-sortIcon field="paperSize" /></th>
+          <th style="width: 16.67%" pSortableColumn="colorMode">Color <p-sortIcon field="colorMode" /></th>
+          <th style="width: 16.67%" pSortableColumn="sideMode">Side <p-sortIcon field="sideMode" /></th>
+          <th style="width: 16.67%" pSortableColumn="pricePerPage">Price / page <p-sortIcon field="pricePerPage" /></th>
+          <th style="width: 16.67%" pSortableColumn="effectiveFrom">Effective from <p-sortIcon field="effectiveFrom" /></th>
+          <th style="width: 16.65%"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-rate>

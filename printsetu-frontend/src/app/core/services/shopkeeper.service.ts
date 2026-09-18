@@ -58,6 +58,10 @@ export class ShopkeeperService {
     );
   }
 
+  clearHistory() {
+    return this.http.delete<{ cleared: number }>(`${BASE}/shop/print-jobs/history`);
+  }
+
   print(jobId: string) {
     return this.http.post<{ jobId: string; status: string; printerId: string; message: string }>(
       `${BASE}/shop/print-jobs/${jobId}/print`,
@@ -125,6 +129,10 @@ export class ShopkeeperService {
       page: number;
       pageSize: number;
     }>(`${BASE}/shop/notifications`, { params: { page, pageSize } });
+  }
+
+  clearNotifications() {
+    return this.http.delete<{ cleared: number }>(`${BASE}/shop/notifications`);
   }
 
   // ---- Pricing (SRS §10: the shop owns its own rates) ----

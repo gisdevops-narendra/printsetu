@@ -169,6 +169,47 @@ export class PrintJobsService {
     return { items, total, page, pageSize: take };
   }
 
+  /**
+   * Bulk-deletes finished history rows on explicit user request. Scoped to
+   * DELETED/CANCELLED only — never a status the Queue still acts on
+   * (PRINT_ELIGIBLE/QUEUED/PRINTING/AGENT_OFFLINE/PRINT_UNKNOWN/PRINT_FAILED
+   * all stay retryable/reconcilable) — so an in-flight or retryable job can
+   * never be wiped out from under a shopkeeper or the print agent.
+   *
+   * Note: this permanently removes rows that
+   * ReportsService.summary()/printHistory() count toward "printed jobs" and
+   * revenue, so clearing history will lower those admin dashboard numbers.
+   */
+  async clearHistory(actorUserId: string | null, shopId?: string) {
+    const CLEARABLE_STATUSES: PrintJobStatus[] = [PrintJobStatus.DELETED, PrintJobStatus.CANCELLED];
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const jobs = await tx.printJob.findMany({
+        where: { status: { in: CLEARABLE_STATUSES }, ...(shopId ? { shopId } : {}) },
+        select: { id: true },
+      });
+      const ids = jobs.map((job) => job.id);
+      if (ids.length === 0) return { cleared: 0 };
+
+      await tx.notification.updateMany({ where: { printJobId: { in: ids } }, data: { printJobId: null } });
+      await tx.printJobEvent.deleteMany({ where: { printJobId: { in: ids } } });
+      await tx.printJobItem.deleteMany({ where: { printJobId: { in: ids } } });
+      await tx.printJob.deleteMany({ where: { id: { in: ids } } });
+
+      return { cleared: ids.length };
+    });
+
+    await this.audit.log({
+      actorUserId,
+      shopId: shopId ?? null,
+      action: 'PRINT_HISTORY_CLEARED',
+      entityType: 'PrintJob',
+      metadata: { clearedCount: result.cleared, scope: shopId ? 'shop' : 'all-shops' },
+    });
+
+    return result;
+  }
+
   async getForShop(jobId: string, shopId: string) {
     const job = await this.prisma.printJob.findUnique({
       where: { id: jobId },

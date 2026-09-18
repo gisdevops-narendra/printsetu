@@ -38,4 +38,10 @@ export class NotificationsService {
     ]);
     return { items, total, page, pageSize: take };
   }
+
+  /** Shopkeeper "clear all" for their own in-app feed — permanent, no undo. */
+  async clearForShop(shopId: string) {
+    const { count } = await this.prisma.notification.deleteMany({ where: { shopId } });
+    return { cleared: count };
+  }
 }

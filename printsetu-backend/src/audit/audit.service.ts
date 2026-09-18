@@ -15,8 +15,11 @@ export interface AuditEntry {
 
 /**
  * Append-only audit trail (SRS §16 audit_logs, §18 "Audit logs for
- * administrative and sensitive operational actions"). No update/delete
- * method is exposed on purpose.
+ * administrative and sensitive operational actions"). No update method is
+ * exposed. `clearAll` is a deliberate, explicit exception to "append-only"
+ * requested by the product owner — it always re-logs the clear action
+ * itself immediately after, so the trail never goes fully empty and who
+ * cleared it stays recorded.
  */
 @Injectable()
 export class AuditService {
@@ -35,5 +38,16 @@ export class AuditService {
         metadataJson: (entry.metadata as Prisma.InputJsonValue) ?? undefined,
       },
     });
+  }
+
+  async clearAll(actorUserId: string | null): Promise<{ cleared: number }> {
+    const { count } = await this.prisma.auditLog.deleteMany({});
+    await this.log({
+      actorUserId,
+      action: 'AUDIT_LOG_CLEARED',
+      entityType: 'AuditLog',
+      metadata: { clearedCount: count },
+    });
+    return { cleared: count };
   }
 }

@@ -65,12 +65,12 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 12%" pSortableColumn="shopCode">Shop Code <p-sortIcon field="shopCode" /></th>
-          <th style="width: 26%" pSortableColumn="name">Name <p-sortIcon field="name" /></th>
-          <th style="width: 22%" pSortableColumn="ownerName">Owner <p-sortIcon field="ownerName" /></th>
-          <th style="width: 16%" pSortableColumn="city">City <p-sortIcon field="city" /></th>
-          <th style="width: 12%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
-          <th style="width: 12%"></th>
+          <th style="width: 16.67%" pSortableColumn="shopCode">Shop Code <p-sortIcon field="shopCode" /></th>
+          <th style="width: 16.67%" pSortableColumn="name">Name <p-sortIcon field="name" /></th>
+          <th style="width: 16.67%" pSortableColumn="ownerName">Owner <p-sortIcon field="ownerName" /></th>
+          <th style="width: 16.67%" pSortableColumn="city">City <p-sortIcon field="city" /></th>
+          <th style="width: 16.67%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
+          <th style="width: 16.65%"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-shop>

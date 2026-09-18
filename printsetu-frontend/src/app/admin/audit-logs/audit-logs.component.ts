@@ -1,9 +1,11 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
+import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { AdminService } from '../../core/services/admin.service';
 import { AuditLogRow } from '../../core/models/models';
 import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
@@ -11,10 +13,23 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 @Component({
   selector: 'app-audit-logs',
   standalone: true,
-  imports: [CommonModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, EllipsisDirective],
+  imports: [CommonModule, TableModule, ButtonModule, InputTextModule, IconFieldModule, InputIconModule, EllipsisDirective],
   template: `
-    <h1 class="page-title">Audit Logs</h1>
-    <p class="page-subtitle">Append-only record of administrative and sensitive operational actions.</p>
+    <div class="flex justify-content-between align-items-start mb-3">
+      <div>
+        <h1 class="page-title">Audit Logs</h1>
+        <p class="page-subtitle m-0">Record of administrative and sensitive operational actions.</p>
+      </div>
+      <p-button
+        label="Clear"
+        icon="pi pi-trash"
+        size="small"
+        severity="danger"
+        [outlined]="true"
+        [disabled]="logs().length === 0"
+        (onClick)="confirmClear()"
+      />
+    </div>
 
     <div class="flex justify-content-end mb-3">
       <p-iconfield>
@@ -36,10 +51,10 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 22%" pSortableColumn="createdAt">When <p-sortIcon field="createdAt" /></th>
-          <th style="width: 30%" pSortableColumn="action">Action <p-sortIcon field="action" /></th>
-          <th style="width: 28%" pSortableColumn="entityType">Entity <p-sortIcon field="entityType" /></th>
-          <th style="width: 20%" pSortableColumn="actorUserId">Actor <p-sortIcon field="actorUserId" /></th>
+          <th style="width: 25%" pSortableColumn="createdAt">When <p-sortIcon field="createdAt" /></th>
+          <th style="width: 25%" pSortableColumn="action">Action <p-sortIcon field="action" /></th>
+          <th style="width: 25%" pSortableColumn="entityType">Entity <p-sortIcon field="entityType" /></th>
+          <th style="width: 25%" pSortableColumn="actorUserId">Actor <p-sortIcon field="actorUserId" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-log>
@@ -77,12 +92,35 @@ export class AuditLogsComponent implements OnInit {
   logs = signal<AuditLogRow[]>([]);
   loading = signal(true);
 
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly confirmationService: ConfirmationService,
+    private readonly messageService: MessageService,
+  ) {}
 
   ngOnInit(): void {
+    this.load();
+  }
+
+  load(): void {
+    this.loading.set(true);
     this.adminService.auditLogs().subscribe((res) => {
       this.logs.set(res.items);
       this.loading.set(false);
+    });
+  }
+
+  confirmClear(): void {
+    this.confirmationService.confirm({
+      message: `This permanently deletes the entire audit trail (${this.logs().length}+ entries) — the compliance record of who did what across the whole platform. This cannot be undone. A single "audit log cleared" entry will remain, recording that you did this just now.`,
+      header: 'Clear ALL audit logs',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.adminService.clearAuditLogs().subscribe((res) => {
+          this.messageService.add({ severity: 'success', summary: `Cleared ${res.cleared} audit log entr${res.cleared === 1 ? 'y' : 'ies'}` });
+          this.load();
+        });
+      },
     });
   }
 }

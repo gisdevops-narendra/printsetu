@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Delete, Get, Query } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -25,5 +25,11 @@ export class ShopNotificationsController {
   ) {
     if (!user.shopId) throw new ShopAccessDeniedException('No shop assigned to this account.');
     return this.notifications.listForShop(user.shopId, parseInt(page, 10), parseInt(pageSize, 10));
+  }
+
+  @Delete()
+  clear(@CurrentUser() user: AuthenticatedUser) {
+    if (!user.shopId) throw new ShopAccessDeniedException('No shop assigned to this account.');
+    return this.notifications.clearForShop(user.shopId);
   }
 }

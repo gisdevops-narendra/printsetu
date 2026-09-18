@@ -99,6 +99,11 @@ export class AdminService {
       params: { page, pageSize, ...(shopId ? { shopId } : {}) },
     });
   }
+  clearPrintHistory(shopId?: string) {
+    return this.http.delete<{ cleared: number }>(`${BASE}/admin/print-history`, {
+      params: { ...(shopId ? { shopId } : {}) },
+    });
+  }
   failedJobs(page = 1, pageSize = 50) {
     return this.http.get<{ items: PrintJobRow[]; total: number }>(
       `${BASE}/admin/print-jobs/failed`,
@@ -113,5 +118,8 @@ export class AdminService {
     return this.http.get<{ items: AuditLogRow[]; total: number }>(`${BASE}/admin/audit-logs`, {
       params: { page, pageSize, ...(shopId ? { shopId } : {}) },
     });
+  }
+  clearAuditLogs() {
+    return this.http.delete<{ cleared: number }>(`${BASE}/admin/audit-logs`);
   }
 }

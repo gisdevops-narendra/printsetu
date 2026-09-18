@@ -66,6 +66,12 @@ export class ShopPrintJobsController {
     return this.printJobsService.shopHistory(this.requireShop(user), parseInt(page, 10), parseInt(pageSize, 10));
   }
 
+  /** Clears finished (DELETED/CANCELLED) history rows for this shop only. */
+  @Delete('history')
+  clearHistory(@CurrentUser() user: AuthenticatedUser) {
+    return this.printJobsService.clearHistory(user.id, this.requireShop(user));
+  }
+
   /** Dedicated full-page document viewer/editor: fetch one job with its documents. */
   @Get(':id')
   getOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {

@@ -61,11 +61,11 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 26%" pSortableColumn="printerName">Printer <p-sortIcon field="printerName" /></th>
-          <th style="width: 22%" pSortableColumn="shopName">Shop <p-sortIcon field="shopName" /></th>
+          <th style="width: 20%" pSortableColumn="printerName">Printer <p-sortIcon field="printerName" /></th>
+          <th style="width: 20%" pSortableColumn="shopName">Shop <p-sortIcon field="shopName" /></th>
           <th style="width: 20%" pSortableColumn="agentId">Agent ID <p-sortIcon field="agentId" /></th>
-          <th style="width: 14%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
-          <th style="width: 18%" pSortableColumn="lastHeartbeatAt">Last heartbeat <p-sortIcon field="lastHeartbeatAt" /></th>
+          <th style="width: 20%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
+          <th style="width: 20%" pSortableColumn="lastHeartbeatAt">Last heartbeat <p-sortIcon field="lastHeartbeatAt" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-p>

@@ -1,9 +1,12 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
+import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
 import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { AdminService } from '../../core/services/admin.service';
 import { PrintJobRow } from '../../core/models/models';
 import { StatusTagComponent } from '../../shared/components/status-tag/status-tag.component';
@@ -12,10 +15,34 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 @Component({
   selector: 'app-print-history',
   standalone: true,
-  imports: [CommonModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, StatusTagComponent, EllipsisDirective],
+  imports: [
+    CommonModule,
+    TableModule,
+    ButtonModule,
+    TooltipModule,
+    InputTextModule,
+    IconFieldModule,
+    InputIconModule,
+    StatusTagComponent,
+    EllipsisDirective,
+  ],
   template: `
-    <h1 class="page-title">Print History</h1>
-    <p class="page-subtitle">All print jobs across every shop, most recent first.</p>
+    <div class="flex justify-content-between align-items-start mb-3">
+      <div>
+        <h1 class="page-title">Print History</h1>
+        <p class="page-subtitle m-0">All print jobs across every shop, most recent first.</p>
+      </div>
+      <p-button
+        label="Clear"
+        icon="pi pi-trash"
+        size="small"
+        severity="danger"
+        [outlined]="true"
+        [disabled]="jobs().length === 0"
+        (onClick)="confirmClear()"
+        pTooltip="Permanently deletes completed/cancelled jobs across all shops. Jobs still in progress are kept."
+      />
+    </div>
 
     <div class="flex justify-content-end mb-3">
       <p-iconfield>
@@ -37,13 +64,13 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 10%" pSortableColumn="tokenNumber">Token <p-sortIcon field="tokenNumber" /></th>
-          <th style="width: 14%" pSortableColumn="shop.name">Shop <p-sortIcon field="shop.name" /></th>
-          <th style="width: 22%">Documents</th>
-          <th style="width: 16%">Options</th>
-          <th style="width: 10%" pSortableColumn="amount">Amount <p-sortIcon field="amount" /></th>
-          <th style="width: 12%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
-          <th style="width: 12%" pSortableColumn="createdAt">Created <p-sortIcon field="createdAt" /></th>
+          <th style="width: 14.29%" pSortableColumn="tokenNumber">Token <p-sortIcon field="tokenNumber" /></th>
+          <th style="width: 14.29%" pSortableColumn="shop.name">Shop <p-sortIcon field="shop.name" /></th>
+          <th style="width: 14.29%">Documents</th>
+          <th style="width: 14.29%; border-left: 1px solid #f1f5f9">Options</th>
+          <th style="width: 14.29%" pSortableColumn="amount">Amount <p-sortIcon field="amount" /></th>
+          <th style="width: 14.29%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
+          <th style="width: 14.26%" pSortableColumn="createdAt">Created <p-sortIcon field="createdAt" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-job>
@@ -63,7 +90,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
               }
             </div>
           </td>
-          <td class="text-xs">
+          <td class="text-xs" style="border-left: 1px solid #f1f5f9">
             <div class="item-stack">
               @for (item of job.items; track item.id) {
                 <span>{{ item.paperSize }} · {{ item.colorMode }} · {{ item.sideMode }} ×{{ item.copies }}</span>
@@ -95,12 +122,36 @@ export class PrintHistoryComponent implements OnInit {
   );
   loading = signal(true);
 
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly confirmationService: ConfirmationService,
+    private readonly messageService: MessageService,
+  ) {}
 
   ngOnInit(): void {
+    this.load();
+  }
+
+  load(): void {
+    this.loading.set(true);
     this.adminService.printHistory().subscribe((res) => {
       this.jobs.set(res.items);
       this.loading.set(false);
+    });
+  }
+
+  confirmClear(): void {
+    this.confirmationService.confirm({
+      message:
+        'Permanently delete completed and cancelled print jobs across every shop? Jobs still in progress are kept. This cannot be undone.',
+      header: 'Clear print history',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.adminService.clearPrintHistory().subscribe((res) => {
+          this.messageService.add({ severity: 'success', summary: `Cleared ${res.cleared} job(s)` });
+          this.load();
+        });
+      },
     });
   }
 }

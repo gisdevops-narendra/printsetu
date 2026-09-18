@@ -55,13 +55,13 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 8%" pSortableColumn="tokenNumber">Token <p-sortIcon field="tokenNumber" /></th>
-          <th style="width: 30%">Documents</th>
-          <th style="width: 20%">Options</th>
-          <th style="width: 10%" pSortableColumn="amount">Amount <p-sortIcon field="amount" /></th>
-          <th style="width: 14%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
-          <th style="width: 10%" pSortableColumn="createdAt">Received <p-sortIcon field="createdAt" /></th>
-          <th style="width: 8%"></th>
+          <th style="width: 14.29%" pSortableColumn="tokenNumber">Token <p-sortIcon field="tokenNumber" /></th>
+          <th style="width: 14.29%">Documents</th>
+          <th style="width: 14.29%; border-left: 1px solid #f1f5f9">Options</th>
+          <th style="width: 14.29%" pSortableColumn="amount">Amount <p-sortIcon field="amount" /></th>
+          <th style="width: 14.29%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
+          <th style="width: 14.29%" pSortableColumn="createdAt">Received <p-sortIcon field="createdAt" /></th>
+          <th style="width: 14.26%"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-job>
@@ -76,7 +76,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
               }
             </div>
           </td>
-          <td class="text-xs">
+          <td class="text-xs" style="border-left: 1px solid #f1f5f9">
             <div class="item-stack">
               @for (item of job.items; track item.id) {
                 <span>{{ item.paperSize }} · {{ item.colorMode }} · {{ item.sideMode }} ×{{ item.copies }}</span>
@@ -87,13 +87,13 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
           <td><app-status-tag [status]="job.status" /></td>
           <td>{{ job.createdAt | date: 'short' }}</td>
           <td class="text-right">
-            <div class="flex gap-2 justify-content-end align-items-center">
+            <div class="flex flex-wrap gap-2 justify-content-end align-items-center row-gap-2">
               @if (previewEnabled()) {
                 <p-button
                   icon="pi pi-eye"
                   size="small"
                   severity="secondary"
-                  [text]="true"
+                  [outlined]="true"
                   (onClick)="openEditor(job)"
                   pTooltip="View / edit documents"
                 />
@@ -102,8 +102,8 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
                 <p-button label="PRINT" icon="pi pi-print" size="small" (onClick)="confirmPrint(job)" />
               }
               @if (job.status === 'PRINT_UNKNOWN') {
-                <p-button label="Mark Printed" size="small" severity="success" [text]="true" (onClick)="reconcile(job, 'PRINTED')" />
-                <p-button label="Mark Failed" size="small" severity="danger" [text]="true" (onClick)="reconcile(job, 'PRINT_FAILED')" />
+                <p-button label="Mark Printed" size="small" severity="success" [outlined]="true" (onClick)="reconcile(job, 'PRINTED')" />
+                <p-button label="Mark Failed" size="small" severity="danger" [outlined]="true" (onClick)="reconcile(job, 'PRINT_FAILED')" />
               }
             </div>
           </td>
