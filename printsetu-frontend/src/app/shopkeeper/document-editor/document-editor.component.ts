@@ -2,6 +2,7 @@ import { Component, ElementRef, Injector, OnInit, ViewChild, afterNextRender, co
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -12,6 +13,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { ColorMode, EditState, PaperSize, PrintJobItemRow, PrintJobRow, SideMode } from '../../core/models/models';
 import { ImageCanvasEditorComponent, CanvasEditorSaveResult } from './image-canvas-editor/image-canvas-editor.component';
+import { BatchParams, renderImageBatch } from './image-canvas-editor/image-batch-render';
+import { clearLatestState, loadLatestState } from './image-canvas-editor/editor-storage';
 
 type CropDraft = { x: number; y: number; width: number; height: number };
 
@@ -151,6 +154,12 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
                 class="workspace__fill"
                 [imageUrl]="previewUrl()!"
                 [saving]="savingEdit()"
+                [historyKey]="selectedItem()!.id"
+                [initialState]="editorState()"
+                [baseIsOriginal]="editorBaseIsOriginal()"
+                [otherImageCount]="otherImageCount()"
+                [batchBusy]="batchBusy()"
+                (applyAll)="onApplyAll($event)"
                 (save)="onCanvasEditorSave($event)"
                 (cancelled)="loadPreview()"
               />
@@ -858,6 +867,14 @@ export class DocumentEditorComponent implements OnInit {
   isPdf = computed(() => this.selectedItem()?.document?.mimeType === 'application/pdf');
 
   previewUrl = signal<string | null>(null);
+  /** Saved editor state to reopen an already-edited image with (loaded from the original upload). */
+  editorState = signal<unknown | null>(null);
+  editorBaseIsOriginal = signal(true);
+  batchBusy = signal(false);
+  otherImageCount = computed(() => {
+    const cur = this.selectedItem();
+    return (this.job()?.items ?? []).filter((i) => i.id !== cur?.id && i.document?.mimeType !== 'application/pdf').length;
+  });
   previewLoading = signal(false);
 
   zoom = signal(1);
@@ -958,7 +975,14 @@ export class DocumentEditorComponent implements OnInit {
     this.previewLoading.set(true);
     this.previewUrl.set(null);
     this.pdfPage = null;
-    this.shopkeeperService.itemPreviewUrl(this.jobId, item.id).subscribe({
+    // An already-edited image reopens from the untouched upload plus its saved
+    // editor state, so edits stay adjustable instead of compounding on the
+    // flattened render. Without saved state (edited in another browser) the
+    // render itself is the starting point.
+    const saved = !this.isPdf() && item.renderedS3Key ? loadLatestState(item.id) : null;
+    this.editorState.set(saved);
+    this.editorBaseIsOriginal.set(!item.renderedS3Key || !!saved);
+    this.shopkeeperService.itemPreviewUrl(this.jobId, item.id, !!saved).subscribe({
       next: (res) => {
         this.previewUrl.set(res.url);
         this.previewLoading.set(false);
@@ -1167,7 +1191,7 @@ export class DocumentEditorComponent implements OnInit {
     if (!item) return;
     const blob = this.dataUrlToBlob(result.imageData);
     this.savingEdit.set(true);
-    this.shopkeeperService.uploadRenderedImage(this.jobId, item.id, blob, result.paperSize, result.dpi).subscribe({
+    this.shopkeeperService.uploadRenderedImage(this.jobId, item.id, blob, result.paperSize, result.dpi, result.format, result.quality).subscribe({
       next: (res) => {
         this.savingEdit.set(false);
         this.patchSelectedItem({ editState: res.editState, renderedS3Key: res.renderedS3Key });
@@ -1199,6 +1223,7 @@ export class DocumentEditorComponent implements OnInit {
     if (!item) return;
     this.shopkeeperService.resetItemEdit(this.jobId, item.id).subscribe({
       next: () => {
+        clearLatestState(item.id);
         this.editDraft = { ...DEFAULT_EDIT_STATE };
         this.patchSelectedItem({ editState: null, renderedS3Key: null });
         this.loadPreview();
@@ -1222,6 +1247,52 @@ export class DocumentEditorComponent implements OnInit {
         });
       },
     });
+  }
+
+  /** Applies the current document's placement/color settings to every other image in the job. */
+  async onApplyAll(params: BatchParams): Promise<void> {
+    const job = this.job();
+    const current = this.selectedItem();
+    if (!job || !current || this.batchBusy()) return;
+    const targets = job.items.filter((i) => i.id !== current.id && i.document?.mimeType !== 'application/pdf');
+    if (!targets.length) return;
+    this.batchBusy.set(true);
+    let done = 0;
+    let failed = 0;
+    for (const item of targets) {
+      try {
+        const { url } = await firstValueFrom(this.shopkeeperService.itemPreviewUrl(this.jobId, item.id, true));
+        const rendered = await renderImageBatch(url, params);
+        const res = await firstValueFrom(
+          this.shopkeeperService.uploadRenderedImage(
+            this.jobId,
+            item.id,
+            this.dataUrlToBlob(rendered.dataUrl),
+            rendered.paperSize,
+            rendered.dpi,
+            rendered.format,
+            rendered.quality,
+          ),
+        );
+        // Their earlier saved editor state no longer matches this render.
+        clearLatestState(item.id);
+        this.patchItem(item.id, { editState: res.editState, renderedS3Key: res.renderedS3Key });
+        done++;
+      } catch {
+        failed++;
+      }
+    }
+    this.batchBusy.set(false);
+    this.messageService.add({
+      severity: failed ? 'warn' : 'success',
+      summary: failed ? `Updated ${done}, failed ${failed}` : `Updated ${done} document${done === 1 ? '' : 's'}`,
+    });
+  }
+
+  private patchItem(itemId: string, patch: Partial<PrintJobItemRow>): void {
+    const job = this.job();
+    if (!job) return;
+    this.job.set({ ...job, items: job.items.map((i) => (i.id === itemId ? { ...i, ...patch } : i)) });
   }
 
   private patchSelectedItem(patch: Partial<PrintJobItemRow>): void {

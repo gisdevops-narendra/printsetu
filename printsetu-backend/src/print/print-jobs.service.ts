@@ -31,6 +31,15 @@ import { PRINT_DISPATCH_QUEUE } from './print-queue.constants';
 
 const JOB_STATUS_TOKEN_TTL_SECONDS = 48 * 60 * 60;
 
+/** Mime type of a stored render, from its extension (falls back to the document's). */
+function mimeFromKey(key: string, fallback: string): string {
+  const ext = key.split('.').pop()?.toLowerCase();
+  if (ext === 'png') return 'image/png';
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+  if (ext === 'pdf') return 'application/pdf';
+  return fallback;
+}
+
 @Injectable()
 export class PrintJobsService {
   constructor(
@@ -387,7 +396,10 @@ export class PrintJobsService {
       job.items.map(async (item) => ({
         documentId: item.documentId,
         originalName: item.document.originalName,
-        mimeType: item.document.mimeType,
+        // An edited render may be a different format than the upload (the
+        // canvas editor can export PNG for a JPEG document), so describe the
+        // file actually being sent.
+        mimeType: item.renderedS3Key ? mimeFromKey(item.renderedS3Key, item.document.mimeType) : item.document.mimeType,
         documentSignedUrl: await this.storage.getSignedDownloadUrl(
           item.renderedS3Key ?? item.document.s3Key,
         ),

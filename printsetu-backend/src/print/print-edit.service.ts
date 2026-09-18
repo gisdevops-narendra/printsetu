@@ -103,7 +103,7 @@ export class PrintEditService {
     shopId: string,
     itemId: string,
     file: Express.Multer.File | undefined,
-    meta: { paperSize?: string; dpi?: string },
+    meta: { paperSize?: string; dpi?: string; format?: string; quality?: string },
   ) {
     const item = await this.getEditableItemOrThrow(jobId, shopId, itemId);
     const { document } = item;
@@ -116,13 +116,18 @@ export class PrintEditService {
       throw new InvalidPrintOptionException('No rendered image was uploaded.');
     }
 
-    const isPng = document.mimeType === 'image/png';
+    // The editor may pick the output format (PNG for graphics/text, JPEG for
+    // photos); without an explicit choice keep the uploaded document's own.
+    const isPng = meta.format === 'png' || (meta.format !== 'jpeg' && document.mimeType === 'image/png');
+    const contentType = isPng ? 'image/png' : 'image/jpeg';
+    const requestedQuality = Number(meta.quality);
+    const quality = Number.isFinite(requestedQuality) ? Math.min(100, Math.max(50, Math.round(requestedQuality))) : 92;
     const pipeline = sharp(file.buffer);
-    const normalized = await (isPng ? pipeline.png() : pipeline.jpeg({ quality: 92 })).toBuffer();
+    const normalized = await (isPng ? pipeline.png() : pipeline.jpeg({ quality })).toBuffer();
 
-    const ext = MIME_EXTENSIONS[document.mimeType] ?? 'bin';
+    const ext = MIME_EXTENSIONS[contentType];
     const key = `${document.shopId}/${document.id}/edits/${itemId}-${Date.now()}.${ext}`;
-    await this.storage.putObject({ key, body: normalized, contentType: document.mimeType });
+    await this.storage.putObject({ key, body: normalized, contentType });
 
     const dpi = meta.dpi ? Number(meta.dpi) : NaN;
     const editState = {
@@ -162,7 +167,7 @@ export class PrintEditService {
   }
 
   /** Signs whichever object is currently authoritative for this item — the rendered edit if one exists, else the original. */
-  async getItemPreviewUrl(jobId: string, shopId: string, itemId: string) {
+  async getItemPreviewUrl(jobId: string, shopId: string, itemId: string, original = false) {
     const item = await this.prisma.printJobItem.findUnique({
       where: { id: itemId },
       include: { printJob: true, document: true },
@@ -176,7 +181,8 @@ export class PrintEditService {
         'Document preview is not enabled for your shop. Ask your admin to turn it on.',
       );
     }
-    const url = await this.storage.getSignedDownloadUrl(item.renderedS3Key ?? item.document.s3Key, 120);
+    const key = original ? item.document.s3Key : (item.renderedS3Key ?? item.document.s3Key);
+    const url = await this.storage.getSignedDownloadUrl(key, 120);
     return { url, expiresInSeconds: 120 };
   }
 

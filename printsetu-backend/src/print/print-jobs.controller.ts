@@ -157,6 +157,8 @@ export class ShopPrintJobsController {
     return this.printEditService.applyRenderedImage(id, this.requireShop(user), itemId, file, {
       paperSize: typeof body?.paperSize === 'string' ? body.paperSize : undefined,
       dpi: typeof body?.dpi === 'string' ? body.dpi : undefined,
+      format: typeof body?.format === 'string' ? body.format : undefined,
+      quality: typeof body?.quality === 'string' ? body.quality : undefined,
     });
   }
 
@@ -169,13 +171,15 @@ export class ShopPrintJobsController {
     return this.printEditService.resetEdit(id, this.requireShop(user), itemId);
   }
 
+  /** `?original=true` returns the untouched upload instead of the edited render. */
   @Get(':id/items/:itemId/preview-url')
   itemPreviewUrl(
     @Param('id') id: string,
     @Param('itemId') itemId: string,
+    @Query('original') original: string | undefined,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.printEditService.getItemPreviewUrl(id, this.requireShop(user), itemId);
+    return this.printEditService.getItemPreviewUrl(id, this.requireShop(user), itemId, original === 'true');
   }
 
   /** SRS §17.2 example. */

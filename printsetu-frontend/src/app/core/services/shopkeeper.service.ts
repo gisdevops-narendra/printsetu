@@ -117,20 +117,32 @@ export class ShopkeeperService {
   }
 
   /** Image documents only: uploads the canvas editor's final composited export as the print-ready file. */
-  uploadRenderedImage(jobId: string, itemId: string, blob: Blob, paperSize: string, dpi: number) {
+  uploadRenderedImage(
+    jobId: string,
+    itemId: string,
+    blob: Blob,
+    paperSize: string,
+    dpi: number,
+    format: 'jpeg' | 'png' = 'jpeg',
+    quality = 92,
+  ) {
     const form = new FormData();
-    form.append('file', blob, 'edit.jpg');
+    form.append('file', blob, format === 'png' ? 'edit.png' : 'edit.jpg');
     form.append('paperSize', paperSize);
     form.append('dpi', String(Math.round(dpi)));
+    form.append('format', format);
+    form.append('quality', String(Math.round(quality)));
     return this.http.post<{ itemId: string; editState: EditState; renderedS3Key: string; renderedAt: string }>(
       `${BASE}/shop/print-jobs/${jobId}/items/${itemId}/edit/render`,
       form,
     );
   }
 
-  itemPreviewUrl(jobId: string, itemId: string) {
+  /** `original: true` returns the untouched upload rather than the edited render. */
+  itemPreviewUrl(jobId: string, itemId: string, original = false) {
     return this.http.get<{ url: string; expiresInSeconds: number }>(
       `${BASE}/shop/print-jobs/${jobId}/items/${itemId}/preview-url`,
+      { params: original ? { original: 'true' } : {} },
     );
   }
 
