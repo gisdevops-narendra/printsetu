@@ -121,6 +121,13 @@ model Shop {
   address    String
   city       String
   status     ShopStatus @default(ACTIVE)
+  // Shop-owner-editable public profile (the fields above stay admin-managed).
+  description  String?
+  // Weekly opening hours: { mon: { open: boolean, from: "09:00", to: "18:00" }, ... }
+  openingHours Json?    @map("opening_hours")
+  // Object-storage keys for the logo / cover banner (served via signed URLs).
+  logoKey      String?  @map("logo_key")
+  bannerKey    String?  @map("banner_key")
   createdAt  DateTime   @default(now()) @map("created_at")
   updatedAt  DateTime   @updatedAt @map("updated_at")
 
@@ -365,6 +372,11 @@ model PrintSettings {
   // Admin-controlled, per-shop (off by default): lets the shopkeeper preview
   // a document before printing it, via a short-lived signed URL.
   documentPreviewEnabled  Boolean  @default(false) @map("document_preview_enabled")
+  // Shopkeeper-controlled (off by default): confirmed customer orders are sent
+  // straight to the printer instead of waiting for the shopkeeper's PRINT tap.
+  autoAcceptOrders        Boolean  @default(false) @map("auto_accept_orders")
+  // In-portal alert preferences: { newOrderSound, desktopAlerts, failureAlerts }
+  notificationPrefs       Json?    @map("notification_prefs")
   updatedAt               DateTime @updatedAt @map("updated_at")
 
   shop Shop @relation(fields: [shopId], references: [id])

@@ -559,3 +559,177 @@ app-root {
     print-color-adjust: exact;
   }
 }
+
+/* ---------- Shop profile: shared building blocks ---------- */
+.pf-card {
+  min-width: 0;
+  padding: clamp(1rem, 2.2vw, 1.5rem);
+  background: #fff;
+  border: 1px solid #e6eaf2;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.pf-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.pf-eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.pf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border: 1.5px solid #d6dcec;
+  border-radius: 12px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.08s ease;
+}
+
+.pf-btn:hover:not(:disabled) {
+  border-color: var(--p-primary-300);
+  color: var(--p-primary-700);
+}
+
+.pf-btn:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.pf-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pf-btn--primary {
+  border-color: transparent;
+  background: var(--p-primary-600);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.22);
+}
+
+.pf-btn--primary:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--p-primary-700);
+  color: #fff;
+}
+
+.pf-btn--quiet {
+  min-height: 2.25rem;
+  padding: 0 0.75rem;
+  border-color: transparent;
+  background: transparent;
+  color: var(--p-primary-600);
+}
+
+.pf-btn--quiet:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--p-primary-50);
+}
+
+.pf-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #64748b;
+}
+
+.pf-empty__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  margin-bottom: 0.25rem;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-size: 1.375rem;
+}
+
+.pf-empty p {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.pf-seg {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 10px;
+  background: #eef1f7;
+}
+
+.pf-seg button {
+  min-height: 2rem;
+  padding: 0 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.pf-seg button.is-on {
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.pf-skeleton {
+  border-radius: 14px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8edf5 37%, #f1f5f9 63%);
+  background-size: 400% 100%;
+  animation: pf-shimmer 1.4s ease infinite;
+}
+
+@keyframes pf-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-skeleton {
+    animation: none;
+  }
+}
+
+/* Switches: give the "off" track a visible colour on white cards. */
+.p-toggleswitch-input:not(:checked) + .p-toggleswitch-slider {
+  background: #cbd5e1;
+}
+.p-toggleswitch:not(.p-disabled):hover .p-toggleswitch-input:not(:checked) + .p-toggleswitch-slider {
+  background: #94a3b8;
+}

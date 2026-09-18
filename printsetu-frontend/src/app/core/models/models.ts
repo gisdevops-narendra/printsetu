@@ -222,3 +222,60 @@ export interface ReportSummary {
   totalDocuments: number;
   totalRevenue: string;
 }
+
+// ---------- Shop profile (owner's own view) ----------
+
+export type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+export interface OpeningHoursDay {
+  open: boolean;
+  /** 24-hour "HH:MM" */
+  from: string;
+  to: string;
+}
+export type OpeningHours = Record<DayKey, OpeningHoursDay>;
+
+export interface ShopProfileInfo {
+  id: string;
+  shopCode: string;
+  name: string;
+  ownerName: string;
+  mobile: string;
+  email: string;
+  address: string;
+  city: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  createdAt: string;
+  description: string | null;
+  openingHours: OpeningHours | null;
+  logoUrl: string | null;
+  bannerUrl: string | null;
+}
+
+export interface NotificationPrefs {
+  newOrderSound: boolean;
+  desktopAlerts: boolean;
+  failureAlerts: boolean;
+}
+
+export interface ShopSettingsInfo {
+  autoAcceptOrders: boolean;
+  defaultPrinterId: string | null;
+  notificationPrefs: NotificationPrefs;
+  /** Admin-managed; shown for information only. */
+  retentionMinutes: number;
+  documentPreviewEnabled: boolean;
+  maxFileSizeBytes: number;
+}
+
+export interface ShopProfileResponse {
+  shop: ShopProfileInfo;
+  settings: ShopSettingsInfo;
+}
+
+export interface ShopStats {
+  currency: string;
+  totals: { completed: number; pending: number; failed: number; cancelled: number; all: number; pagesPrinted: number; earnings: string };
+  earnings: { today: string; week: string; month: string };
+  jobs: { today: number; week: number; month: number };
+  series: { date: string; earnings: number; jobs: number }[];
+}

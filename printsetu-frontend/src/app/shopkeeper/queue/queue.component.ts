@@ -141,7 +141,7 @@ export class QueueComponent implements OnInit {
   ngOnInit(): void {
     this.load();
     this.shopkeeperService.profile().subscribe((res) => {
-      this.previewEnabled.set(!!res.shop?.printSettings?.documentPreviewEnabled);
+      this.previewEnabled.set(!!res.settings?.documentPreviewEnabled);
     });
   }
 

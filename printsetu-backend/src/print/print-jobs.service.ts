@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -42,6 +42,8 @@ function mimeFromKey(key: string, fallback: string): string {
 
 @Injectable()
 export class PrintJobsService {
+  private readonly logger = new Logger(PrintJobsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly repo: PrintJobsRepository,
@@ -133,10 +135,23 @@ export class PrintJobsService {
       to: PrintJobStatus.PRINT_ELIGIBLE,
     });
 
+    // Shops that opted into auto-accept skip the shopkeeper's PRINT tap. If it
+    // can't be sent (e.g. no printer registered yet) the order simply stays
+    // PRINT_ELIGIBLE for manual handling; it must never fail the customer's confirm.
+    let status = eligible.status;
+    const settings = await this.prisma.printSettings.findUnique({ where: { shopId } });
+    if (settings?.autoAcceptOrders) {
+      try {
+        status = (await this.triggerPrint(eligible.id, shopId)).status;
+      } catch (err) {
+        this.logger.warn(`Auto-accept could not print job ${eligible.id}: ${err instanceof Error ? err.message : err}`);
+      }
+    }
+
     return {
       jobId: eligible.id,
       tokenNumber: eligible.tokenNumber,
-      status: eligible.status,
+      status,
       statusToken,
       amount: eligible.amount.toFixed(2),
       currency: eligible.currency,

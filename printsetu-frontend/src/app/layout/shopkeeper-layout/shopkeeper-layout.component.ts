@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { OrderAlertsService } from '../../core/services/order-alerts.service';
 import { AppShellComponent, ShellNavItem } from '../../shared/components/app-shell/app-shell.component';
 
 @Component({
@@ -13,7 +14,7 @@ import { AppShellComponent, ShellNavItem } from '../../shared/components/app-she
     </app-shell>
   `,
 })
-export class ShopkeeperLayoutComponent {
+export class ShopkeeperLayoutComponent implements OnInit, OnDestroy {
   navItems: ShellNavItem[] = [
     { label: 'Print Queue', icon: 'pi pi-inbox', route: '/shop/queue' },
     { label: 'History', icon: 'pi pi-history', route: '/shop/history' },
@@ -24,5 +25,17 @@ export class ShopkeeperLayoutComponent {
     { label: 'Print Agent', icon: 'pi pi-desktop', route: '/shop/print-agent' },
   ];
 
-  constructor(public readonly auth: AuthService) {}
+  constructor(
+    public readonly auth: AuthService,
+    private readonly alerts: OrderAlertsService,
+  ) {}
+
+  /** New-order / print-problem alerts run for as long as the shop portal is open. */
+  ngOnInit(): void {
+    this.alerts.start();
+  }
+
+  ngOnDestroy(): void {
+    this.alerts.stop();
+  }
 }

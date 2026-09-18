@@ -10,7 +10,10 @@ import {
   PricingRate,
   PrinterRow,
   PrintJobRow,
-  Shop,
+  NotificationPrefs,
+  OpeningHours,
+  ShopProfileResponse,
+  ShopStats,
 } from '../models/models';
 
 export interface UpdateItemSettingsRequest {
@@ -42,7 +45,29 @@ export class ShopkeeperService {
   constructor(private readonly http: HttpClient) {}
 
   profile() {
-    return this.http.get<{ shop: Shop }>(`${BASE}/shop/profile`);
+    return this.http.get<ShopProfileResponse>(`${BASE}/shop/profile`);
+  }
+
+  updateProfile(dto: { description?: string; mobile?: string; address?: string; city?: string; openingHours?: OpeningHours }) {
+    return this.http.patch<ShopProfileResponse>(`${BASE}/shop/profile`, dto);
+  }
+
+  uploadProfileImage(kind: 'logo' | 'banner', file: Blob) {
+    const form = new FormData();
+    form.append('file', file, `${kind}.webp`);
+    return this.http.post<ShopProfileResponse>(`${BASE}/shop/profile/${kind}`, form);
+  }
+
+  removeProfileImage(kind: 'logo' | 'banner') {
+    return this.http.delete<ShopProfileResponse>(`${BASE}/shop/profile/${kind}`);
+  }
+
+  updateSettings(dto: { autoAcceptOrders?: boolean; notificationPrefs?: Partial<NotificationPrefs>; defaultPrinterId?: string }) {
+    return this.http.patch<ShopProfileResponse>(`${BASE}/shop/settings`, dto);
+  }
+
+  stats() {
+    return this.http.get<ShopStats>(`${BASE}/shop/stats`);
   }
 
   queue() {
