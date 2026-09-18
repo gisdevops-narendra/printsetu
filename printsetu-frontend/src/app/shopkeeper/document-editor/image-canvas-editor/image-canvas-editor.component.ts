@@ -187,7 +187,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
             </button>
           </div>
           <button type="button" class="tb-btn" (click)="resetAll()" [disabled]="!canUndo()" pTooltip="Discard every change and start over" tooltipPosition="bottom">
-            <i class="pi pi-times-circle"></i> Reset all
+            <i class="pi pi-times-circle"></i> <span class="tb-label">Reset all</span>
           </button>
           <button
             type="button"
@@ -200,7 +200,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
             pTooltip="Hold to see the original colors"
             tooltipPosition="bottom"
           >
-            <i class="pi pi-clone"></i> Compare
+            <i class="pi pi-clone"></i> <span class="tb-label">Compare</span>
           </button>
 
           <span class="flex-spacer"></span>
@@ -248,10 +248,13 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
         </div>
       </div>
 
-      <aside class="ce__inspector">
+      <aside class="ce__inspector" [class.is-open]="sheetOpen()">
+        <button type="button" class="sheet-handle" (click)="sheetOpen.set(!sheetOpen())" [attr.aria-expanded]="sheetOpen()" aria-label="Show or hide controls">
+          <span class="sheet-handle__bar"></span>
+        </button>
         <div class="tabs">
           @for (t of tabDefs; track t.key) {
-            <button type="button" [class.is-on]="tab() === t.key" (click)="selectTab(t.key)" [attr.aria-label]="t.label">
+            <button type="button" [class.is-on]="tab() === t.key" (click)="onTabClick(t.key)" [attr.aria-label]="t.label">
               <i class="pi" [ngClass]="t.icon"></i>
               <span>{{ t.label }}</span>
             </button>
@@ -443,7 +446,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
             </section>
 
             @if (selection(); as sel) {
-              <section class="panel">
+              <section class="panel panel--selection">
                 <div class="slider-row__head">
                   <label class="group__label">Selected {{ sel.kind === 'path' ? 'drawing' : sel.kind }}</label>
                   <button type="button" class="link-btn danger" (click)="deleteSelection()">Delete</button>
@@ -684,21 +687,118 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
         grid-template-columns: minmax(0, 1fr) 264px;
         gap: 1rem;
       }
+      .sheet-handle {
+        display: none;
+      }
+
+      /* ---------- Tablet / phone ----------
+         The preview never scrolls away. Landscape tablets keep the desktop
+         side panel (the grid above), just with a lower stage minimum. Portrait
+         tablets and phones use a bottom sheet: preview on top filling the
+         screen, the tab bar pinned below it, and the controls sliding up
+         from the tab bar when a tab is tapped. */
       @media (max-width: 1180px) {
-        :host {
-          height: auto;
+        .ce .ce__stage {
+          min-height: 8rem;
         }
-        .ce {
-          height: auto;
-          grid-template-columns: 1fr;
-          grid-template-rows: auto auto;
+        .ce .ce__toolbar {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          gap: 0.375rem;
         }
-        .ce__stage {
+        .ce .ce__toolbar > * {
           flex: 0 0 auto;
-          height: 60vh;
         }
-        .ce__panels {
-          overflow: visible;
+        .ce .ce__toolbar .flex-spacer {
+          flex: 1 0 0.5rem;
+        }
+      }
+      @media (max-width: 700px), (max-width: 1180px) and (orientation: portrait) {
+        .ce {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+        .ce .ce__main {
+          flex: 1 1 auto;
+          min-height: 0;
+        }
+        .ce .ce__stage {
+          flex: 1 1 auto;
+        }
+        .ce .tb-label {
+          display: none;
+        }
+        /* Icon-only Preview button so the whole toolbar fits without scrolling. */
+        .ce .ce__toolbar ::ng-deep .p-button-label {
+          display: none;
+        }
+        .ce .tb-btn {
+          padding: 0 0.625rem;
+        }
+        .ce .ce__inspector {
+          flex: 0 0 auto;
+          gap: 0.25rem;
+          padding: 0 0.5rem 0.5rem;
+          background: var(--surface);
+          border: 1px solid var(--line);
+          border-radius: 16px;
+          box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.08);
+        }
+        .ce .sheet-handle {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+          height: 1.25rem;
+          padding: 0;
+          border: none;
+          background: none;
+          cursor: pointer;
+        }
+        .ce .sheet-handle__bar {
+          width: 2.25rem;
+          height: 0.25rem;
+          border-radius: 999px;
+          background: #cbd5e1;
+        }
+        .ce .ce__inspector .tabs button {
+          padding: 0.5rem 0.125rem;
+          min-height: 2.75rem;
+        }
+        .ce .ce__panels {
+          flex: 0 0 auto;
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.22s ease;
+        }
+        .ce .ce__inspector.is-open .ce__panels {
+          max-height: min(30dvh, 16rem);
+          overflow-y: auto;
+        }
+        .ce .ce__panels .panel {
+          border: none;
+          padding: 0.5rem 0.25rem;
+          border-bottom: 1px solid var(--line);
+          border-radius: 0;
+        }
+        .ce .ce__panels .panel:last-child {
+          border-bottom: none;
+        }
+        .ce .ce__actions {
+          flex-direction: row;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.25rem 0 0;
+          border: none;
+          background: transparent;
+        }
+        .ce .ce__actions .btn-row--actions {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+        .ce .ce__actions .dpi-chip {
+          flex: 0 0 auto;
         }
       }
       .ce__main {
@@ -1215,6 +1315,8 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
   exporting = signal(false);
   viewZoom = signal(1);
   tab = signal<InspectorTab>('layout');
+  /** Phone/portrait-tablet bottom sheet: controls slide up over the bottom of the screen. */
+  sheetOpen = signal(false);
 
   paperSize = signal<CanvasEditorPaperKey>('A4');
   showBleed = signal(false);
@@ -1392,7 +1494,12 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
     // Scene coordinates stay a fixed 800x600 "world"; the canvas element
     // itself follows its container and the viewport transform scales the
     // world to fit, so the editor never clips or overflows at any width.
-    this.resizeObserver = new ResizeObserver(() => this.fitView());
+    // Opening/closing the bottom sheet resizes the stage: re-fit only if the
+    // user hasn't zoomed, otherwise keep their view and just resize.
+    this.resizeObserver = new ResizeObserver(() => {
+      if (this.viewZoom() === 1) this.fitView();
+      else this.resizeStage();
+    });
     this.resizeObserver.observe(stage);
 
     this.canvas.on('object:moving', (e) => {
@@ -1543,6 +1650,14 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
     const s = this.baseScale;
     this.canvas.setViewportTransform([s, 0, 0, s, (w - VIEWPORT_W * s) / 2, (h - VIEWPORT_H * s) / 2]);
     this.viewZoom.set(1);
+    this.canvas.requestRenderAll();
+  }
+
+  private resizeStage(): void {
+    if (!this.canvas) return;
+    const el = this.stageRef.nativeElement;
+    if (!el.clientWidth || !el.clientHeight) return;
+    this.canvas.setDimensions({ width: el.clientWidth, height: el.clientHeight });
     this.canvas.requestRenderAll();
   }
 
@@ -2325,6 +2440,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
     }
     const pxMm = this.pxPerMm();
     const t = o as IText;
+    const wasSelected = this.selection() !== null;
     this.selection.set({
       kind: this.annKind(o)!,
       fill: typeof o.fill === 'string' ? o.fill : 'transparent',
@@ -2338,6 +2454,13 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
       underline: !!t.underline,
       align: t.textAlign ?? 'left',
     });
+    // Newly selected: bring its settings into view inside the (scrollable) panel/sheet.
+    if (!wasSelected) {
+      setTimeout(
+        () => this.stageRef?.nativeElement.closest('.ce')?.querySelector('.panel--selection')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }),
+        60,
+      );
+    }
   }
 
   private editSelected(apply: (o: FabricObject) => void): void {
@@ -2421,6 +2544,20 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
   }
 
   // ---- Tools (draw / highlight / erase / retouch / perspective) ----
+
+  /**
+   * Bottom-sheet behaviour on small screens: tapping a tab opens the sheet on
+   * it; tapping the active tab again tucks it away so the whole preview shows.
+   * (On desktop the panels are always visible and this is a plain tab switch.)
+   */
+  onTabClick(tab: InspectorTab): void {
+    if (this.tab() === tab && this.sheetOpen()) {
+      this.sheetOpen.set(false);
+      return;
+    }
+    this.selectTab(tab);
+    this.sheetOpen.set(true);
+  }
 
   selectTab(tab: InspectorTab): void {
     if (this.tab() === tab) return;

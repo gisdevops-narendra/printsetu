@@ -97,7 +97,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
 
         <div class="editor-body">
           <!-- Left rail: document list + reorder + delete -->
-          <aside class="docs">
+          <aside class="docs" [class.docs--single]="job()!.items.length === 1">
             <h3 class="section-heading">Documents</h3>
             <ul class="doc-list">
               @for (item of job()!.items; track item.id; let i = $index) {
@@ -249,7 +249,11 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
           </main>
         </div>
 
-        <footer class="print-bar">
+        <footer class="print-bar" [class.settings-open]="settingsOpen()">
+          <button type="button" class="settings-toggle" (click)="settingsOpen.set(!settingsOpen())" [attr.aria-expanded]="settingsOpen()">
+            <i class="pi pi-sliders-h"></i> <span class="settings-toggle__text">Print options</span>
+            <i class="pi" [ngClass]="settingsOpen() ? 'pi-chevron-down' : 'pi-chevron-up'"></i>
+          </button>
           <div class="print-bar__settings">
             @if (selectedItem()) {
               <div class="field">
@@ -423,39 +427,191 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         gap: 1rem;
         min-height: 0;
       }
-      @media (max-width: 960px) {
+      .settings-toggle {
+        display: none;
+      }
+
+      /* ---------- Tablet & phone: one screen, no page scrolling ----------
+         The editor fits the viewport: the preview takes all the height that
+         is left and the controls live in a panel/sheet next to or below it
+         (see the image editor), so changes are always visible as you make
+         them. The document list becomes a strip, and the print options fold
+         into a popover so the bottom bar stays a single slim row. */
+      @media (max-width: 1180px) {
+        .editor-page {
+          gap: 0.5rem;
+        }
+        .editor-title {
+          font-size: 1.05rem;
+        }
         .editor-body {
           grid-template-columns: 1fr;
+          grid-template-rows: auto minmax(0, 1fr);
+          gap: 0.5rem;
         }
         .docs {
-          max-height: 200px;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.375rem;
+          border-radius: 12px;
+          overflow-x: auto;
+          overflow-y: hidden;
+        }
+        .docs .section-heading {
+          display: none;
+        }
+        .docs--single {
+          display: none;
+        }
+        .doc-list {
+          flex-direction: row;
+          flex: 1 1 auto;
+        }
+        .doc-card {
+          flex: 0 0 auto;
+          min-width: 12.5rem;
+        }
+        /* No hover on touch: the active card shows its move/remove buttons. */
+        .doc-card.is-active .doc-card__actions {
+          display: inline-flex;
+          position: static;
+          transform: none;
+          box-shadow: none;
+          border: none;
+          background: transparent;
+        }
+        /* Always the flexible row, even when the document strip is hidden. */
+        .editor-page .workspace {
+          grid-row: 2;
+          min-height: 0;
+        }
+        .workspace__fill {
+          min-height: 0;
+        }
+        .workspace__fill {
+          flex: 1 1 auto;
+          height: 100%;
+        }
+        .editor-page .pdf-editor {
+          grid-template-columns: 1fr;
+          grid-template-rows: minmax(0, 1fr) auto;
+          gap: 0.5rem;
+        }
+        .pdf-editor .stage {
+          min-height: 8rem;
+        }
+        .editor-page .inspector {
+          overflow: visible;
+        }
+
+        .editor-page .print-bar {
+          position: relative;
+          flex-wrap: nowrap;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 0.75rem;
+          border-radius: 12px;
+        }
+        .editor-page .settings-toggle {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          height: 2.5rem;
+          padding: 0 0.75rem;
+          border: 1px solid var(--line);
+          border-radius: 10px;
+          background: var(--surface);
+          color: #334155;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+        .settings-toggle .pi-chevron-up,
+        .settings-toggle .pi-chevron-down {
+          font-size: 0.65rem;
+          color: var(--muted);
+        }
+        .editor-page .print-bar__settings {
+          display: none;
+          position: absolute;
+          z-index: 30;
+          left: 0;
+          right: 0;
+          bottom: calc(100% + 0.5rem);
+          padding: 0.75rem;
+          background: var(--surface);
+          border: 1px solid var(--line);
+          border-radius: 14px;
+          box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.16);
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.75rem;
+        }
+        .editor-page .print-bar.settings-open .print-bar__settings {
+          display: grid;
+        }
+        .editor-page .print-bar__settings .field :is(p-select, p-inputnumber) {
+          width: 100%;
+        }
+        .editor-page .print-bar__total {
+          margin-left: auto;
+          gap: 0.75rem;
+        }
+        .editor-page .total {
+          flex-direction: row;
+          align-items: baseline;
+          gap: 0.375rem;
+        }
+        .editor-page .total strong {
+          font-size: 1rem;
+          white-space: nowrap;
+        }
+        .editor-page .print-bar__total {
+          flex-wrap: nowrap;
+        }
+        .editor-page .print-bar__total ::ng-deep .p-button {
+          white-space: nowrap;
+        }
+      }
+      @media (max-width: 480px) {
+        .editor-subtitle,
+        .pill,
+        .header-actions ::ng-deep .p-button-label,
+        .editor-page .total span {
+          display: none;
+        }
+        .editor-page .settings-toggle {
+          padding: 0 0.625rem;
+        }
+        .settings-toggle__text {
+          display: none;
         }
       }
 
-      /* Narrow windows: stop forcing everything into the viewport height —
-         let the page grow and the shell scroll instead of overlapping. */
-      @media (max-width: 1180px) {
-        :host {
-          height: auto !important;
-          min-height: 100%;
+      /* Short screens (a phone held sideways): every pixel of height goes to the
+         preview, so the header and print bar shrink to slim rows. */
+      @media (max-height: 520px) {
+        .editor-subtitle,
+        .pill {
+          display: none;
         }
-        .editor-page {
-          height: auto;
+        .editor-title {
+          font-size: 0.95rem;
         }
-        .editor-body {
-          flex: 0 0 auto;
-          grid-template-rows: auto auto;
+        .back-btn {
+          width: 2rem;
+          height: 2rem;
         }
-        .workspace,
-        .workspace__fill {
-          flex: 0 0 auto;
+        .pager {
+          transform: scale(0.9);
+          transform-origin: right center;
         }
-        .pdf-editor {
-          grid-template-rows: auto auto;
+        .editor-page .print-bar {
+          padding: 0.25rem 0.5rem;
         }
-        .pdf-editor .stage {
-          flex: 0 0 auto;
-          height: 60vh;
+        .editor-page .settings-toggle {
+          height: 2rem;
         }
       }
 
@@ -873,6 +1029,8 @@ export class DocumentEditorComponent implements OnInit {
   editorState = signal<unknown | null>(null);
   editorBaseIsOriginal = signal(true);
   batchBusy = signal(false);
+  /** Compact screens: the print options open as a popover above the bar. */
+  settingsOpen = signal(false);
   otherImageCount = computed(() => {
     const cur = this.selectedItem();
     return (this.job()?.items ?? []).filter((i) => i.id !== cur?.id && i.document?.mimeType !== 'application/pdf').length;

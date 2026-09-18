@@ -249,6 +249,12 @@ export interface ShellNavItem {
           display: none;
         }
       }
+      /* Short screens: a slimmer top bar leaves more room for the page. */
+      @media (max-height: 520px) {
+        .topbar {
+          height: 44px;
+        }
+      }
       @media (max-width: 1023px) and (min-width: 768px) {
         .topbar__email {
           max-width: 14rem;
