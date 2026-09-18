@@ -33,23 +33,24 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     EllipsisDirective,
   ],
   template: `
-    <div class="flex justify-content-between align-items-center mb-4">
+    <div class="page-header">
       <div>
         <h1 class="page-title">Printers &amp; Agents</h1>
         <p class="page-subtitle m-0">Register a Print Agent for a shop and monitor its connection status.</p>
       </div>
-      <p-button label="Register Printer" icon="pi pi-plus" (onClick)="openRegister()" />
+      <div class="page-actions">
+        <p-iconfield>
+          <p-inputicon styleClass="pi pi-search" />
+          <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+        </p-iconfield>
+        <p-button label="Register Printer" icon="pi pi-plus" (onClick)="openRegister()" />
+      </div>
     </div>
 
-    <div class="flex justify-content-end mb-3">
-      <p-iconfield>
-        <p-inputicon styleClass="pi pi-search" />
-        <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
-      </p-iconfield>
-    </div>
 
     <p-table
       #dt
+      [tableStyle]="{ 'min-width': '38rem' }"
       [value]="enrichedPrinters()"
       [loading]="loading()"
       [globalFilterFields]="['printerName', 'shopName', 'agentId', 'status']"
@@ -61,33 +62,33 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 20%" pSortableColumn="printerName">Printer <p-sortIcon field="printerName" /></th>
-          <th style="width: 20%" pSortableColumn="shopName">Shop <p-sortIcon field="shopName" /></th>
+          <th style="width: 24%" pSortableColumn="printerName">Printer <p-sortIcon field="printerName" /></th>
+          <th style="width: 22%" pSortableColumn="shopName">Shop <p-sortIcon field="shopName" /></th>
           <th style="width: 20%" pSortableColumn="agentId">Agent ID <p-sortIcon field="agentId" /></th>
-          <th style="width: 20%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
+          <th style="width: 14%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
           <th style="width: 20%" pSortableColumn="lastHeartbeatAt">Last heartbeat <p-sortIcon field="lastHeartbeatAt" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-p>
         <tr>
-          <td>
+          <td data-label="Printer">
             <span appEllipsis #printerRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="printerRef.isTruncated">{{ p.printerName }}</span></span
             >
           </td>
-          <td>
+          <td data-label="Shop">
             <span appEllipsis #shopRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="shopRef.isTruncated">{{ p.shopName }}</span></span
             >
           </td>
-          <td><code class="text-xs">{{ p.agentId }}</code></td>
-          <td>
+          <td data-label="Agent ID"><code class="text-xs">{{ p.agentId }}</code></td>
+          <td data-label="Status">
             <p-tag
               [value]="p.status"
               [severity]="p.status === 'ONLINE' ? 'success' : p.status === 'OFFLINE' ? 'danger' : 'secondary'"
             />
           </td>
-          <td>{{ p.lastHeartbeatAt ? (p.lastHeartbeatAt | date: 'medium') : 'never' }}</td>
+          <td data-label="Last heartbeat">{{ p.lastHeartbeatAt ? (p.lastHeartbeatAt | date: 'medium') : 'never' }}</td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">

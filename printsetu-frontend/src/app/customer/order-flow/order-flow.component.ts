@@ -284,7 +284,8 @@ interface PersistedOrderSession {
         padding: 2.5rem 1rem;
       }
       .order-container {
-        max-width: 600px;
+        /* Grows a little on big screens so the flow isn't a thin strip. */
+        max-width: clamp(600px, 46vw, 760px);
         margin: 0 auto;
       }
       .order-card {

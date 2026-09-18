@@ -347,8 +347,9 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
       }
       .title-row {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
-        gap: 0.625rem;
+        gap: 0.25rem 0.625rem;
       }
       .editor-title {
         margin: 0;
@@ -356,6 +357,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         font-weight: 700;
         letter-spacing: -0.01em;
         color: var(--ink);
+        white-space: nowrap;
       }
       .pill {
         font-size: 0.6875rem;

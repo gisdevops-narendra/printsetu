@@ -62,6 +62,7 @@ import { AuthService } from '../../core/auth/auth.service';
     `
       .login-page {
         min-height: 100vh;
+        min-height: 100dvh;
         background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 60%);
         padding: 1rem;
       }

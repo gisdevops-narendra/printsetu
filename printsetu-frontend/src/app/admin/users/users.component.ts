@@ -31,23 +31,24 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     EllipsisDirective,
   ],
   template: `
-    <div class="flex justify-content-between align-items-center mb-4">
+    <div class="page-header">
       <div>
         <h1 class="page-title">Users</h1>
         <p class="page-subtitle m-0">Admin and shopkeeper accounts. Credentials are managed by Keycloak.</p>
       </div>
-      <p-button label="New User" icon="pi pi-plus" (onClick)="openCreate()" />
+      <div class="page-actions">
+        <p-iconfield>
+          <p-inputicon styleClass="pi pi-search" />
+          <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+        </p-iconfield>
+        <p-button label="New User" icon="pi pi-plus" (onClick)="openCreate()" />
+      </div>
     </div>
 
-    <div class="flex justify-content-end mb-3">
-      <p-iconfield>
-        <p-inputicon styleClass="pi pi-search" />
-        <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
-      </p-iconfield>
-    </div>
 
     <p-table
       #dt
+      [tableStyle]="{ 'min-width': '42rem' }"
       [value]="users()"
       [loading]="loading()"
       [globalFilterFields]="['name', 'email', 'role.name', 'shop.name', 'status']"
@@ -59,33 +60,33 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 16.67%" pSortableColumn="name">Name <p-sortIcon field="name" /></th>
-          <th style="width: 16.67%" pSortableColumn="email">Email <p-sortIcon field="email" /></th>
-          <th style="width: 16.67%" pSortableColumn="role.name">Role <p-sortIcon field="role.name" /></th>
-          <th style="width: 16.67%" pSortableColumn="shop.name">Shop <p-sortIcon field="shop.name" /></th>
-          <th style="width: 16.67%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
-          <th style="width: 16.65%"></th>
+          <th style="width: 20%" pSortableColumn="name">Name <p-sortIcon field="name" /></th>
+          <th style="width: 28%" pSortableColumn="email">Email <p-sortIcon field="email" /></th>
+          <th style="width: 14%" pSortableColumn="role.name">Role <p-sortIcon field="role.name" /></th>
+          <th style="width: 18%" pSortableColumn="shop.name">Shop <p-sortIcon field="shop.name" /></th>
+          <th style="width: 10%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
+          <th style="width: 10%"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-user>
         <tr>
-          <td>
+          <td data-label="Name">
             <span appEllipsis #nameRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="nameRef.isTruncated">{{ user.name }}</span></span
             >
           </td>
-          <td>
+          <td data-label="Email">
             <span appEllipsis #emailRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="emailRef.isTruncated">{{ user.email }}</span></span
             >
           </td>
-          <td>{{ user.role.name }}</td>
-          <td>
+          <td data-label="Role">{{ user.role.name }}</td>
+          <td data-label="Shop">
             <span appEllipsis #shopRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="shopRef.isTruncated">{{ user.shop?.name || '—' }}</span></span
             >
           </td>
-          <td><p-tag [value]="user.status" [severity]="user.status === 'ACTIVE' ? 'success' : 'danger'" /></td>
+          <td data-label="Status"><p-tag [value]="user.status" [severity]="user.status === 'ACTIVE' ? 'success' : 'danger'" /></td>
           <td class="text-right">
             <p-button
               [label]="user.status === 'ACTIVE' ? 'Disable' : 'Enable'"

@@ -15,31 +15,32 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
   standalone: true,
   imports: [CommonModule, TableModule, ButtonModule, InputTextModule, IconFieldModule, InputIconModule, EllipsisDirective],
   template: `
-    <div class="flex justify-content-between align-items-start mb-3">
+    <div class="page-header">
       <div>
         <h1 class="page-title">Audit Logs</h1>
         <p class="page-subtitle m-0">Record of administrative and sensitive operational actions.</p>
       </div>
-      <p-button
-        label="Clear"
-        icon="pi pi-trash"
-        size="small"
-        severity="danger"
-        [outlined]="true"
-        [disabled]="logs().length === 0"
-        (onClick)="confirmClear()"
-      />
+      <div class="page-actions">
+        <p-iconfield>
+          <p-inputicon styleClass="pi pi-search" />
+          <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+        </p-iconfield>
+        <p-button
+          label="Clear"
+          icon="pi pi-trash"
+          size="small"
+          severity="danger"
+          [outlined]="true"
+          [disabled]="logs().length === 0"
+          (onClick)="confirmClear()"
+        />
+      </div>
     </div>
 
-    <div class="flex justify-content-end mb-3">
-      <p-iconfield>
-        <p-inputicon styleClass="pi pi-search" />
-        <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
-      </p-iconfield>
-    </div>
 
     <p-table
       #dt
+      [tableStyle]="{ 'min-width': '32rem' }"
       [value]="logs()"
       [loading]="loading()"
       [globalFilterFields]="['action', 'entityType', 'entityId', 'actorUserId']"
@@ -51,21 +52,21 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 25%" pSortableColumn="createdAt">When <p-sortIcon field="createdAt" /></th>
-          <th style="width: 25%" pSortableColumn="action">Action <p-sortIcon field="action" /></th>
-          <th style="width: 25%" pSortableColumn="entityType">Entity <p-sortIcon field="entityType" /></th>
-          <th style="width: 25%" pSortableColumn="actorUserId">Actor <p-sortIcon field="actorUserId" /></th>
+          <th style="width: 22%" pSortableColumn="createdAt">When <p-sortIcon field="createdAt" /></th>
+          <th style="width: 28%" pSortableColumn="action">Action <p-sortIcon field="action" /></th>
+          <th style="width: 28%" pSortableColumn="entityType">Entity <p-sortIcon field="entityType" /></th>
+          <th style="width: 22%" pSortableColumn="actorUserId">Actor <p-sortIcon field="actorUserId" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-log>
         <tr>
-          <td>{{ log.createdAt | date: 'medium' }}</td>
-          <td>
+          <td data-label="When">{{ log.createdAt | date: 'medium' }}</td>
+          <td data-label="Action">
             <code appEllipsis #actionRef="appEllipsis" class="text-xs"
               ><span class="cell-ellipsis__text" [class.is-truncated]="actionRef.isTruncated">{{ log.action }}</span></code
             >
           </td>
-          <td>
+          <td data-label="Entity">
             <span appEllipsis #entityRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="entityRef.isTruncated">
                 {{ log.entityType }}
@@ -75,7 +76,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
               </span></span
             >
           </td>
-          <td>{{ log.actorUserId ? log.actorUserId.slice(0, 8) : 'system' }}</td>
+          <td data-label="Actor">{{ log.actorUserId ? log.actorUserId.slice(0, 8) : 'system' }}</td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">

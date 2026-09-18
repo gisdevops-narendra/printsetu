@@ -76,8 +76,7 @@ import { ShopkeeperService } from '../../core/services/shopkeeper.service';
   styles: [
     `
       .qr-stage {
-        flex: 1 1 auto;
-        min-height: 0;
+        flex: 1 0 auto;
         display: flex;
         align-items: center;
         justify-content: center;

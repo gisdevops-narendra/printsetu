@@ -21,6 +21,8 @@ const PRINTER_POLL_MS = 5000;
       print jobs to it automatically.
     </p>
 
+    <div class="pa-layout">
+    <div class="pa-col">
     <div class="pa-hero surface-card-flat">
       <div class="pa-hero__top">
         <div class="pa-hero__icon"><i class="pi pi-desktop"></i></div>
@@ -71,6 +73,8 @@ const PRINTER_POLL_MS = 5000;
       </p>
     </div>
 
+    </div>
+    <div class="pa-col">
     <div class="pa-printers-header">
       <h3 class="pa-section-title">Connected printers</h3>
       @if (loading()) {
@@ -101,11 +105,27 @@ const PRINTER_POLL_MS = 5000;
         }
       </div>
     }
+    </div>
+    </div>
   `,
   styles: [
     `
+      .pa-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0 clamp(1.25rem, 2.5vw, 2.5rem);
+        align-items: start;
+      }
+      @media (min-width: 1100px) {
+        .pa-layout {
+          grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+        }
+      }
+      .pa-col {
+        min-width: 0;
+      }
+
       .pa-hero {
-        max-width: 640px;
         padding: 2rem;
         margin-bottom: 2rem;
       }
@@ -242,7 +262,6 @@ const PRINTER_POLL_MS = 5000;
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        max-width: 640px;
         margin-bottom: 0.875rem;
       }
 
@@ -262,7 +281,6 @@ const PRINTER_POLL_MS = 5000;
       }
 
       .pa-printer-empty {
-        max-width: 640px;
         border: 1.5px dashed #cbd5e1;
         border-radius: 14px;
         background: #f8fafc;
@@ -281,7 +299,6 @@ const PRINTER_POLL_MS = 5000;
       }
 
       .pa-printer-grid {
-        max-width: 640px;
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
         gap: 1rem;

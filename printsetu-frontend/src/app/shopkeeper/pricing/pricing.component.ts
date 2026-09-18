@@ -61,15 +61,19 @@ import { PricingRate } from '../../core/models/models';
       </div>
     </div>
 
-    <div class="flex justify-content-end mb-3">
-      <p-iconfield>
-        <p-inputicon styleClass="pi pi-search" />
-        <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
-      </p-iconfield>
+    <div class="page-header">
+      <h3 class="m-0 text-base">Current rates</h3>
+      <div class="page-actions">
+        <p-iconfield>
+          <p-inputicon styleClass="pi pi-search" />
+          <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+        </p-iconfield>
+      </div>
     </div>
 
     <p-table
       #dt
+      [tableStyle]="{ 'min-width': '40rem' }"
       [value]="rates()"
       [loading]="loading()"
       [globalFilterFields]="['paperSize', 'colorMode', 'sideMode']"
@@ -79,21 +83,21 @@ import { PricingRate } from '../../core/models/models';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 16.67%" pSortableColumn="paperSize">Paper <p-sortIcon field="paperSize" /></th>
-          <th style="width: 16.67%" pSortableColumn="colorMode">Color <p-sortIcon field="colorMode" /></th>
-          <th style="width: 16.67%" pSortableColumn="sideMode">Side <p-sortIcon field="sideMode" /></th>
-          <th style="width: 16.67%" pSortableColumn="pricePerPage">Price / page <p-sortIcon field="pricePerPage" /></th>
-          <th style="width: 16.67%" pSortableColumn="effectiveFrom">Effective from <p-sortIcon field="effectiveFrom" /></th>
-          <th style="width: 16.65%"></th>
+          <th style="width: 16%" pSortableColumn="paperSize">Paper <p-sortIcon field="paperSize" /></th>
+          <th style="width: 16%" pSortableColumn="colorMode">Color <p-sortIcon field="colorMode" /></th>
+          <th style="width: 16%" pSortableColumn="sideMode">Side <p-sortIcon field="sideMode" /></th>
+          <th style="width: 16%" pSortableColumn="pricePerPage">Price / page <p-sortIcon field="pricePerPage" /></th>
+          <th style="width: 22%" pSortableColumn="effectiveFrom">Effective from <p-sortIcon field="effectiveFrom" /></th>
+          <th style="width: 14%"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-rate>
         <tr>
-          <td>{{ rate.paperSize }}</td>
-          <td>{{ rate.colorMode }}</td>
-          <td>{{ rate.sideMode }}</td>
-          <td>₹{{ rate.pricePerPage }}</td>
-          <td>{{ rate.effectiveFrom | date: 'medium' }}</td>
+          <td data-label="Paper">{{ rate.paperSize }}</td>
+          <td data-label="Color">{{ rate.colorMode }}</td>
+          <td data-label="Side">{{ rate.sideMode }}</td>
+          <td data-label="Price / page">₹{{ rate.pricePerPage }}</td>
+          <td data-label="Effective from">{{ rate.effectiveFrom | date: 'medium' }}</td>
           <td class="flex gap-2 justify-content-end">
             <p-button
               icon="pi pi-pencil"

@@ -28,28 +28,28 @@ const EVENT_META: Record<
   standalone: true,
   imports: [CommonModule, TableModule, TagModule, ButtonModule, InputTextModule, IconFieldModule, InputIconModule],
   template: `
-    <div class="flex justify-content-between align-items-start mb-3">
+    <div class="page-header">
       <div>
         <h1 class="page-title">Notifications</h1>
         <p class="page-subtitle m-0">Document and print-job events for your shop, most recent first.</p>
       </div>
-      <p-button
-        label="Clear"
-        icon="pi pi-trash"
-        size="small"
-        severity="danger"
-        [outlined]="true"
-        [disabled]="notifications().length === 0"
-        (onClick)="confirmClear()"
-      />
+      <div class="page-actions">
+        <p-iconfield>
+          <p-inputicon styleClass="pi pi-search" />
+          <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+        </p-iconfield>
+        <p-button
+          label="Clear"
+          icon="pi pi-trash"
+          size="small"
+          severity="danger"
+          [outlined]="true"
+          [disabled]="notifications().length === 0"
+          (onClick)="confirmClear()"
+        />
+      </div>
     </div>
 
-    <div class="flex justify-content-end mb-3">
-      <p-iconfield>
-        <p-inputicon styleClass="pi pi-search" />
-        <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
-      </p-iconfield>
-    </div>
 
     <p-table
       #dt
@@ -64,20 +64,20 @@ const EVENT_META: Record<
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 50%" pSortableColumn="eventLabel">Event <p-sortIcon field="eventLabel" /></th>
-          <th style="width: 50%" pSortableColumn="createdAt">When <p-sortIcon field="createdAt" /></th>
+          <th style="width: 60%" pSortableColumn="eventLabel">Event <p-sortIcon field="eventLabel" /></th>
+          <th style="width: 40%" pSortableColumn="createdAt">When <p-sortIcon field="createdAt" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-n>
         <tr>
-          <td>
+          <td data-label="Event">
             <p-tag
               [value]="meta(n.eventType).label"
               [icon]="meta(n.eventType).icon"
               [severity]="meta(n.eventType).severity"
             />
           </td>
-          <td>{{ n.createdAt | date: 'medium' }}</td>
+          <td data-label="When">{{ n.createdAt | date: 'medium' }}</td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">

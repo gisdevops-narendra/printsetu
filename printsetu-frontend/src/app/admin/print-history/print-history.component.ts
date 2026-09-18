@@ -27,32 +27,33 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     EllipsisDirective,
   ],
   template: `
-    <div class="flex justify-content-between align-items-start mb-3">
+    <div class="page-header">
       <div>
         <h1 class="page-title">Print History</h1>
         <p class="page-subtitle m-0">All print jobs across every shop, most recent first.</p>
       </div>
-      <p-button
-        label="Clear"
-        icon="pi pi-trash"
-        size="small"
-        severity="danger"
-        [outlined]="true"
-        [disabled]="jobs().length === 0"
-        (onClick)="confirmClear()"
-        pTooltip="Permanently deletes completed/cancelled jobs across all shops. Jobs still in progress are kept."
-      />
+      <div class="page-actions">
+        <p-iconfield>
+          <p-inputicon styleClass="pi pi-search" />
+          <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+        </p-iconfield>
+        <p-button
+          label="Clear"
+          icon="pi pi-trash"
+          size="small"
+          severity="danger"
+          [outlined]="true"
+          [disabled]="jobs().length === 0"
+          (onClick)="confirmClear()"
+          pTooltip="Permanently deletes completed/cancelled jobs across all shops. Jobs still in progress are kept."
+        />
+      </div>
     </div>
 
-    <div class="flex justify-content-end mb-3">
-      <p-iconfield>
-        <p-inputicon styleClass="pi pi-search" />
-        <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
-      </p-iconfield>
-    </div>
 
     <p-table
       #dt
+      [tableStyle]="{ 'min-width': '52rem' }"
       [value]="enrichedJobs()"
       [loading]="loading()"
       [globalFilterFields]="['tokenNumber', 'shop.name', 'documentNames', 'status']"
@@ -64,24 +65,24 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 14.29%" pSortableColumn="tokenNumber">Token <p-sortIcon field="tokenNumber" /></th>
-          <th style="width: 14.29%" pSortableColumn="shop.name">Shop <p-sortIcon field="shop.name" /></th>
-          <th style="width: 14.29%">Documents</th>
-          <th style="width: 14.29%; border-left: 1px solid #f1f5f9">Options</th>
-          <th style="width: 14.29%" pSortableColumn="amount">Amount <p-sortIcon field="amount" /></th>
-          <th style="width: 14.29%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
-          <th style="width: 14.26%" pSortableColumn="createdAt">Created <p-sortIcon field="createdAt" /></th>
+          <th style="width: 8%" pSortableColumn="tokenNumber">Token <p-sortIcon field="tokenNumber" /></th>
+          <th style="width: 14%" pSortableColumn="shop.name">Shop <p-sortIcon field="shop.name" /></th>
+          <th style="width: 20%">Documents</th>
+          <th style="width: 16%; border-left: 1px solid #f1f5f9">Options</th>
+          <th style="width: 9%" pSortableColumn="amount">Amount <p-sortIcon field="amount" /></th>
+          <th style="width: 14%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
+          <th style="width: 19%" pSortableColumn="createdAt">Created <p-sortIcon field="createdAt" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-job>
         <tr>
-          <td><span class="font-semibold">#{{ job.tokenNumber }}</span></td>
-          <td>
+          <td data-label="Token"><span class="font-semibold">#{{ job.tokenNumber }}</span></td>
+          <td data-label="Shop">
             <span appEllipsis #shopRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="shopRef.isTruncated">{{ job.shop?.name }}</span></span
             >
           </td>
-          <td>
+          <td data-label="Documents">
             <div class="item-stack">
               @for (item of job.items; track item.id) {
                 <span appEllipsis #docRef="appEllipsis"
@@ -90,16 +91,16 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
               }
             </div>
           </td>
-          <td class="text-xs" style="border-left: 1px solid #f1f5f9">
+          <td class="text-xs" style="border-left: 1px solid #f1f5f9" data-label="Options">
             <div class="item-stack">
               @for (item of job.items; track item.id) {
                 <span>{{ item.paperSize }} · {{ item.colorMode }} · {{ item.sideMode }} ×{{ item.copies }}</span>
               }
             </div>
           </td>
-          <td>{{ job.currency }} {{ job.amount }}</td>
-          <td><app-status-tag [status]="job.status" /></td>
-          <td>{{ job.createdAt | date: 'medium' }}</td>
+          <td data-label="Amount">{{ job.currency }} {{ job.amount }}</td>
+          <td data-label="Status"><app-status-tag [status]="job.status" /></td>
+          <td data-label="Created">{{ job.createdAt | date: 'medium' }}</td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">

@@ -28,12 +28,12 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     EllipsisDirective,
   ],
   template: `
-    <div class="flex justify-content-between align-items-center mb-4">
+    <div class="page-header">
       <div>
         <h1 class="page-title">Print Queue</h1>
         <p class="page-subtitle m-0">Incoming and pending print jobs for your shop.</p>
       </div>
-      <div class="flex align-items-center gap-2">
+      <div class="page-actions">
         <p-iconfield>
           <p-inputicon styleClass="pi pi-search" />
           <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
@@ -44,6 +44,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 
     <p-table
       #dt
+      [tableStyle]="{ 'min-width': '46rem' }"
       [value]="enrichedJobs()"
       [loading]="loading()"
       [globalFilterFields]="['tokenNumber', 'documentNames', 'status']"
@@ -55,19 +56,19 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 14.29%" pSortableColumn="tokenNumber">Token <p-sortIcon field="tokenNumber" /></th>
-          <th style="width: 14.29%">Documents</th>
-          <th style="width: 14.29%; border-left: 1px solid #f1f5f9">Options</th>
-          <th style="width: 14.29%" pSortableColumn="amount">Amount <p-sortIcon field="amount" /></th>
-          <th style="width: 14.29%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
-          <th style="width: 14.29%" pSortableColumn="createdAt">Received <p-sortIcon field="createdAt" /></th>
-          <th style="width: 14.26%"></th>
+          <th style="width: 8%" pSortableColumn="tokenNumber">Token <p-sortIcon field="tokenNumber" /></th>
+          <th style="width: 23%">Documents</th>
+          <th style="width: 17%; border-left: 1px solid #f1f5f9">Options</th>
+          <th style="width: 10%" pSortableColumn="amount">Amount <p-sortIcon field="amount" /></th>
+          <th style="width: 14%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
+          <th style="width: 13%" pSortableColumn="createdAt">Received <p-sortIcon field="createdAt" /></th>
+          <th style="width: 15%"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-job>
         <tr>
-          <td><span class="font-semibold">#{{ job.tokenNumber }}</span></td>
-          <td>
+          <td data-label="Token"><span class="font-semibold">#{{ job.tokenNumber }}</span></td>
+          <td data-label="Documents">
             <div class="item-stack">
               @for (item of job.items; track item.id) {
                 <span appEllipsis #docRef="appEllipsis"
@@ -76,16 +77,16 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
               }
             </div>
           </td>
-          <td class="text-xs" style="border-left: 1px solid #f1f5f9">
+          <td class="text-xs" style="border-left: 1px solid #f1f5f9" data-label="Options">
             <div class="item-stack">
               @for (item of job.items; track item.id) {
                 <span>{{ item.paperSize }} · {{ item.colorMode }} · {{ item.sideMode }} ×{{ item.copies }}</span>
               }
             </div>
           </td>
-          <td>{{ job.currency }} {{ job.amount }}</td>
-          <td><app-status-tag [status]="job.status" /></td>
-          <td>{{ job.createdAt | date: 'short' }}</td>
+          <td data-label="Amount">{{ job.currency }} {{ job.amount }}</td>
+          <td data-label="Status"><app-status-tag [status]="job.status" /></td>
+          <td data-label="Received">{{ job.createdAt | date: 'short' }}</td>
           <td class="text-right">
             <div class="flex flex-wrap gap-2 justify-content-end align-items-center row-gap-2">
               @if (previewEnabled()) {
