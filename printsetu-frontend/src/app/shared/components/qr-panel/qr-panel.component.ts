@@ -1,0 +1,710 @@
+import { Component, EventEmitter, HostListener, Input, Output, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MessageService } from 'primeng/api';
+import { copyText, downloadUrl } from '../../utils/browser.util';
+
+export interface QrData {
+  dataUrl: string;
+  url: string;
+  code: string;
+}
+
+/**
+ * The shop's QR code, presented as what it is used for: a printable counter
+ * sign. Shows a live preview of the sign and offers everything a shopkeeper
+ * does with it — print it, download it, share the link, or show the code
+ * full-screen to a customer standing at the counter.
+ *
+ * The sign scales with container-query units, so the same markup is the
+ * on-screen preview and (via the global print stylesheet) the A4 printout.
+ */
+@Component({
+  selector: 'app-qr-panel',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="qrp">
+      <!-- ============ Sign preview ============ -->
+      <div class="qrp__preview">
+        <div class="stage">
+          <div class="poster print-poster" role="img" [attr.aria-label]="'Counter sign with QR code' + (shopName ? ' for ' + shopName : '')">
+            <div class="poster__band">PrintSetu</div>
+            <h2 class="poster__title">Scan to print</h2>
+            @if (shopName) {
+              <p class="poster__shop">{{ shopName }}</p>
+            }
+            <div class="poster__qr"><img [src]="qr.dataUrl" alt="" /></div>
+            <p class="poster__hint">Point your phone camera at the code</p>
+            <ol class="poster__steps">
+              <li><b>1</b><span>Scan</span></li>
+              <li><b>2</b><span>Upload your files</span></li>
+              <li><b>3</b><span>Collect at the counter</span></li>
+            </ol>
+            <p class="poster__url">{{ shortUrl }}</p>
+          </div>
+        </div>
+        <p class="qrp__caption"><i class="pi pi-info-circle"></i> Sign preview &middot; prints on A4</p>
+      </div>
+
+      <!-- ============ Actions ============ -->
+      <div class="qrp__side">
+        <section class="card">
+          <h2 class="card__title">Print &amp; share</h2>
+          <button type="button" class="btn btn--primary" (click)="printSign()">
+            <i class="pi pi-print"></i> Print sign
+          </button>
+          <div class="grid2">
+            <button type="button" class="btn btn--outline" (click)="downloadSign()" [disabled]="busy()">
+              <i class="pi" [ngClass]="busy() ? 'pi-spin pi-spinner' : 'pi-download'"></i> Download sign
+            </button>
+            <button type="button" class="btn btn--outline" (click)="downloadQr()">
+              <i class="pi pi-qrcode"></i> QR image only
+            </button>
+          </div>
+          <div class="grid3">
+            <button type="button" class="tile" (click)="copyLink()"><i class="pi pi-copy"></i><span>Copy link</span></button>
+            <button type="button" class="tile" (click)="share()"><i class="pi pi-share-alt"></i><span>Share</span></button>
+            <button type="button" class="tile" (click)="fullscreen.set(true)"><i class="pi pi-expand"></i><span>Show QR</span></button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card__title">Your link</h2>
+          <div class="linkbox">
+            <span class="linkbox__url" [title]="qr.url">{{ qr.url }}</span>
+            <button type="button" class="iconbtn" (click)="copyLink()" aria-label="Copy link"><i class="pi pi-copy"></i></button>
+            <a class="iconbtn" [href]="qr.url" target="_blank" rel="noopener" aria-label="Open the customer page in a new tab"><i class="pi pi-external-link"></i></a>
+          </div>
+          <div class="meta"><span>Code</span><code>{{ qr.code }}</code></div>
+        </section>
+
+        <section class="card card--soft">
+          <h2 class="card__title">Where to put it</h2>
+          <ul class="tips">
+            <li><i class="pi pi-check-circle"></i> At the counter, at eye level, where people wait.</li>
+            <li><i class="pi pi-check-circle"></i> Keep the code flat and clean: no folds, glare or stickers over it.</li>
+            <li><i class="pi pi-check-circle"></i> Scan it yourself once after printing to be sure it opens.</li>
+          </ul>
+        </section>
+
+        @if (canRegenerate) {
+          <section class="card card--danger">
+            <div>
+              <h2 class="card__title">Need a new code?</h2>
+              <p class="note">The old printed sign stops working immediately. Past orders are not affected.</p>
+            </div>
+            <button type="button" class="btn btn--danger" (click)="regenerate.emit()"><i class="pi pi-refresh"></i> Regenerate</button>
+          </section>
+        } @else {
+          <p class="note note--center">Sign damaged or misused? Ask your administrator to issue a new code.</p>
+        }
+      </div>
+    </div>
+
+    <!-- ============ Full-screen QR for a customer at the counter ============ -->
+    @if (fullscreen()) {
+      <div class="fs" role="dialog" aria-modal="true" aria-label="QR code" (click)="fullscreen.set(false)">
+        <button type="button" class="fs__close" (click)="fullscreen.set(false)" aria-label="Close"><i class="pi pi-times"></i></button>
+        <div class="fs__body" (click)="$event.stopPropagation()">
+          <p class="fs__brand">Scan to print</p>
+          @if (shopName) { <p class="fs__shop">{{ shopName }}</p> }
+          <img class="fs__qr" [src]="qr.dataUrl" alt="QR code" />
+          <p class="fs__hint">Point your phone camera here</p>
+        </div>
+      </div>
+    }
+  `,
+  styles: [
+    `
+      :host {
+        display: block;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: #e6eaf2;
+        --brand: var(--p-primary-600);
+      }
+      .qrp {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: clamp(1rem, 2.5vw, 2rem);
+        align-items: start;
+      }
+      @media (min-width: 900px) {
+        .qrp {
+          grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+        }
+        .qrp__preview {
+          position: sticky;
+          top: 0;
+        }
+      }
+
+      /* ---------- Sign ---------- */
+      .stage {
+        padding: clamp(1rem, 3vw, 1.75rem);
+        border-radius: 20px;
+        background: linear-gradient(180deg, #eef2ff 0%, #f1f5f9 100%);
+        border: 1px solid var(--line);
+      }
+      .poster {
+        container-type: inline-size;
+        width: 100%;
+        max-width: 380px;
+        margin: 0 auto;
+        aspect-ratio: 210 / 297;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        overflow: hidden;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16), 0 2px 6px rgba(15, 23, 42, 0.06);
+        color: var(--ink);
+        text-align: center;
+      }
+      .poster__band {
+        width: 100%;
+        padding: 5.5cqw 0;
+        background: linear-gradient(135deg, var(--p-primary-700), var(--p-primary-500));
+        color: #fff;
+        font-size: 5cqw;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+      .poster__title {
+        margin: 7cqw 0 0;
+        font-size: 11cqw;
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+      }
+      .poster__shop {
+        max-width: 86%;
+        margin: 2cqw 0 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 4.6cqw;
+        font-weight: 600;
+        color: #475569;
+      }
+      .poster__qr {
+        margin-top: 5cqw;
+        width: 56cqw;
+        padding: 3cqw;
+        border: 0.6cqw solid var(--line);
+        border-radius: 4cqw;
+        background: #fff;
+      }
+      .poster__qr img {
+        display: block;
+        width: 100%;
+        height: auto;
+        image-rendering: pixelated;
+      }
+      .poster__hint {
+        margin: 4cqw 0 0;
+        font-size: 3.3cqw;
+        color: var(--muted);
+      }
+      .poster__steps {
+        display: flex;
+        gap: 2.5cqw;
+        width: 88%;
+        margin: auto 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .poster__steps li {
+        flex: 1 1 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.4cqw;
+        font-size: 2.9cqw;
+        line-height: 1.25;
+        color: #334155;
+      }
+      .poster__steps b {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 7cqw;
+        height: 7cqw;
+        border-radius: 50%;
+        background: var(--p-primary-50);
+        color: var(--p-primary-700);
+        font-size: 3.4cqw;
+      }
+      .poster__url {
+        margin: 3.5cqw 0 4.5cqw;
+        max-width: 90%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 2.6cqw;
+        color: #94a3b8;
+      }
+      .qrp__caption {
+        margin: 0.75rem 0 0;
+        text-align: center;
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      /* ---------- Right column ---------- */
+      .qrp__side {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        min-width: 0;
+      }
+      .card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.875rem;
+        padding: clamp(1rem, 2vw, 1.5rem);
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      }
+      .card--soft {
+        background: #f8fafc;
+        box-shadow: none;
+      }
+      .card--danger {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        border-color: #fecaca;
+        background: #fffafa;
+      }
+      .card__title {
+        margin: 0;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        min-height: 3rem;
+        padding: 0 1.25rem;
+        border: 1.5px solid transparent;
+        border-radius: 12px;
+        font: inherit;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+      }
+      .btn:active:not(:disabled) {
+        transform: scale(0.985);
+      }
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+      .btn--primary {
+        min-height: 3.25rem;
+        background: var(--brand);
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);
+      }
+      .btn--primary:hover {
+        background: var(--p-primary-700);
+      }
+      .btn--outline {
+        background: #fff;
+        border-color: #d6dcec;
+        color: #334155;
+      }
+      .btn--outline:hover:not(:disabled) {
+        border-color: var(--p-primary-300);
+        color: var(--p-primary-700);
+      }
+      .btn--danger {
+        flex: 0 0 auto;
+        background: #fff;
+        border-color: #fca5a5;
+        color: #b91c1c;
+      }
+      .btn--danger:hover {
+        background: #fef2f2;
+      }
+      .grid2,
+      .grid3 {
+        display: grid;
+        gap: 0.625rem;
+      }
+      .grid2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .grid3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .tile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.875rem 0.25rem;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #f8fafc;
+        font: inherit;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #334155;
+        cursor: pointer;
+      }
+      .tile i {
+        font-size: 1.125rem;
+        color: var(--brand);
+      }
+      .tile:hover {
+        background: var(--p-primary-50);
+        border-color: var(--p-primary-200);
+      }
+      .linkbox {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.25rem 0.25rem 0.875rem;
+        background: #f8fafc;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+      .linkbox__url {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.8125rem;
+        color: #475569;
+      }
+      .iconbtn {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        border: none;
+        border-radius: 10px;
+        background: transparent;
+        color: #64748b;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .iconbtn:hover {
+        background: #e8edf7;
+        color: var(--ink);
+      }
+      .meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        font-size: 0.8125rem;
+        color: var(--muted);
+      }
+      .meta code {
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        background: #eef1f7;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #475569;
+      }
+      .tips {
+        display: flex;
+        flex-direction: column;
+        gap: 0.625rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-size: 0.875rem;
+        line-height: 1.45;
+        color: #475569;
+      }
+      .tips i {
+        margin-right: 0.5rem;
+        color: #16a34a;
+      }
+      .note {
+        margin: 0.25rem 0 0;
+        font-size: 0.8125rem;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      .note--center {
+        text-align: center;
+      }
+      @media (max-width: 520px) {
+        .btn {
+          padding: 0 0.75rem;
+          font-size: 0.875rem;
+          white-space: nowrap;
+        }
+        .card--danger {
+          flex-direction: column;
+          align-items: stretch;
+        }
+      }
+
+      /* ---------- Full-screen QR ---------- */
+      .fs {
+        position: fixed;
+        inset: 0;
+        z-index: 3000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.98);
+      }
+      .fs__close {
+        position: absolute;
+        top: max(1rem, env(safe-area-inset-top));
+        right: 1rem;
+        width: 3rem;
+        height: 3rem;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background: #fff;
+        color: #334155;
+        font-size: 1.125rem;
+        cursor: pointer;
+      }
+      .fs__body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        max-width: 100%;
+        text-align: center;
+      }
+      .fs__brand {
+        margin: 0;
+        font-size: clamp(1.5rem, 5vw, 2.5rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+      .fs__shop {
+        margin: 0;
+        font-size: 1.0625rem;
+        color: #475569;
+      }
+      .fs__qr {
+        width: min(80vw, 70vh, 560px);
+        height: auto;
+        margin: 1rem 0;
+        image-rendering: pixelated;
+      }
+      .fs__hint {
+        margin: 0;
+        color: var(--muted);
+      }
+    `,
+  ],
+})
+export class QrPanelComponent {
+  @Input({ required: true }) qr!: QrData;
+  @Input() shopName: string | null = null;
+  /** Admin view only: shows the regenerate control. */
+  @Input() canRegenerate = false;
+  @Output() regenerate = new EventEmitter<void>();
+
+  fullscreen = signal(false);
+  busy = signal(false);
+
+  constructor(private readonly messageService: MessageService) {}
+
+  get shortUrl(): string {
+    return this.qr.url.replace(/^https?:\/\//, '');
+  }
+
+  @HostListener('document:keydown.escape')
+  closeFullscreen(): void {
+    this.fullscreen.set(false);
+  }
+
+  printSign(): void {
+    // The global print stylesheet (styles.scss) shows only `.print-poster`.
+    window.print();
+  }
+
+  downloadQr(): void {
+    downloadUrl(this.qr.dataUrl, 'printsetu-shop-qr.png');
+  }
+
+  async copyLink(): Promise<void> {
+    const ok = await copyText(this.qr.url);
+    this.messageService.add(
+      ok
+        ? { severity: 'success', summary: 'Link copied' }
+        : { severity: 'warn', summary: "Couldn't copy automatically", detail: 'Long-press the link to copy it.' },
+    );
+  }
+
+  async share(): Promise<void> {
+    const text = `Send your documents for printing${this.shopName ? ' at ' + this.shopName : ''}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: this.shopName ? `Print at ${this.shopName}` : 'Print with PrintSetu', text, url: this.qr.url });
+      } catch {
+        // dismissed by the user
+      }
+      return;
+    }
+    // No Web Share here (desktop / plain-http origin): WhatsApp works everywhere.
+    window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + this.qr.url)}`, '_blank', 'noopener');
+  }
+
+  /** Renders the same sign onto an A4 canvas (150 dpi) and downloads it as a PNG. */
+  async downloadSign(): Promise<void> {
+    this.busy.set(true);
+    try {
+      if (document.fonts?.ready) await document.fonts.ready;
+      const img = await this.loadImage(this.qr.dataUrl);
+      const W = 1240;
+      const H = 1754;
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d')!;
+      const font = (w: number, px: number) => `${w} ${px}px Inter, system-ui, -apple-system, "Segoe UI", sans-serif`;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, W, H);
+
+      // brand band
+      const band = ctx.createLinearGradient(0, 0, W, 240);
+      band.addColorStop(0, '#4338ca');
+      band.addColorStop(1, '#6366f1');
+      ctx.fillStyle = band;
+      ctx.fillRect(0, 0, W, 190);
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = font(700, 62);
+      ctx.fillText('PrintSetu', W / 2, 96);
+
+      // title + shop
+      ctx.fillStyle = '#0f172a';
+      ctx.font = font(800, 136);
+      ctx.fillText('Scan to print', W / 2, 340);
+      if (this.shopName) {
+        ctx.fillStyle = '#475569';
+        ctx.font = font(600, 54);
+        ctx.fillText(this.fit(ctx, this.shopName, W * 0.82), W / 2, 442);
+      }
+
+      // QR in a rounded frame
+      const frame = 700;
+      const fx = (W - frame) / 2;
+      const fy = 520;
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#e6eaf2';
+      ctx.lineWidth = 8;
+      this.roundRect(ctx, fx, fy, frame, frame, 48);
+      ctx.fill();
+      ctx.stroke();
+      ctx.imageSmoothingEnabled = false; // keep the QR modules crisp
+      ctx.drawImage(img, fx + 40, fy + 40, frame - 80, frame - 80);
+      ctx.imageSmoothingEnabled = true;
+
+      ctx.fillStyle = '#64748b';
+      ctx.font = font(500, 40);
+      ctx.fillText('Point your phone camera at the code', W / 2, fy + frame + 76);
+
+      // three steps
+      const steps = ['Scan', 'Upload your files', 'Collect at the counter'];
+      const colW = 330;
+      const gap = 40;
+      const startX = (W - (colW * 3 + gap * 2)) / 2;
+      steps.forEach((label, i) => {
+        const cx = startX + i * (colW + gap) + colW / 2;
+        ctx.fillStyle = '#eef2ff';
+        ctx.beginPath();
+        ctx.arc(cx, 1436, 44, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#4338ca';
+        ctx.font = font(700, 44);
+        ctx.fillText(String(i + 1), cx, 1438);
+        ctx.fillStyle = '#334155';
+        ctx.font = font(600, 38);
+        this.wrap(ctx, label, colW, 2).forEach((line, n) => ctx.fillText(line, cx, 1520 + n * 46));
+      });
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = font(500, 32);
+      ctx.fillText(this.fit(ctx, this.shortUrl, W * 0.88), W / 2, 1670);
+
+      const name = (this.shopName ?? 'shop').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'shop';
+      downloadUrl(canvas.toDataURL('image/png'), `printsetu-qr-sign-${name}.png`);
+    } catch {
+      this.messageService.add({ severity: 'error', summary: "Couldn't create the sign", detail: 'Try "QR image only" instead.' });
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  private loadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('image'));
+      img.src = src;
+    });
+  }
+
+  /** Breaks `text` into at most `maxLines` lines that fit `maxWidth` (last line is ellipsised if needed). */
+  private wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxLines: number): string[] {
+    const words = text.split(/\s+/);
+    const lines: string[] = [];
+    let line = '';
+    for (const word of words) {
+      const next = line ? line + ' ' + word : word;
+      if (ctx.measureText(next).width <= maxWidth || !line) line = next;
+      else {
+        lines.push(line);
+        line = word;
+      }
+    }
+    lines.push(line);
+    if (lines.length > maxLines) {
+      const rest = lines.slice(maxLines - 1).join(' ');
+      return [...lines.slice(0, maxLines - 1), this.fit(ctx, rest, maxWidth)];
+    }
+    return lines;
+  }
+
+  /** Shortens `text` with an ellipsis until it fits `maxWidth` at the context's current font. */
+  private fit(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
+    if (ctx.measureText(text).width <= maxWidth) return text;
+    let t = text;
+    while (t.length > 1 && ctx.measureText(t + '…').width > maxWidth) t = t.slice(0, -1);
+    return t + '…';
+  }
+
+  private roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+}

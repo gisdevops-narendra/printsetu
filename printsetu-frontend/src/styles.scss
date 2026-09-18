@@ -519,3 +519,43 @@ app-root {
     padding: 0.75rem 1rem 1rem 1rem;
   }
 }
+
+/* ---------- Printing the QR counter sign ----------
+   Hides the whole app and prints only the sign (.print-poster) edge to edge
+   on A4. The sign is sized with container-query units, so it scales exactly
+   with the page width. */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    height: auto !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-poster,
+  .print-poster * {
+    visibility: visible !important;
+  }
+
+  .print-poster {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100vh !important;
+    aspect-ratio: auto !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
