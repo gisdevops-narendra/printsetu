@@ -1,6 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
+import { InputTextModule } from 'primeng/inputtext';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 import { AdminService } from '../../core/services/admin.service';
 import { PrintJobRow } from '../../core/models/models';
 import { StatusTagComponent } from '../../shared/components/status-tag/status-tag.component';
@@ -9,14 +12,23 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 @Component({
   selector: 'app-print-history',
   standalone: true,
-  imports: [CommonModule, TableModule, StatusTagComponent, EllipsisDirective],
+  imports: [CommonModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, StatusTagComponent, EllipsisDirective],
   template: `
     <h1 class="page-title">Print History</h1>
     <p class="page-subtitle">All print jobs across every shop, most recent first.</p>
 
+    <div class="flex justify-content-end mb-3">
+      <p-iconfield>
+        <p-inputicon styleClass="pi pi-search" />
+        <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+      </p-iconfield>
+    </div>
+
     <p-table
-      [value]="jobs()"
+      #dt
+      [value]="enrichedJobs()"
       [loading]="loading()"
+      [globalFilterFields]="['tokenNumber', 'shop.name', 'documentNames', 'status']"
       styleClass="surface-card-flat table-fill"
       [scrollable]="true"
       scrollHeight="flex"
@@ -25,30 +37,38 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 10%">Job</th>
-          <th style="width: 16%">Shop</th>
-          <th style="width: 20%">Document</th>
-          <th style="width: 18%">Options</th>
-          <th style="width: 10%">Amount</th>
-          <th style="width: 12%">Status</th>
-          <th style="width: 14%">Created</th>
+          <th style="width: 10%" pSortableColumn="tokenNumber">Token <p-sortIcon field="tokenNumber" /></th>
+          <th style="width: 14%" pSortableColumn="shop.name">Shop <p-sortIcon field="shop.name" /></th>
+          <th style="width: 22%">Documents</th>
+          <th style="width: 16%">Options</th>
+          <th style="width: 10%" pSortableColumn="amount">Amount <p-sortIcon field="amount" /></th>
+          <th style="width: 12%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
+          <th style="width: 12%" pSortableColumn="createdAt">Created <p-sortIcon field="createdAt" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-job>
         <tr>
-          <td><code class="text-xs">{{ job.id.slice(0, 8) }}</code></td>
+          <td><span class="font-semibold">#{{ job.tokenNumber }}</span></td>
           <td>
             <span appEllipsis #shopRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="shopRef.isTruncated">{{ job.shop?.name }}</span></span
             >
           </td>
           <td>
-            <span appEllipsis #docRef="appEllipsis"
-              ><span class="cell-ellipsis__text" [class.is-truncated]="docRef.isTruncated">{{ job.document?.originalName }}</span></span
-            >
+            <div class="item-stack">
+              @for (item of job.items; track item.id) {
+                <span appEllipsis #docRef="appEllipsis"
+                  ><span class="cell-ellipsis__text" [class.is-truncated]="docRef.isTruncated">{{ item.document?.originalName }}</span></span
+                >
+              }
+            </div>
           </td>
           <td class="text-xs">
-            {{ job.optionsJson.paperSize }} · {{ job.optionsJson.colorMode }} · {{ job.optionsJson.sideMode }} ×{{ job.optionsJson.copies }}
+            <div class="item-stack">
+              @for (item of job.items; track item.id) {
+                <span>{{ item.paperSize }} · {{ item.colorMode }} · {{ item.sideMode }} ×{{ item.copies }}</span>
+              }
+            </div>
           </td>
           <td>{{ job.currency }} {{ job.amount }}</td>
           <td><app-status-tag [status]="job.status" /></td>
@@ -67,6 +87,12 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 })
 export class PrintHistoryComponent implements OnInit {
   jobs = signal<PrintJobRow[]>([]);
+  enrichedJobs = computed(() =>
+    this.jobs().map((job) => ({
+      ...job,
+      documentNames: job.items.map((item) => item.document?.originalName).join(' '),
+    })),
+  );
   loading = signal(true);
 
   constructor(private readonly adminService: AdminService) {}

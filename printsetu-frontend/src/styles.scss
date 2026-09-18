@@ -2,6 +2,7 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
+  background: #f8fafc;
 }
 
 body {
@@ -239,6 +240,15 @@ app-root {
        overflow amount — regardless of how long the text actually is. */
     transform: translateX(calc(-100% + 100cqw));
   }
+}
+
+/* Stacked per-document lines inside a table cell — a print request can
+   bundle several documents (SRS extension), one line each, aligned with
+   the matching line in a sibling "Options" cell by index. */
+.item-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 /* Empty-state rows */

@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Socket } from 'socket.io';
 
-export interface JobAssignedPayload {
-  jobId: string;
+export interface JobAssignedDocument {
+  documentId: string;
   documentSignedUrl: string;
   originalName: string;
   mimeType: string;
@@ -12,6 +12,13 @@ export interface JobAssignedPayload {
     sideMode: string;
     copies: number;
   };
+}
+
+export interface JobAssignedPayload {
+  jobId: string;
+  // One print request can now cover several documents (SRS extension), each
+  // with its own options — printed in array order.
+  documents: JobAssignedDocument[];
   attemptId: string;
 }
 

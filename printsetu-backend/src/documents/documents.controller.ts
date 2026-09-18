@@ -41,14 +41,26 @@ export class DocumentsController {
     }),
   )
   async upload(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
-    const shopCode = (req.body as Record<string, unknown>)?.shopCode;
+    const body = req.body as Record<string, unknown>;
+    const shopCode = body?.shopCode;
+    const sessionId = body?.sessionId;
     if (!file) {
       throw new BadRequestException('No file was uploaded.');
     }
     if (!shopCode || typeof shopCode !== 'string') {
       throw new BadRequestException('shopCode is required.');
     }
-    return this.documentsService.upload(shopCode, file);
+    if (sessionId !== undefined && typeof sessionId !== 'string') {
+      throw new BadRequestException('sessionId must be a string.');
+    }
+    return this.documentsService.upload(shopCode, file, sessionId);
+  }
+
+  @Public()
+  @UseGuards(StatusTokenGuard)
+  @Get('session/:sessionId')
+  async listForSession(@Param('sessionId') sessionId: string, @StatusToken() claims: StatusTokenClaims) {
+    return this.documentsService.listForSession(sessionId, claims);
   }
 
   @Public()

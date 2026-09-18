@@ -13,7 +13,7 @@ export class ReportsService {
     const [items, total] = await Promise.all([
       this.prisma.printJob.findMany({
         where,
-        include: { document: true, shop: true, printer: true },
+        include: { items: { include: { document: true }, orderBy: { printOrder: 'asc' } }, shop: true, printer: true },
         orderBy: { createdAt: 'desc' },
         take,
         skip,
@@ -30,7 +30,7 @@ export class ReportsService {
     const [items, total] = await Promise.all([
       this.prisma.printJob.findMany({
         where,
-        include: { document: true, shop: true },
+        include: { items: { include: { document: true }, orderBy: { printOrder: 'asc' } }, shop: true },
         orderBy: { updatedAt: 'desc' },
         take,
         skip,

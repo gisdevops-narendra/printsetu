@@ -33,25 +33,29 @@ export class JobProcessor {
 
     try {
       await this.http.reportStatus(job.jobId, 'ACCEPTED', attemptId);
-
-      const extension = job.mimeType === 'application/pdf' ? '.pdf' : job.mimeType === 'image/png' ? '.png' : '.jpg';
-      const filePath = path.join(this.config.downloadDir, `${job.jobId}${extension}`);
-      await this.http.downloadToFile(job.documentSignedUrl, filePath);
-
       await this.http.reportStatus(job.jobId, 'PRINTING', attemptId);
 
-      try {
-        await this.printer.print(filePath, this.config.printerName, job.options);
-        await this.http.reportStatus(job.jobId, 'PRINTED', attemptId);
-        logger.info(`Job ${job.jobId} printed successfully.`);
-      } catch (printError) {
-        // SRS §13.3 "Paper unavailable / driver error" -> fail safely, keep the job retryable.
-        logger.error(`Print failed for job ${job.jobId}: ${(printError as Error).message}`);
-        await this.http.reportStatus(job.jobId, 'PRINT_FAILED', attemptId, (printError as Error).message);
-      } finally {
-        fs.promises.unlink(filePath).catch(() => undefined);
+      // One print request can carry several documents (each with its own
+      // options) — print them in order, as one atomic outcome: the backend
+      // still only tracks accepted/printing/printed/failed per JOB, not
+      // per document, so if any document fails the whole job reports
+      // PRINT_FAILED (documents already sent to the spooler before the
+      // failure cannot be un-printed; the shopkeeper resolves it manually).
+      for (const doc of job.documents) {
+        const extension = doc.mimeType === 'application/pdf' ? '.pdf' : doc.mimeType === 'image/png' ? '.png' : '.jpg';
+        const filePath = path.join(this.config.downloadDir, `${job.jobId}-${doc.documentId}${extension}`);
+        try {
+          await this.http.downloadToFile(doc.documentSignedUrl, filePath);
+          await this.printer.print(filePath, this.config.printerName, doc.options);
+        } finally {
+          fs.promises.unlink(filePath).catch(() => undefined);
+        }
       }
+
+      await this.http.reportStatus(job.jobId, 'PRINTED', attemptId);
+      logger.info(`Job ${job.jobId} printed successfully (${job.documents.length} document(s)).`);
     } catch (error) {
+      // SRS §13.3 "Paper unavailable / driver error" -> fail safely, keep the job retryable.
       logger.error(`Job ${job.jobId} could not be processed: ${(error as Error).message}`);
       try {
         await this.http.reportStatus(job.jobId, 'PRINT_FAILED', attemptId, (error as Error).message);

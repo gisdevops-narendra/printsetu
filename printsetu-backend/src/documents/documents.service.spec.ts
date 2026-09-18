@@ -12,7 +12,11 @@ import { FileTooLargeException } from '../common/exceptions/app.exceptions';
 
 describe('DocumentsService.upload (SRS §9 Upload stage)', () => {
   let service: DocumentsService;
-  let prisma: { document: { create: jest.Mock }; printSettings: { findUnique: jest.Mock } };
+  let prisma: {
+    document: { create: jest.Mock };
+    printSettings: { findUnique: jest.Mock };
+    printSession: { create: jest.Mock; findUnique: jest.Mock };
+  };
   let queue: { add: jest.Mock };
   let storage: { putObject: jest.Mock };
 
@@ -35,6 +39,10 @@ describe('DocumentsService.upload (SRS §9 Upload stage)', () => {
         ),
       },
       printSettings: { findUnique: jest.fn().mockResolvedValue(null) },
+      printSession: {
+        create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'session-1', ...data })),
+        findUnique: jest.fn().mockResolvedValue({ id: 'session-1', shopId: 'shop-1' }),
+      },
     };
     queue = { add: jest.fn().mockResolvedValue(undefined) };
     storage = { putObject: jest.fn().mockResolvedValue(undefined) };
@@ -83,7 +91,18 @@ describe('DocumentsService.upload (SRS §9 Upload stage)', () => {
 
     expect(result.status).toBe('UPLOADED');
     expect(result.pageCount).toBeNull();
-    expect(result.docAccessToken).toEqual(expect.any(String));
+    expect(result.sessionId).toBe('session-1');
+    expect(result.sessionToken).toEqual(expect.any(String));
+  });
+
+  it('reuses an existing session when a sessionId is passed (adding a second document to the same request)', async () => {
+    await service.upload('shop-code', file, 'session-1');
+
+    expect(prisma.printSession.create).not.toHaveBeenCalled();
+    expect(prisma.printSession.findUnique).toHaveBeenCalledWith({ where: { id: 'session-1' } });
+    expect(prisma.document.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ sessionId: 'session-1' }) }),
+    );
   });
 
   it('never touches storage or the queue for an oversized file', async () => {

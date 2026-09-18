@@ -3,13 +3,20 @@ import * as fs from 'fs';
 import { AgentConfig } from './config';
 import { logger } from './logger';
 
-export interface AgentJobPayload {
-  jobId: string;
+export interface AgentJobDocument {
+  documentId: string;
   originalName: string;
   mimeType: string;
   options: { paperSize: string; colorMode: string; sideMode: string; copies: number };
-  attemptId: string;
   documentSignedUrl: string;
+}
+
+export interface AgentJobPayload {
+  jobId: string;
+  attemptId: string;
+  // One print request can cover several documents, each with its own
+  // options — printed in array order.
+  documents: AgentJobDocument[];
 }
 
 export type AgentJobStatus = 'ACCEPTED' | 'PRINTING' | 'PRINTED' | 'PRINT_FAILED' | 'PRINT_UNKNOWN';

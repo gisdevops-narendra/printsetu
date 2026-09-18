@@ -32,7 +32,10 @@ export class RetentionService {
   async sweep() {
     const candidates = await this.prisma.printJob.findMany({
       where: { status: PrintJobStatus.RETENTION_PENDING },
-      include: { document: true, shop: { include: { printSettings: true } } },
+      include: {
+        items: { include: { document: true } },
+        shop: { include: { printSettings: true } },
+      },
     });
 
     // SRS §6 "System settings": admin can override the platform-wide
@@ -50,21 +53,29 @@ export class RetentionService {
       const retentionMinutes = job.shop.printSettings?.retentionMinutes ?? defaultMinutes;
       const eligibleAt = new Date(job.printedAt.getTime() + retentionMinutes * 60_000);
       if (eligibleAt.getTime() > Date.now()) continue;
-      if (job.document.status === DocumentStatus.DELETED) continue;
 
-      try {
-        await this.storage.deleteObject(job.document.s3Key);
-      } catch (error) {
-        this.logger.error(
-          `Failed to delete object ${job.document.s3Key}: ${(error as Error).message}`,
-        );
-        continue; // retry next sweep rather than mark DELETED with an orphaned object
+      const pendingDocuments = job.items
+        .map((item) => item.document)
+        .filter((document) => document.status !== DocumentStatus.DELETED);
+
+      let deleteFailed = false;
+      for (const document of pendingDocuments) {
+        try {
+          await this.storage.deleteObject(document.s3Key);
+        } catch (error) {
+          this.logger.error(
+            `Failed to delete object ${document.s3Key}: ${(error as Error).message}`,
+          );
+          deleteFailed = true;
+          continue; // retry this one next sweep rather than mark DELETED with an orphaned object
+        }
+        await this.prisma.document.update({
+          where: { id: document.id },
+          data: { status: DocumentStatus.DELETED, deletedAt: new Date() },
+        });
       }
+      if (deleteFailed) continue; // leave the job RETENTION_PENDING; next sweep retries the stragglers
 
-      await this.prisma.document.update({
-        where: { id: job.documentId },
-        data: { status: DocumentStatus.DELETED, deletedAt: new Date() },
-      });
       await this.printJobsRepo.transition({
         jobId: job.id,
         from: PrintJobStatus.RETENTION_PENDING,

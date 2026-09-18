@@ -27,7 +27,7 @@ describe('CustomerService (SRS §5.2/§8 no-login customer flow)', () => {
     req.flush({ shopCode: 'demoShopQR001', shopName: 'Demo', city: 'Ahmedabad' });
   });
 
-  it('upload() POSTs a multipart form with shopCode and file, no status-token header', () => {
+  it('upload() POSTs a multipart form with shopCode and file, no sessionId when starting a new session', () => {
     const file = new File(['content'], 'doc.pdf', { type: 'application/pdf' });
     service.upload('demoShopQR001', file).subscribe();
 
@@ -36,6 +36,16 @@ describe('CustomerService (SRS §5.2/§8 no-login customer flow)', () => {
     expect(req.request.body instanceof FormData).toBe(true);
     expect((req.request.body as FormData).get('shopCode')).toBe('demoShopQR001');
     expect((req.request.body as FormData).get('file')).toBe(file);
+    expect((req.request.body as FormData).get('sessionId')).toBeNull();
+    req.flush({});
+  });
+
+  it('upload() includes sessionId when adding a second document to an existing session', () => {
+    const file = new File(['content'], 'photo.jpg', { type: 'image/jpeg' });
+    service.upload('demoShopQR001', file, 'session-1').subscribe();
+
+    const req = httpMock.expectOne(`${BASE}/documents`);
+    expect((req.request.body as FormData).get('sessionId')).toBe('session-1');
     req.flush({});
   });
 
@@ -47,10 +57,18 @@ describe('CustomerService (SRS §5.2/§8 no-login customer flow)', () => {
     req.flush({});
   });
 
-  it('quote() POSTs the quote request with the status token', () => {
+  it('sessionDocuments() GETs every document uploaded in a session with the status token', () => {
+    service.sessionDocuments('session-1', 'token-abc').subscribe();
+    const req = httpMock.expectOne(`${BASE}/documents/session/session-1`);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.headers.get('x-status-token')).toBe('token-abc');
+    req.flush([]);
+  });
+
+  it('quote() POSTs one line item per document with the status token', () => {
     service
       .quote(
-        { documentId: 'doc-1', paperSize: 'A4', colorMode: 'BW', sideMode: 'SIMPLEX', copies: 2 },
+        [{ documentId: 'doc-1', paperSize: 'A4', colorMode: 'BW', sideMode: 'SIMPLEX', copies: 2 }],
         'token-abc',
       )
       .subscribe();
@@ -58,11 +76,7 @@ describe('CustomerService (SRS §5.2/§8 no-login customer flow)', () => {
     expect(req.request.method).toBe('POST');
     expect(req.request.headers.get('x-status-token')).toBe('token-abc');
     expect(req.request.body).toEqual({
-      documentId: 'doc-1',
-      paperSize: 'A4',
-      colorMode: 'BW',
-      sideMode: 'SIMPLEX',
-      copies: 2,
+      items: [{ documentId: 'doc-1', paperSize: 'A4', colorMode: 'BW', sideMode: 'SIMPLEX', copies: 2 }],
     });
     req.flush({});
   });

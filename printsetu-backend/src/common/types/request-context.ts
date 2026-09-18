@@ -18,7 +18,7 @@ export interface AuthenticatedAgent {
 export interface StatusTokenClaims {
   [key: string]: unknown;
   shopId: string;
-  documentId?: string;
+  sessionId?: string;
   quoteId?: string;
   printJobId?: string;
   exp: number;

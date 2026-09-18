@@ -5,6 +5,9 @@ import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
+import { InputTextModule } from 'primeng/inputtext';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
@@ -20,6 +23,9 @@ import { PricingRate } from '../../core/models/models';
     ButtonModule,
     SelectModule,
     InputNumberModule,
+    InputTextModule,
+    IconFieldModule,
+    InputIconModule,
     TooltipModule,
   ],
   template: `
@@ -55,20 +61,29 @@ import { PricingRate } from '../../core/models/models';
       </div>
     </div>
 
+    <div class="flex justify-content-end mb-3">
+      <p-iconfield>
+        <p-inputicon styleClass="pi pi-search" />
+        <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+      </p-iconfield>
+    </div>
+
     <p-table
+      #dt
       [value]="rates()"
       [loading]="loading()"
+      [globalFilterFields]="['paperSize', 'colorMode', 'sideMode']"
       styleClass="surface-card-flat table-fill"
       [scrollable]="true"
       scrollHeight="flex"
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 18%">Paper</th>
-          <th style="width: 18%">Color</th>
-          <th style="width: 18%">Side</th>
-          <th style="width: 18%">Price / page</th>
-          <th style="width: 18%">Effective from</th>
+          <th style="width: 18%" pSortableColumn="paperSize">Paper <p-sortIcon field="paperSize" /></th>
+          <th style="width: 18%" pSortableColumn="colorMode">Color <p-sortIcon field="colorMode" /></th>
+          <th style="width: 18%" pSortableColumn="sideMode">Side <p-sortIcon field="sideMode" /></th>
+          <th style="width: 18%" pSortableColumn="pricePerPage">Price / page <p-sortIcon field="pricePerPage" /></th>
+          <th style="width: 18%" pSortableColumn="effectiveFrom">Effective from <p-sortIcon field="effectiveFrom" /></th>
           <th style="width: 10%"></th>
         </tr>
       </ng-template>

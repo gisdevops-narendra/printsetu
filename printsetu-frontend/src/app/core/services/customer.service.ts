@@ -1,22 +1,22 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { ColorMode, ConfirmJobResponse, DocumentInfo, PaperSize, PrintJobRow, QuoteResponse, SideMode, UploadResponse } from '../models/models';
+import {
+  ConfirmJobResponse,
+  DocumentInfo,
+  PrintJobRow,
+  QuoteItemRequest,
+  QuoteResponse,
+  UploadResponse,
+} from '../models/models';
 
 const BASE = environment.apiBaseUrl;
 
-export interface QuoteRequest {
-  documentId: string;
-  paperSize: PaperSize;
-  colorMode: ColorMode;
-  sideMode: SideMode;
-  copies: number;
-}
-
 /**
  * Client for the no-login customer flow (SRS §5.2/§8). Every call after
- * upload must carry the short-lived status token the previous step
- * returned — there is no session cookie or account backing this.
+ * the first upload must carry the short-lived, session-scoped status
+ * token that upload returned — there is no session cookie or account
+ * backing this.
  */
 @Injectable({ providedIn: 'root' })
 export class CustomerService {
@@ -28,26 +28,35 @@ export class CustomerService {
     );
   }
 
-  upload(shopCode: string, file: File) {
+  /** `sessionId` omitted for the first file of a visit; pass it back in for every file after that (SRS extension: multi-document upload). */
+  upload(shopCode: string, file: File, sessionId?: string) {
     const form = new FormData();
     form.append('shopCode', shopCode);
     form.append('file', file);
+    if (sessionId) form.append('sessionId', sessionId);
     return this.http.post<UploadResponse>(`${BASE}/documents`, form);
   }
 
-  documentDetails(documentId: string, statusToken: string) {
-    return this.http.get<DocumentInfo>(`${BASE}/documents/${documentId}`, { headers: this.tokenHeader(statusToken) });
+  documentDetails(documentId: string, sessionToken: string) {
+    return this.http.get<DocumentInfo>(`${BASE}/documents/${documentId}`, { headers: this.tokenHeader(sessionToken) });
   }
 
-  quote(dto: QuoteRequest, statusToken: string) {
-    return this.http.post<QuoteResponse>(`${BASE}/print/quote`, dto, { headers: this.tokenHeader(statusToken) });
+  /** Every document already uploaded in this session — rebuilds the upload list after a page reload. */
+  sessionDocuments(sessionId: string, sessionToken: string) {
+    return this.http.get<DocumentInfo[]>(`${BASE}/documents/session/${sessionId}`, {
+      headers: this.tokenHeader(sessionToken),
+    });
   }
 
-  confirm(quoteId: string, statusToken: string) {
+  quote(items: QuoteItemRequest[], sessionToken: string) {
+    return this.http.post<QuoteResponse>(`${BASE}/print/quote`, { items }, { headers: this.tokenHeader(sessionToken) });
+  }
+
+  confirm(quoteId: string, sessionToken: string) {
     return this.http.post<ConfirmJobResponse>(
       `${BASE}/print-jobs`,
       { quoteId },
-      { headers: this.tokenHeader(statusToken) },
+      { headers: this.tokenHeader(sessionToken) },
     );
   }
 
@@ -58,7 +67,7 @@ export class CustomerService {
     );
   }
 
-  private tokenHeader(statusToken: string) {
-    return { 'x-status-token': statusToken };
+  private tokenHeader(token: string) {
+    return { 'x-status-token': token };
   }
 }

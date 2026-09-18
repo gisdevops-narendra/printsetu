@@ -6,6 +6,8 @@ import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
@@ -26,6 +28,8 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     ButtonModule,
     DialogModule,
     InputTextModule,
+    IconFieldModule,
+    InputIconModule,
     InputNumberModule,
     TagModule,
     TooltipModule,
@@ -41,9 +45,18 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
       <p-button label="New Shop" icon="pi pi-plus" (onClick)="openCreate()" />
     </div>
 
+    <div class="flex justify-content-end mb-3">
+      <p-iconfield>
+        <p-inputicon styleClass="pi pi-search" />
+        <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+      </p-iconfield>
+    </div>
+
     <p-table
+      #dt
       [value]="shops()"
       [loading]="loading()"
+      [globalFilterFields]="['shopCode', 'name', 'ownerName', 'city', 'status']"
       styleClass="surface-card-flat table-fill"
       [scrollable]="true"
       scrollHeight="flex"
@@ -52,11 +65,11 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 12%">Shop Code</th>
-          <th style="width: 26%">Name</th>
-          <th style="width: 22%">Owner</th>
-          <th style="width: 16%">City</th>
-          <th style="width: 12%">Status</th>
+          <th style="width: 12%" pSortableColumn="shopCode">Shop Code <p-sortIcon field="shopCode" /></th>
+          <th style="width: 26%" pSortableColumn="name">Name <p-sortIcon field="name" /></th>
+          <th style="width: 22%" pSortableColumn="ownerName">Owner <p-sortIcon field="ownerName" /></th>
+          <th style="width: 16%" pSortableColumn="city">City <p-sortIcon field="city" /></th>
+          <th style="width: 12%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
           <th style="width: 12%"></th>
         </tr>
       </ng-template>

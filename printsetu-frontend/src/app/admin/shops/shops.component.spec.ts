@@ -66,6 +66,7 @@ describe('ShopsComponent (SRS §6 admin shop management + §9 per-shop print set
         defaultPrinterId: null,
         retentionMinutes: 45,
         maxFileSizeBytes: 52_428_800,
+        documentPreviewEnabled: false,
       }),
     );
     fixture.detectChanges();
@@ -75,7 +76,7 @@ describe('ShopsComponent (SRS §6 admin shop management + §9 per-shop print set
     expect(adminService.getShopSettings).toHaveBeenCalledWith('shop-1');
     expect(component.settingsVisible).toBe(true);
     expect(component.settingsShop()).toBe(shop);
-    expect(component.settingsForm).toEqual({ retentionMinutes: 45, maxFileSizeMb: 50 });
+    expect(component.settingsForm).toEqual({ retentionMinutes: 45, maxFileSizeMb: 50, documentPreviewEnabled: false });
   });
 
   it('submitSettings() converts MB -> bytes and PATCHes the settings', () => {
@@ -86,17 +87,19 @@ describe('ShopsComponent (SRS §6 admin shop management + §9 per-shop print set
         defaultPrinterId: null,
         retentionMinutes: 20,
         maxFileSizeBytes: 10_485_760,
+        documentPreviewEnabled: false,
       }),
     );
     fixture.detectChanges();
     component.settingsShop.set(shop);
-    component.settingsForm = { retentionMinutes: 20, maxFileSizeMb: 10 };
+    component.settingsForm = { retentionMinutes: 20, maxFileSizeMb: 10, documentPreviewEnabled: false };
 
     component.submitSettings();
 
     expect(adminService.updateShopSettings).toHaveBeenCalledWith('shop-1', {
       retentionMinutes: 20,
       maxFileSizeBytes: 10_485_760,
+      documentPreviewEnabled: false,
     });
     expect(component.settingsVisible).toBe(false);
     expect(component.savingSettings()).toBe(false);

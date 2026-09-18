@@ -1,10 +1,12 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { MessageModule } from 'primeng/message';
@@ -23,6 +25,8 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     ButtonModule,
     DialogModule,
     InputTextModule,
+    IconFieldModule,
+    InputIconModule,
     SelectModule,
     TagModule,
     MessageModule,
@@ -37,9 +41,18 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
       <p-button label="Register Printer" icon="pi pi-plus" (onClick)="openRegister()" />
     </div>
 
+    <div class="flex justify-content-end mb-3">
+      <p-iconfield>
+        <p-inputicon styleClass="pi pi-search" />
+        <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+      </p-iconfield>
+    </div>
+
     <p-table
-      [value]="printers()"
+      #dt
+      [value]="enrichedPrinters()"
       [loading]="loading()"
+      [globalFilterFields]="['printerName', 'shopName', 'agentId', 'status']"
       styleClass="surface-card-flat table-fill"
       [scrollable]="true"
       scrollHeight="flex"
@@ -48,11 +61,11 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 26%">Printer</th>
-          <th style="width: 22%">Shop</th>
-          <th style="width: 20%">Agent ID</th>
-          <th style="width: 14%">Status</th>
-          <th style="width: 18%">Last heartbeat</th>
+          <th style="width: 26%" pSortableColumn="printerName">Printer <p-sortIcon field="printerName" /></th>
+          <th style="width: 22%" pSortableColumn="shopName">Shop <p-sortIcon field="shopName" /></th>
+          <th style="width: 20%" pSortableColumn="agentId">Agent ID <p-sortIcon field="agentId" /></th>
+          <th style="width: 14%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
+          <th style="width: 18%" pSortableColumn="lastHeartbeatAt">Last heartbeat <p-sortIcon field="lastHeartbeatAt" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-p>
@@ -64,7 +77,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
           </td>
           <td>
             <span appEllipsis #shopRef="appEllipsis"
-              ><span class="cell-ellipsis__text" [class.is-truncated]="shopRef.isTruncated">{{ shopName(p.shopId) }}</span></span
+              ><span class="cell-ellipsis__text" [class.is-truncated]="shopRef.isTruncated">{{ p.shopName }}</span></span
             >
           </td>
           <td><code class="text-xs">{{ p.agentId }}</code></td>
@@ -122,6 +135,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 export class PrintersComponent implements OnInit {
   printers = signal<PrinterRow[]>([]);
   shops = signal<Shop[]>([]);
+  enrichedPrinters = computed(() => this.printers().map((p) => ({ ...p, shopName: this.shopName(p.shopId) })));
   loading = signal(true);
   saving = signal(false);
   registerVisible = false;

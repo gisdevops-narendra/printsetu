@@ -1,9 +1,9 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { StepsModule } from 'primeng/steps';
-import { FileUploadModule, FileUploadHandlerEvent } from 'primeng/fileupload';
+import { firstValueFrom } from 'rxjs';
+import { FileUpload, FileUploadModule, FileUploadHandlerEvent } from 'primeng/fileupload';
 import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { ButtonModule } from 'primeng/button';
@@ -14,10 +14,52 @@ import { MenuItem, MessageService } from 'primeng/api';
 import { CustomerService } from '../../core/services/customer.service';
 import { PriceSummaryCardComponent, PriceSummaryLine } from '../../shared/components/price-summary-card/price-summary-card.component';
 import { StatusTagComponent } from '../../shared/components/status-tag/status-tag.component';
-import { ColorMode, PaperSize, PrintJobStatus, QuoteResponse, SideMode, UploadResponse } from '../../core/models/models';
+import {
+  ColorMode,
+  DocumentInfo,
+  DocumentStatus,
+  PaperSize,
+  PrintJobStatus,
+  QuoteItemRequest,
+  QuoteResponse,
+  SideMode,
+} from '../../core/models/models';
 
 const STATUS_POLL_MS = 4000;
 const DOC_STATUS_POLL_MS = 2000;
+const TERMINAL_JOB_STATUSES: PrintJobStatus[] = ['PRINTED', 'RETENTION_PENDING', 'DELETED', 'PRINT_FAILED', 'CANCELLED'];
+
+interface DocOptions {
+  paperSize: PaperSize;
+  colorMode: ColorMode;
+  sideMode: SideMode;
+  copies: number;
+}
+
+interface UploadEntry {
+  documentId: string;
+  originalName: string;
+  mimeType: string;
+  pageCount: number | null;
+  colorPages: number | null;
+  status: DocumentStatus;
+  options: DocOptions;
+}
+
+/**
+ * Persisted client-side so a page reload (SRS extension: "system shall
+ * retain the uploaded document and session data ... upload shall not be
+ * lost due to the page reload") can recover a still-pending print
+ * request instead of losing it. Scoped per shopCode in case the same
+ * phone/browser scans more than one shop's QR code.
+ */
+interface PersistedOrderSession {
+  sessionId: string;
+  sessionToken: string;
+  jobId?: string;
+  jobStatusToken?: string;
+  tokenNumber?: number;
+}
 
 @Component({
   selector: 'app-order-flow',
@@ -25,7 +67,6 @@ const DOC_STATUS_POLL_MS = 2000;
   imports: [
     CommonModule,
     FormsModule,
-    StepsModule,
     FileUploadModule,
     SelectModule,
     InputNumberModule,
@@ -47,7 +88,19 @@ const DOC_STATUS_POLL_MS = 2000;
         </div>
 
         <div class="order-card">
-          <p-steps [model]="stepItems" [activeIndex]="currentStep()" [readonly]="true" class="mb-5" />
+          <div class="stepper" aria-hidden="true">
+            @for (item of stepItems; track item.label; let i = $index) {
+              <div class="stepper__item" [class.is-active]="i === currentStep()" [class.is-done]="i < currentStep()">
+                <span class="stepper__dot">
+                  @if (i < currentStep()) { <i class="pi pi-check"></i> } @else { {{ i + 1 }} }
+                </span>
+              </div>
+              @if (i < stepItems.length - 1) {
+                <span class="stepper__line" [class.is-done]="i < currentStep()"></span>
+              }
+            }
+          </div>
+          <p class="stepper__label">Step {{ currentStep() + 1 }} of {{ stepItems.length }} &middot; {{ stepItems[currentStep()].label }}</p>
 
           @if (resolvingShop()) {
             <div class="flex justify-content-center p-6"><p-progressSpinner strokeWidth="4" /></div>
@@ -57,88 +110,107 @@ const DOC_STATUS_POLL_MS = 2000;
             <!-- Step 0: Upload -->
             @if (currentStep() === 0) {
               <div>
-                <h3 class="mt-0 mb-1">Upload your document</h3>
-                <p class="text-color-secondary text-sm mt-0">PDF, JPG or PNG, up to 25&nbsp;MB.</p>
+                <h3 class="mt-0 mb-1">Upload your documents</h3>
+                <p class="text-color-secondary text-sm mt-0">PDF, JPG or PNG, up to 25&nbsp;MB each &mdash; add as many as you need.</p>
 
-                @if (analysisError()) {
-                  <p-message severity="error" [text]="analysisError()!" styleClass="w-full mb-3" />
+                @if (uploadError()) {
+                  <p-message severity="error" [text]="uploadError()!" styleClass="w-full mb-3" />
                 }
 
-                @if (!analyzing()) {
-                  <div class="dropzone flex flex-column align-items-center gap-3 text-center">
-                    <div class="dropzone__icon"><i class="pi pi-cloud-upload"></i></div>
-                    <p-fileUpload
-                      mode="basic"
-                      chooseLabel="Choose File"
-                      [customUpload]="true"
-                      (uploadHandler)="onUpload($event)"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      [maxFileSize]="26214400"
-                      [auto]="true"
-                    />
-                    <p class="text-xs text-color-secondary m-0">or drag and drop it here</p>
+                @if (uploads().length > 0) {
+                  <div class="upload-list mb-3">
+                    @for (u of uploads(); track u.documentId) {
+                      <div class="upload-row">
+                        <i class="pi upload-row__icon" [class.pi-file]="u.status !== 'ANALYSIS_FAILED'" [class.pi-exclamation-triangle]="u.status === 'ANALYSIS_FAILED'"></i>
+                        <span class="upload-row__name">{{ u.originalName }}</span>
+                        @if (u.status === 'PROCESSED') {
+                          <span class="upload-row__meta">{{ u.pageCount }} pg</span>
+                        } @else if (u.status === 'ANALYSIS_FAILED') {
+                          <span class="upload-row__meta upload-row__meta--error">failed</span>
+                        } @else {
+                          <p-progressSpinner strokeWidth="8" [style]="{ width: '16px', height: '16px' }" />
+                        }
+                      </div>
+                    }
                   </div>
                 }
+
+                <div class="dropzone flex flex-column align-items-center gap-3 text-center">
+                  <div class="dropzone__icon"><i class="pi pi-cloud-upload"></i></div>
+                  <p-fileUpload
+                    #fu
+                    mode="basic"
+                    [chooseLabel]="uploads().length ? 'Add More Files' : 'Choose Files'"
+                    [customUpload]="true"
+                    [multiple]="true"
+                    (uploadHandler)="onFilesSelected($event, fu)"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    [maxFileSize]="26214400"
+                    [auto]="true"
+                  />
+                  <p class="text-xs text-color-secondary m-0">or drag and drop them here</p>
+                </div>
+
                 @if (uploading()) {
                   <div class="flex align-items-center gap-2 mt-3 text-color-secondary">
                     <p-progressSpinner strokeWidth="6" [style]="{ width: '24px', height: '24px' }" />
-                    <span>Uploading document...</span>
+                    <span>Uploading...</span>
                   </div>
-                } @else if (analyzing()) {
-                  <div class="flex align-items-center gap-2 mt-3 text-color-secondary">
-                    <p-progressSpinner strokeWidth="6" [style]="{ width: '24px', height: '24px' }" />
-                    <span>Analyzing document (counting pages, checking color)...</span>
+                }
+
+                @if (canContinueToOptions()) {
+                  <div class="flex justify-content-end mt-4">
+                    <p-button label="Continue to Options" icon="pi pi-arrow-right" iconPos="right" (onClick)="goToOptions()" />
                   </div>
                 }
               </div>
             }
 
-            <!-- Step 1: Options -->
-            @if (currentStep() === 1 && upload(); as doc) {
+            <!-- Step 1: Options (per document — SRS extension: multi-document requests) -->
+            @if (currentStep() === 1) {
               <div>
-                <h3 class="mt-0 mb-1 flex align-items-center gap-2">
-                  <i class="pi pi-file text-color-secondary"></i>
-                  <span>{{ doc.originalName }}</span>
-                </h3>
-                <p class="text-color-secondary text-sm mt-0 mb-3">
-                  {{ doc.pageCount ?? '?' }} page(s) detected
-                  @if (doc.colorPages) { &middot; {{ doc.colorPages }} color page(s) }
-                </p>
+                <h3 class="mt-0 mb-1">Set print options</h3>
+                <p class="text-color-secondary text-sm mt-0 mb-3">Each document can have its own paper size, color, sides and copies.</p>
 
-                <div class="grid">
-                  <div class="col-12 sm:col-6 flex flex-column gap-2">
-                    <label class="text-sm font-medium">Paper size</label>
-                    <p-select [options]="paperSizes" [(ngModel)]="options.paperSize" (onChange)="recalculate()" />
+                @for (doc of processedUploads(); track doc.documentId) {
+                  <div class="doc-options-card mb-3">
+                    <div class="flex align-items-center gap-2 mb-2 doc-name-row">
+                      <i class="pi pi-file text-color-secondary"></i>
+                      <span class="doc-name font-medium">{{ doc.originalName }}</span>
+                      <span class="text-color-secondary text-xs ml-auto white-space-nowrap">{{ doc.pageCount }} pg</span>
+                    </div>
+                    <div class="grid">
+                      <div class="col-6 sm:col-3 flex flex-column gap-2">
+                        <label class="text-xs font-medium">Paper</label>
+                        <p-select [options]="paperSizes" [(ngModel)]="doc.options.paperSize" (onChange)="recalculate()" />
+                      </div>
+                      <div class="col-6 sm:col-3 flex flex-column gap-2">
+                        <label class="text-xs font-medium">Color</label>
+                        <p-select [options]="colorModes" [(ngModel)]="doc.options.colorMode" (onChange)="recalculate()" />
+                      </div>
+                      <div class="col-6 sm:col-3 flex flex-column gap-2">
+                        <label class="text-xs font-medium">Sides</label>
+                        <p-select [options]="sideModes" [(ngModel)]="doc.options.sideMode" (onChange)="recalculate()" />
+                      </div>
+                      <div class="col-6 sm:col-3 flex flex-column gap-2">
+                        <label class="text-xs font-medium">Copies</label>
+                        <p-inputNumber [(ngModel)]="doc.options.copies" [min]="1" [max]="999" (onInput)="recalculate()" />
+                      </div>
+                    </div>
                   </div>
-                  <div class="col-12 sm:col-6 flex flex-column gap-2">
-                    <label class="text-sm font-medium">Color mode</label>
-                    <p-select [options]="colorModes" [(ngModel)]="options.colorMode" (onChange)="recalculate()" />
-                  </div>
-                  <div class="col-12 sm:col-6 flex flex-column gap-2">
-                    <label class="text-sm font-medium">Sides</label>
-                    <p-select [options]="sideModes" [(ngModel)]="options.sideMode" (onChange)="recalculate()" />
-                  </div>
-                  <div class="col-12 sm:col-6 flex flex-column gap-2">
-                    <label class="text-sm font-medium">Copies</label>
-                    <p-inputNumber [(ngModel)]="options.copies" [min]="1" [max]="999" (onInput)="recalculate()" />
-                  </div>
-                </div>
+                }
 
                 <p-divider />
-              </div>
 
-              @if (quote(); as q) {
-                <app-price-summary-card
-                  [lines]="summaryLines(q)"
-                  [amount]="q.amount"
-                  [currency]="q.currency"
-                />
-                <div class="flex justify-content-end mt-4">
-                  <p-button label="Continue to Confirm" icon="pi pi-arrow-right" iconPos="right" (onClick)="currentStep.set(2)" />
-                </div>
-              } @else if (quoting()) {
-                <div class="flex justify-content-center p-4"><p-progressSpinner strokeWidth="4" /></div>
-              }
+                @if (quote(); as q) {
+                  <app-price-summary-card [lines]="summaryLines(q)" [amount]="q.amount" [currency]="q.currency" />
+                  <div class="flex justify-content-end mt-4">
+                    <p-button label="Continue to Confirm" icon="pi pi-arrow-right" iconPos="right" (onClick)="currentStep.set(2)" />
+                  </div>
+                } @else if (quoting()) {
+                  <div class="flex justify-content-center p-4"><p-progressSpinner strokeWidth="4" /></div>
+                }
+              </div>
             }
 
             <!-- Step 2: Confirm -->
@@ -151,7 +223,7 @@ const DOC_STATUS_POLL_MS = 2000;
                 <p-divider />
               </div>
               <app-price-summary-card [lines]="summaryLines(q)" [amount]="q.amount" [currency]="q.currency" />
-              <div class="flex justify-content-between mt-4">
+              <div class="confirm-actions mt-4">
                 <p-button label="Back" severity="secondary" [text]="true" (onClick)="currentStep.set(1)" />
                 <p-button label="Confirm Print Request" icon="pi pi-check" [loading]="confirming()" (onClick)="confirm()" />
               </div>
@@ -160,6 +232,13 @@ const DOC_STATUS_POLL_MS = 2000;
             <!-- Step 3: Status -->
             @if (currentStep() === 3 && jobStatus(); as job) {
               <div class="text-center py-3">
+                <div class="token-badge">
+                  <span class="token-badge__label">Your token number</span>
+                  <span class="token-badge__value">#{{ tokenNumber() }}</span>
+                </div>
+                <p class="text-color-secondary text-xs mt-2 mb-4">
+                  Quote this token number for anything to do with this order — it's how the shop and PrintSetu trace it.
+                </p>
                 <div class="mb-3"><app-status-tag [status]="job.status" /></div>
                 <h3 class="mt-0 mb-2">
                   @switch (job.status) {
@@ -173,7 +252,6 @@ const DOC_STATUS_POLL_MS = 2000;
                     @default { Tracking your order... }
                   }
                 </h3>
-                <p class="text-color-secondary text-sm">Order reference: {{ jobId() }}</p>
               </div>
             }
           }
@@ -184,7 +262,13 @@ const DOC_STATUS_POLL_MS = 2000;
   styles: [
     `
       .order-page {
+        /* mobile browsers size 100vh against the viewport *with* the
+           address bar shown, so it falls short once the bar collapses,
+           exposing a gap below — 100dvh tracks the real visible area
+           and is only applied where supported (it overrides the vh
+           fallback above it, never the other way round). */
         min-height: 100vh;
+        min-height: 100dvh;
         background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 60%);
         padding: 2.5rem 1rem;
       }
@@ -200,6 +284,9 @@ const DOC_STATUS_POLL_MS = 2000;
         padding: 2rem;
       }
       @media (max-width: 640px) {
+        .order-page {
+          padding: 1.25rem 0.75rem;
+        }
         .order-card {
           padding: 1.25rem;
           border-radius: 12px;
@@ -211,6 +298,11 @@ const DOC_STATUS_POLL_MS = 2000;
         padding: 2rem 1.5rem;
         background: #f8fafc;
       }
+      @media (max-width: 400px) {
+        .dropzone {
+          padding: 1.5rem 1rem;
+        }
+      }
       .dropzone__icon {
         width: 3rem;
         height: 3rem;
@@ -221,6 +313,155 @@ const DOC_STATUS_POLL_MS = 2000;
         background: var(--p-primary-50);
         color: var(--p-primary-600);
         font-size: 1.4rem;
+      }
+
+      .upload-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .upload-row {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        padding: 0.625rem 0.875rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: #f8fafc;
+      }
+      .upload-row__icon {
+        color: #94a3b8;
+        flex-shrink: 0;
+      }
+      .upload-row__name {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.875rem;
+      }
+      .upload-row__meta {
+        flex-shrink: 0;
+        font-size: 0.75rem;
+        color: #64748b;
+      }
+      .upload-row__meta--error {
+        color: #dc2626;
+        font-weight: 600;
+      }
+
+      .doc-options-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+        background: #f8fafc;
+      }
+
+      .token-badge {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.125rem;
+        padding: 0.875rem 2rem;
+        border-radius: 14px;
+        background: var(--p-primary-50);
+        border: 1px solid var(--p-primary-100);
+      }
+      .token-badge__label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--p-primary-600);
+      }
+      .token-badge__value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        line-height: 1.1;
+        color: var(--p-primary-700, var(--p-primary-600));
+        letter-spacing: -0.02em;
+      }
+
+      /* ---------- Compact step indicator ----------
+         PrimeNG's p-steps lays every step's full text label out in one row,
+         which either overlaps or forces horizontal scroll below ~380px.
+         This shows small numbered dots + a connecting line (always fits
+         four steps on any phone width) and the *current* step's label as
+         a single centered line underneath instead. */
+      .stepper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.625rem;
+      }
+      .stepper__item {
+        display: flex;
+        flex-shrink: 0;
+      }
+      .stepper__dot {
+        width: 1.75rem;
+        height: 1.75rem;
+        min-width: 1.75rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        background: #e2e8f0;
+        color: #64748b;
+        transition: background 0.15s ease, color 0.15s ease;
+      }
+      .stepper__item.is-active .stepper__dot {
+        background: var(--p-primary-600);
+        color: #fff;
+      }
+      .stepper__item.is-done .stepper__dot {
+        background: var(--p-primary-100);
+        color: var(--p-primary-600);
+      }
+      .stepper__line {
+        width: 2.5rem;
+        max-width: 8vw;
+        height: 2px;
+        background: #e2e8f0;
+        margin: 0 0.375rem;
+      }
+      .stepper__line.is-done {
+        background: var(--p-primary-300);
+      }
+      .stepper__label {
+        text-align: center;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #475569;
+        margin: 0 0 1.5rem 0;
+      }
+
+      .doc-name-row {
+        min-width: 0;
+      }
+      .doc-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+      }
+
+      .confirm-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+      @media (max-width: 420px) {
+        .confirm-actions {
+          flex-direction: column-reverse;
+        }
+        .confirm-actions ::ng-deep .p-button {
+          width: 100%;
+          justify-content: center;
+        }
       }
     `,
   ],
@@ -234,19 +475,16 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
   shopName = signal<string | null>(null);
   shopCode!: string;
 
+  sessionId = signal<string | null>(null);
+  private sessionToken = '';
+  uploads = signal<UploadEntry[]>([]);
+  processedUploads = computed(() => this.uploads().filter((u) => u.status === 'PROCESSED'));
+  canContinueToOptions = computed(() => this.processedUploads().length > 0);
+
   uploading = signal(false);
-  upload = signal<UploadResponse | null>(null);
-  docAccessToken = '';
-  analyzing = signal(false);
-  analysisError = signal<string | null>(null);
+  uploadError = signal<string | null>(null);
   private docPollHandle?: ReturnType<typeof setInterval>;
 
-  options: { paperSize: PaperSize; colorMode: ColorMode; sideMode: SideMode; copies: number } = {
-    paperSize: 'A4',
-    colorMode: 'BW',
-    sideMode: 'SIMPLEX',
-    copies: 1,
-  };
   paperSizes: PaperSize[] = ['A4', 'A3', 'LETTER', 'LEGAL'];
   colorModes: ColorMode[] = ['BW', 'COLOR'];
   sideModes: SideMode[] = ['SIMPLEX', 'DUPLEX'];
@@ -256,7 +494,8 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
 
   confirming = signal(false);
   jobId = signal<string | null>(null);
-  jobStatusToken = '';
+  tokenNumber = signal<number | null>(null);
+  private jobStatusToken = '';
   jobStatus = signal<{ status: PrintJobStatus } | null>(null);
   private pollHandle?: ReturnType<typeof setInterval>;
 
@@ -272,6 +511,7 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.shopName.set(res.shopName);
         this.resolvingShop.set(false);
+        this.restoreSession();
       },
       error: () => {
         this.shopError.set('This QR code is invalid or the shop is not currently accepting orders.');
@@ -285,105 +525,186 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
     if (this.docPollHandle) clearInterval(this.docPollHandle);
   }
 
-  onUpload(event: FileUploadHandlerEvent): void {
-    const file = event.files[0];
-    if (!file) return;
-    this.analysisError.set(null);
+  /** Reload-resilience (SRS extension): recover a still-pending upload session or print job from localStorage. */
+  private restoreSession(): void {
+    const saved = this.loadPersisted();
+    if (!saved) return;
+
+    if (saved.jobId && saved.jobStatusToken) {
+      this.customerService.status(saved.jobId, saved.jobStatusToken).subscribe({
+        next: (job) => {
+          if (TERMINAL_JOB_STATUSES.includes(job.status)) {
+            this.clearPersisted();
+            return;
+          }
+          this.sessionId.set(saved.sessionId);
+          this.sessionToken = saved.sessionToken;
+          this.jobId.set(saved.jobId!);
+          this.jobStatusToken = saved.jobStatusToken!;
+          this.tokenNumber.set(saved.tokenNumber ?? null);
+          this.jobStatus.set({ status: job.status });
+          this.currentStep.set(3);
+          this.startPolling();
+          this.messageService.add({ severity: 'info', summary: 'Resumed your print request' });
+        },
+        error: () => this.clearPersisted(),
+      });
+      return;
+    }
+
+    if (saved.sessionId && saved.sessionToken) {
+      this.customerService.sessionDocuments(saved.sessionId, saved.sessionToken).subscribe({
+        next: (docs) => {
+          if (docs.length === 0) {
+            this.clearPersisted();
+            return;
+          }
+          this.sessionId.set(saved.sessionId);
+          this.sessionToken = saved.sessionToken;
+          this.mergeSessionDocuments(docs);
+          if (this.canContinueToOptions()) {
+            this.currentStep.set(1);
+            this.recalculate();
+          }
+          this.startAnalysisPollingIfNeeded();
+          this.messageService.add({ severity: 'info', summary: 'Restored your uploaded documents' });
+        },
+        error: () => this.clearPersisted(),
+      });
+    }
+  }
+
+  async onFilesSelected(event: FileUploadHandlerEvent, fu: FileUpload): Promise<void> {
+    const files = event.files;
+    if (!files || files.length === 0) return;
+    this.uploadError.set(null);
     this.uploading.set(true);
-    this.customerService.upload(this.shopCode, file).subscribe({
-      next: (res) => {
-        this.upload.set(res);
-        this.docAccessToken = res.docAccessToken;
-        this.uploading.set(false);
-        if (res.status === 'PROCESSED') {
-          this.currentStep.set(1);
-          this.recalculate();
-        } else {
-          // SRS §9: analysis (page-count/color detection) now runs off the
-          // request path on a BullMQ worker — poll until it lands on
-          // PROCESSED or ANALYSIS_FAILED before letting the customer pick options.
-          this.startDocumentPolling();
+
+    for (const file of files) {
+      try {
+        const res = await firstValueFrom(this.customerService.upload(this.shopCode, file, this.sessionId() ?? undefined));
+        this.sessionId.set(res.sessionId);
+        this.sessionToken = res.sessionToken;
+        this.uploads.update((list) => [
+          ...list,
+          {
+            documentId: res.documentId,
+            originalName: res.originalName,
+            mimeType: res.mimeType,
+            pageCount: res.pageCount,
+            colorPages: res.colorPages,
+            status: res.status,
+            options: this.defaultOptionsFor(res.mimeType),
+          },
+        ]);
+        this.persist();
+      } catch {
+        this.uploadError.set(`"${file.name}" could not be uploaded. Please try again.`);
+      }
+    }
+
+    this.uploading.set(false);
+    fu.clear();
+    this.startAnalysisPollingIfNeeded();
+  }
+
+  private defaultOptionsFor(mimeType: string): DocOptions {
+    return {
+      paperSize: 'A4',
+      colorMode: mimeType.startsWith('image/') ? 'COLOR' : 'BW',
+      sideMode: 'SIMPLEX',
+      copies: 1,
+    };
+  }
+
+  private mergeSessionDocuments(docs: DocumentInfo[]): void {
+    const existing = new Map(this.uploads().map((u) => [u.documentId, u]));
+    this.uploads.set(
+      docs.map((doc) => {
+        const prev = existing.get(doc.id);
+        return {
+          documentId: doc.id,
+          originalName: doc.originalName,
+          mimeType: doc.mimeType,
+          pageCount: doc.pageCount,
+          colorPages: doc.colorPages,
+          status: doc.status,
+          options: prev?.options ?? this.defaultOptionsFor(doc.mimeType),
+        };
+      }),
+    );
+  }
+
+  private startAnalysisPollingIfNeeded(): void {
+    const pending = this.uploads().some((u) => u.status === 'UPLOADED' || u.status === 'PROCESSING');
+    if (!pending || this.docPollHandle) return;
+    this.docPollHandle = setInterval(() => this.pollSessionDocuments(), DOC_STATUS_POLL_MS);
+  }
+
+  private pollSessionDocuments(): void {
+    const sessionId = this.sessionId();
+    if (!sessionId) return;
+    this.customerService.sessionDocuments(sessionId, this.sessionToken).subscribe({
+      next: (docs) => {
+        this.mergeSessionDocuments(docs);
+        const stillPending = docs.some((d) => d.status === 'UPLOADED' || d.status === 'PROCESSING');
+        if (!stillPending && this.docPollHandle) {
+          clearInterval(this.docPollHandle);
+          this.docPollHandle = undefined;
         }
       },
-      error: () => this.uploading.set(false),
+      error: () => {
+        if (this.docPollHandle) {
+          clearInterval(this.docPollHandle);
+          this.docPollHandle = undefined;
+        }
+      },
     });
   }
 
-  private startDocumentPolling(): void {
-    this.analyzing.set(true);
-    const doc = this.upload();
-    if (!doc) return;
-
-    const poll = () => {
-      this.customerService.documentDetails(doc.documentId, this.docAccessToken).subscribe({
-        next: (info) => {
-          if (info.status === 'PROCESSED') {
-            if (this.docPollHandle) clearInterval(this.docPollHandle);
-            this.analyzing.set(false);
-            this.upload.set({
-              ...doc,
-              pageCount: info.pageCount,
-              colorPages: info.colorPages,
-              colorDetectionConfidence: info.colorDetectionConfidence,
-              status: info.status,
-            });
-            this.currentStep.set(1);
-            this.recalculate();
-          } else if (info.status === 'ANALYSIS_FAILED') {
-            if (this.docPollHandle) clearInterval(this.docPollHandle);
-            this.analyzing.set(false);
-            this.analysisError.set(
-              'We could not analyze this document automatically. Please try a different file or check with the shop.',
-            );
-          }
-          // UPLOADED / PROCESSING: keep polling.
-        },
-        error: () => {
-          if (this.docPollHandle) clearInterval(this.docPollHandle);
-          this.analyzing.set(false);
-          this.analysisError.set('Something went wrong while checking your document status. Please try again.');
-        },
-      });
-    };
-    poll();
-    this.docPollHandle = setInterval(poll, DOC_STATUS_POLL_MS);
+  goToOptions(): void {
+    this.currentStep.set(1);
+    this.recalculate();
   }
 
   recalculate(): void {
-    const doc = this.upload();
-    if (!doc) return;
+    const docs = this.processedUploads();
+    if (docs.length === 0) {
+      this.quote.set(null);
+      return;
+    }
     this.quoting.set(true);
-    this.customerService
-      .quote({ documentId: doc.documentId, ...this.options }, this.docAccessToken)
-      .subscribe({
-        next: (q) => {
-          this.quote.set(q);
-          this.quoting.set(false);
-        },
-        error: () => this.quoting.set(false),
-      });
+    const items: QuoteItemRequest[] = docs.map((d) => ({ documentId: d.documentId, ...d.options }));
+    this.customerService.quote(items, this.sessionToken).subscribe({
+      next: (q) => {
+        this.quote.set(q);
+        this.quoting.set(false);
+      },
+      error: () => this.quoting.set(false),
+    });
   }
 
   summaryLines(q: QuoteResponse): PriceSummaryLine[] {
-    return [
-      { label: 'Paper size', value: this.options.paperSize },
-      { label: 'Color mode', value: this.options.colorMode },
-      { label: 'Sides', value: this.options.sideMode },
-      { label: 'Pages × copies', value: `${q.pageCount} × ${this.options.copies} = ${q.billablePages}` },
-    ];
+    const byId = new Map(this.uploads().map((u) => [u.documentId, u]));
+    return q.items.map((item) => ({
+      label: byId.get(item.documentId)?.originalName ?? 'Document',
+      value: `${item.billablePages} pg · ₹${item.amount}`,
+    }));
   }
 
   confirm(): void {
     const q = this.quote();
     if (!q) return;
     this.confirming.set(true);
-    this.customerService.confirm(q.quoteId, this.docAccessToken).subscribe({
+    this.customerService.confirm(q.quoteId, this.sessionToken).subscribe({
       next: (res) => {
         this.confirming.set(false);
         this.jobId.set(res.jobId);
+        this.tokenNumber.set(res.tokenNumber);
         this.jobStatusToken = res.statusToken;
         this.jobStatus.set({ status: res.status });
         this.currentStep.set(3);
+        this.persist();
         this.startPolling();
         this.messageService.add({ severity: 'success', summary: 'Print request confirmed' });
       },
@@ -397,12 +718,51 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
       if (!id) return;
       this.customerService.status(id, this.jobStatusToken).subscribe((job) => {
         this.jobStatus.set({ status: job.status });
-        if (['PRINTED', 'RETENTION_PENDING', 'DELETED', 'PRINT_FAILED', 'CANCELLED'].includes(job.status)) {
+        if (TERMINAL_JOB_STATUSES.includes(job.status)) {
           if (this.pollHandle) clearInterval(this.pollHandle);
+          this.clearPersisted();
         }
       });
     };
     poll();
     this.pollHandle = setInterval(poll, STATUS_POLL_MS);
+  }
+
+  private persistKey(): string {
+    return `printsetu.order.${this.shopCode}`;
+  }
+
+  private persist(): void {
+    const sessionId = this.sessionId();
+    if (!sessionId) return;
+    const data: PersistedOrderSession = {
+      sessionId,
+      sessionToken: this.sessionToken,
+      jobId: this.jobId() ?? undefined,
+      jobStatusToken: this.jobStatusToken || undefined,
+      tokenNumber: this.tokenNumber() ?? undefined,
+    };
+    try {
+      localStorage.setItem(this.persistKey(), JSON.stringify(data));
+    } catch {
+      // Private browsing / storage disabled — reload-resilience is best-effort, never fatal.
+    }
+  }
+
+  private loadPersisted(): PersistedOrderSession | null {
+    try {
+      const raw = localStorage.getItem(this.persistKey());
+      return raw ? (JSON.parse(raw) as PersistedOrderSession) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private clearPersisted(): void {
+    try {
+      localStorage.removeItem(this.persistKey());
+    } catch {
+      // ignore
+    }
   }
 }

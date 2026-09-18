@@ -37,14 +37,20 @@ export class PrintJobsService {
     @InjectQueue(PRINT_DISPATCH_QUEUE) private readonly dispatchQueue: Queue,
   ) {}
 
-  /** Customer confirm (SRS §5, §11): no payment step — quote becomes an eligible order immediately. */
+  /**
+   * Customer confirm (SRS §5, §11): no payment step — quote becomes an
+   * eligible order immediately. One PrintJob covers every document in the
+   * quote (SRS extension: multi-document print requests) — one token
+   * number, one status lifecycle, one PrintJobItem row per document
+   * carrying that document's own options/price.
+   */
   async confirmFromQuote(dto: ConfirmPrintJobDto, claims: StatusTokenClaims) {
     const quote = await this.prisma.printQuote.findUnique({
       where: { id: dto.quoteId },
-      include: { document: true },
+      include: { items: true, session: true },
     });
     if (!quote) throw new AppNotFoundException('Quote not found.');
-    if (claims.documentId !== quote.documentId || claims.shopId !== quote.document.shopId) {
+    if (claims.sessionId !== quote.sessionId || claims.shopId !== quote.session.shopId) {
       throw new ShopAccessDeniedException('Status token does not grant access to this quote.');
     }
     if (quote.consumedAt) {
@@ -53,11 +59,15 @@ export class PrintJobsService {
     if (quote.expiresAt.getTime() < Date.now()) {
       throw new InvalidPrintOptionException('Quote has expired; please recalculate the price.');
     }
+    if (quote.items.length === 0) {
+      throw new InvalidPrintOptionException('Quote has no documents.');
+    }
 
+    const shopId = quote.session.shopId;
     const jobId = uuid();
     const statusToken = signToken(
       {
-        shopId: quote.document.shopId,
+        shopId,
         printJobId: jobId,
         exp: Math.floor(Date.now() / 1000) + JOB_STATUS_TOKEN_TTL_SECONDS,
       },
@@ -68,27 +78,33 @@ export class PrintJobsService {
       const created = await tx.printJob.create({
         data: {
           id: jobId,
-          shopId: quote.document.shopId,
-          documentId: quote.documentId,
+          shopId,
           quoteId: quote.id,
-          optionsJson: {
-            paperSize: quote.paperSize,
-            colorMode: quote.colorMode,
-            sideMode: quote.sideMode,
-            copies: quote.copies,
-          },
           amount: quote.amount,
           currency: quote.currency,
           status: PrintJobStatus.CREATED,
           idempotencyKey: `quote:${quote.id}`,
           statusToken,
+          items: {
+            create: quote.items.map((item, index) => ({
+              documentId: item.documentId,
+              paperSize: item.paperSize,
+              colorMode: item.colorMode,
+              sideMode: item.sideMode,
+              copies: item.copies,
+              pageCount: item.pageCount,
+              billablePages: item.billablePages,
+              amount: item.amount,
+              printOrder: index,
+            })),
+          },
         },
       });
       await tx.printJobEvent.create({ data: { printJobId: created.id, status: PrintJobStatus.CREATED } });
 
       await tx.printQuote.update({ where: { id: quote.id }, data: { consumedAt: new Date() } });
-      await tx.document.update({
-        where: { id: quote.documentId },
+      await tx.document.updateMany({
+        where: { id: { in: quote.items.map((item) => item.documentId) } },
         data: { status: DocumentStatus.PRINT_ELIGIBLE },
       });
       return created;
@@ -102,6 +118,7 @@ export class PrintJobsService {
 
     return {
       jobId: eligible.id,
+      tokenNumber: eligible.tokenNumber,
       status: eligible.status,
       statusToken,
       amount: eligible.amount.toFixed(2),
@@ -123,7 +140,7 @@ export class PrintJobsService {
           ],
         },
       },
-      include: { document: true, printer: true },
+      include: { items: { include: { document: true }, orderBy: { printOrder: 'asc' } }, printer: true },
       orderBy: { createdAt: 'asc' },
     });
   }
@@ -134,7 +151,7 @@ export class PrintJobsService {
     const [items, total] = await Promise.all([
       this.prisma.printJob.findMany({
         where: { shopId },
-        include: { document: true, printer: true },
+        include: { items: { include: { document: true }, orderBy: { printOrder: 'asc' } }, printer: true },
         orderBy: { createdAt: 'desc' },
         take,
         skip,
@@ -200,7 +217,7 @@ export class PrintJobsService {
   async dispatchToAgent(jobId: string) {
     const job = await this.prisma.printJob.findUniqueOrThrow({
       where: { id: jobId },
-      include: { document: true },
+      include: { items: { include: { document: true }, orderBy: { printOrder: 'asc' } } },
     });
     if (job.status !== PrintJobStatus.QUEUED) return; // already progressed (e.g. reconciled)
     if (!job.printerId || !this.agentConnections.isConnected(job.printerId)) {
@@ -213,19 +230,24 @@ export class PrintJobsService {
       throw new Error('AGENT_OFFLINE'); // triggers BullMQ retry/backoff
     }
 
-    const signedUrl = await this.storage.getSignedDownloadUrl(job.document.s3Key);
-    const options = job.optionsJson as any;
+    const documents = await Promise.all(
+      job.items.map(async (item) => ({
+        documentId: item.documentId,
+        originalName: item.document.originalName,
+        mimeType: item.document.mimeType,
+        documentSignedUrl: await this.storage.getSignedDownloadUrl(item.document.s3Key),
+        options: {
+          paperSize: item.paperSize,
+          colorMode: item.colorMode,
+          sideMode: item.sideMode,
+          copies: item.copies,
+        },
+      })),
+    );
+
     this.agentConnections.pushJob(job.printerId, {
       jobId: job.id,
-      documentSignedUrl: signedUrl,
-      originalName: job.document.originalName,
-      mimeType: job.document.mimeType,
-      options: {
-        paperSize: options.paperSize,
-        colorMode: options.colorMode,
-        sideMode: options.sideMode,
-        copies: options.copies,
-      },
+      documents,
       attemptId: `${job.id}:${job.attemptCount}`,
     });
   }
@@ -307,7 +329,10 @@ export class PrintJobsService {
   async getStatusForCustomer(jobId: string, claims: StatusTokenClaims) {
     const job = await this.prisma.printJob.findUnique({
       where: { id: jobId },
-      include: { document: true, events: { orderBy: { createdAt: 'asc' } } },
+      include: {
+        items: { include: { document: true }, orderBy: { printOrder: 'asc' } },
+        events: { orderBy: { createdAt: 'asc' } },
+      },
     });
     if (!job) throw new AppNotFoundException('Print job not found.');
     if (claims.printJobId !== jobId || claims.shopId !== job.shopId) {

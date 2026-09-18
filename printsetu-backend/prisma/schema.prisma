@@ -125,6 +125,7 @@ model Shop {
   updatedAt  DateTime   @updatedAt @map("updated_at")
 
   users         User[]
+  printSessions PrintSession[]
   documents     Document[]
   printJobs     PrintJob[]
   pricing       Pricing[]
@@ -177,9 +178,29 @@ model User {
 // Documents & print jobs
 // ------------------------------------------------------------------
 
+// Groups documents the customer uploads before a print job exists — created
+// on first upload (client has no id yet) and reused for every subsequent
+// upload in the same visit, so a page reload can recover "what did I
+// already upload" via a session-scoped signed token (see StatusTokenClaims)
+// instead of losing everything. Not itself shown to anyone — no token
+// number lives here; that's still minted once, at PrintJob creation.
+model PrintSession {
+  id        String   @id @default(uuid())
+  shopId    String   @map("shop_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  shop      Shop         @relation(fields: [shopId], references: [id])
+  documents Document[]
+  quotes    PrintQuote[]
+
+  @@index([shopId])
+  @@map("print_sessions")
+}
+
 model Document {
   id           String         @id @default(uuid())
   shopId       String         @map("shop_id")
+  sessionId    String         @map("session_id")
   originalName String         @map("original_name")
   s3Key        String         @map("s3_key")
   mimeType     String         @map("mime_type")
@@ -191,49 +212,77 @@ model Document {
   uploadedAt   DateTime       @default(now()) @map("uploaded_at")
   deletedAt    DateTime?      @map("deleted_at")
 
-  shop      Shop       @relation(fields: [shopId], references: [id])
-  printJobs PrintJob[]
-  quotes    PrintQuote[]
+  shop       Shop             @relation(fields: [shopId], references: [id])
+  session    PrintSession     @relation(fields: [sessionId], references: [id])
+  quoteItems PrintQuoteItem[]
+  jobItems   PrintJobItem[]
 
   @@index([shopId])
   @@index([status])
+  @@index([sessionId])
   @@map("documents")
 }
 
-// Price quotes computed by POST /api/print/quote. A quote snapshots the
-// pricing rule in effect so confirming later (POST /api/print-jobs) never
-// re-prices against a rule that may have changed (SRS §10).
+// Price quotes computed by POST /api/print/quote. A quote covers every
+// document the customer picked for this print request — one row per
+// document (PrintQuoteItem), each with its OWN paper/color/side/copies and
+// its own line-item price (per-document print options, not one shared
+// setting for the whole batch) — summed into the quote's total `amount`.
+// The quote snapshots the pricing rule in effect so confirming later
+// (POST /api/print-jobs) never re-prices against a rule that may have
+// changed (SRS §10).
 model PrintQuote {
-  id                String    @id @default(uuid())
-  documentId        String    @map("document_id")
-  paperSize         PaperSize
-  colorMode         ColorMode
-  sideMode          SideMode
-  copies            Int
-  pageCount         Int       @map("page_count")
-  billablePages     Int       @map("billable_pages")
-  amount            Decimal   @db.Decimal(10, 2)
-  currency          String    @default("INR")
-  pricingSnapshot   Json      @map("pricing_snapshot")
-  statusTokenClaimId String   @unique @map("status_token_claim_id") @default(uuid())
-  expiresAt         DateTime  @map("expires_at")
-  consumedAt        DateTime? @map("consumed_at")
-  createdAt         DateTime  @default(now()) @map("created_at")
+  id                 String    @id @default(uuid())
+  sessionId          String    @map("session_id")
+  amount             Decimal   @db.Decimal(10, 2)
+  currency           String    @default("INR")
+  statusTokenClaimId String    @unique @map("status_token_claim_id") @default(uuid())
+  expiresAt          DateTime  @map("expires_at")
+  consumedAt         DateTime? @map("consumed_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
 
-  document  Document   @relation(fields: [documentId], references: [id])
-  printJob  PrintJob?
+  session  PrintSession     @relation(fields: [sessionId], references: [id])
+  items    PrintQuoteItem[]
+  printJob PrintJob?
 
-  @@index([documentId])
+  @@index([sessionId])
   @@map("print_quotes")
+}
+
+model PrintQuoteItem {
+  id              String    @id @default(uuid())
+  quoteId         String    @map("quote_id")
+  documentId      String    @map("document_id")
+  paperSize       PaperSize
+  colorMode       ColorMode
+  sideMode        SideMode
+  copies          Int
+  pageCount       Int       @map("page_count")
+  billablePages   Int       @map("billable_pages")
+  amount          Decimal   @db.Decimal(10, 2)
+  pricingSnapshot Json      @map("pricing_snapshot")
+
+  quote    PrintQuote @relation(fields: [quoteId], references: [id])
+  document Document   @relation(fields: [documentId], references: [id])
+
+  @@index([quoteId])
+  @@index([documentId])
+  @@map("print_quote_items")
 }
 
 model PrintJob {
   id             String         @id @default(uuid())
+  // Global, ever-increasing queue token (one sequence for the whole
+  // deployment, never reset per shop/customer/day) — this is the ONLY
+  // identifier surfaced to customers/shopkeepers/admins for tracing a
+  // print request. `id` (uuid) remains internal-only: primary key, FK
+  // target, and API path param, never shown or looked up by a human.
+  // One PrintJob = one print request = one token, even though it can
+  // cover several documents (PrintJobItem), each with its own options.
+  tokenNumber    Int            @unique @default(autoincrement()) @map("token_number")
   shopId         String         @map("shop_id")
-  documentId     String         @map("document_id")
   printerId      String?        @map("printer_id")
   quoteId        String?        @unique @map("quote_id")
-  optionsJson    Json           @map("options_json")
   amount         Decimal        @db.Decimal(10, 2)
   currency       String         @default("INR")
   status         PrintJobStatus @default(CREATED)
@@ -246,18 +295,40 @@ model PrintJob {
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
 
-  shop     Shop       @relation(fields: [shopId], references: [id])
-  document Document   @relation(fields: [documentId], references: [id])
-  printer  Printer?   @relation(fields: [printerId], references: [id])
+  shop     Shop        @relation(fields: [shopId], references: [id])
+  printer  Printer?    @relation(fields: [printerId], references: [id])
   quote    PrintQuote? @relation(fields: [quoteId], references: [id])
+  items    PrintJobItem[]
 
   events        PrintJobEvent[]
   notifications Notification[]
 
   @@index([shopId])
   @@index([status])
-  @@index([documentId])
   @@map("print_jobs")
+}
+
+model PrintJobItem {
+  id            String    @id @default(uuid())
+  printJobId    String    @map("print_job_id")
+  documentId    String    @map("document_id")
+  paperSize     PaperSize
+  colorMode     ColorMode
+  sideMode      SideMode
+  copies        Int
+  pageCount     Int       @map("page_count")
+  billablePages Int       @map("billable_pages")
+  amount        Decimal   @db.Decimal(10, 2)
+  // Order the agent should print documents in — stable regardless of
+  // whatever order Prisma happens to return rows in.
+  printOrder    Int       @map("print_order")
+
+  printJob PrintJob @relation(fields: [printJobId], references: [id])
+  document Document @relation(fields: [documentId], references: [id])
+
+  @@index([printJobId])
+  @@index([documentId])
+  @@map("print_job_items")
 }
 
 // Append-only per-job transition log — backs the "timestamps + agent-side

@@ -78,7 +78,11 @@ export interface DocumentInfo {
 
 export interface UploadResponse {
   documentId: string;
-  docAccessToken: string;
+  // Groups every document uploaded in one visit into one eventual print
+  // request — reused across uploads and persisted client-side so a page
+  // reload can recover the whole batch instead of losing it.
+  sessionId: string;
+  sessionToken: string;
   originalName: string;
   sizeBytes: number;
   mimeType: string;
@@ -88,11 +92,26 @@ export interface UploadResponse {
   status: DocumentStatus;
 }
 
-export interface QuoteResponse {
-  quoteId: string;
+// Per-document print options — each uploaded document gets its own
+// paper size / color mode / sides / copies and its own line-item price.
+export interface QuoteItemRequest {
+  documentId: string;
+  paperSize: PaperSize;
+  colorMode: ColorMode;
+  sideMode: SideMode;
+  copies: number;
+}
+
+export interface QuoteItemResponse {
   documentId: string;
   pageCount: number;
   billablePages: number;
+  amount: string;
+}
+
+export interface QuoteResponse {
+  quoteId: string;
+  items: QuoteItemResponse[];
   amount: string;
   currency: string;
   expiresAt: string;
@@ -100,18 +119,32 @@ export interface QuoteResponse {
 
 export interface ConfirmJobResponse {
   jobId: string;
+  tokenNumber: number;
   status: PrintJobStatus;
   statusToken: string;
   amount: string;
   currency: string;
 }
 
+export interface PrintJobItemRow {
+  id: string;
+  documentId: string;
+  paperSize: PaperSize;
+  colorMode: ColorMode;
+  sideMode: SideMode;
+  copies: number;
+  pageCount: number;
+  billablePages: number;
+  amount: string;
+  printOrder: number;
+  document?: DocumentInfo;
+}
+
 export interface PrintJobRow {
   id: string;
+  tokenNumber: number;
   shopId: string;
-  documentId: string;
   printerId: string | null;
-  optionsJson: { paperSize: PaperSize; colorMode: ColorMode; sideMode: SideMode; copies: number };
   amount: string;
   currency: string;
   status: PrintJobStatus;
@@ -120,7 +153,7 @@ export interface PrintJobRow {
   printedAt: string | null;
   failureReason: string | null;
   createdAt: string;
-  document?: DocumentInfo;
+  items: PrintJobItemRow[];
   printer?: PrinterRow;
   shop?: Shop;
 }

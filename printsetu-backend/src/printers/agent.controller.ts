@@ -38,19 +38,29 @@ export class AgentController {
         printerId: agent.printerId,
         status: { in: [PrintJobStatus.QUEUED, PrintJobStatus.AGENT_OFFLINE] },
       },
-      include: { document: true },
+      include: { items: { include: { document: true }, orderBy: { printOrder: 'asc' } } },
       orderBy: { queuedAt: 'asc' },
     });
     if (!job) return { job: null };
-    const documentSignedUrl = await this.storage.getSignedDownloadUrl(job.document.s3Key);
+    const documents = await Promise.all(
+      job.items.map(async (item) => ({
+        documentId: item.documentId,
+        originalName: item.document.originalName,
+        mimeType: item.document.mimeType,
+        documentSignedUrl: await this.storage.getSignedDownloadUrl(item.document.s3Key),
+        options: {
+          paperSize: item.paperSize,
+          colorMode: item.colorMode,
+          sideMode: item.sideMode,
+          copies: item.copies,
+        },
+      })),
+    );
     return {
       job: {
         jobId: job.id,
-        originalName: job.document.originalName,
-        mimeType: job.document.mimeType,
-        options: job.optionsJson,
         attemptId: `${job.id}:${job.attemptCount}`,
-        documentSignedUrl,
+        documents,
       },
     };
   }

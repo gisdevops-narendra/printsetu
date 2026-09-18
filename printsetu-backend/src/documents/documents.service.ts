@@ -35,7 +35,15 @@ export class DocumentsService {
     private readonly analysisQueue: Queue<DocumentAnalysisJobData>,
   ) {}
 
-  async upload(shopCode: string, file: Express.Multer.File) {
+  /**
+   * `sessionId` groups every document a customer uploads in one visit into
+   * one eventual print request (SRS extension: "support uploading multiple
+   * documents ... in a single session/print request"). The first upload of
+   * a visit omits it and gets a freshly minted session back; every
+   * subsequent upload (and a page reload — the client persists the id)
+   * passes it so the new document joins the same session.
+   */
+  async upload(shopCode: string, file: Express.Multer.File, sessionId?: string) {
     const { shopId } = await this.qrService.resolvePublicCode(shopCode);
 
     const settings = await this.prisma.printSettings.findUnique({ where: { shopId } });
@@ -46,6 +54,10 @@ export class DocumentsService {
         `File exceeds the ${Math.floor(maxSize / (1024 * 1024))}MB limit for this shop.`,
       );
     }
+
+    const session = sessionId
+      ? await this.requireOwnSession(sessionId, shopId)
+      : await this.prisma.printSession.create({ data: { shopId } });
 
     const mimeType = await this.fileValidation.assertSafeAndSupported(file.buffer);
 
@@ -63,6 +75,7 @@ export class DocumentsService {
       data: {
         id: documentId,
         shopId,
+        sessionId: session.id,
         originalName: file.originalname,
         s3Key,
         mimeType,
@@ -79,14 +92,19 @@ export class DocumentsService {
 
     await this.notifications.record(shopId, null, 'UPLOAD_RECEIVED');
 
-    const docAccessToken = signToken(
-      { shopId, documentId, exp: Math.floor(Date.now() / 1000) + DOC_ACCESS_TOKEN_TTL_SECONDS },
+    // Session-scoped, not document-scoped: one token grants access to every
+    // document already in (or later added to) this session, so the client
+    // doesn't need to juggle a separate token per file, and a page reload
+    // can restore the whole batch from just this one persisted token.
+    const sessionToken = signToken(
+      { shopId, sessionId: session.id, exp: Math.floor(Date.now() / 1000) + DOC_ACCESS_TOKEN_TTL_SECONDS },
       this.config.get('security', { infer: true }).statusTokenSecret,
     );
 
     return {
       documentId: document.id,
-      docAccessToken,
+      sessionId: session.id,
+      sessionToken,
       originalName: document.originalName,
       sizeBytes: document.sizeBytes,
       mimeType: document.mimeType,
@@ -100,10 +118,35 @@ export class DocumentsService {
   async getForCustomer(documentId: string, claims: StatusTokenClaims) {
     const document = await this.prisma.document.findUnique({ where: { id: documentId } });
     if (!document) throw new AppNotFoundException('Document not found.');
-    if (claims.documentId !== documentId || claims.shopId !== document.shopId) {
+    if (claims.sessionId !== document.sessionId || claims.shopId !== document.shopId) {
       throw new ShopAccessDeniedException('Status token does not grant access to this document.');
     }
     return document;
+  }
+
+  /**
+   * Backs both the multi-upload file list (customer adds file #2, #3, ...)
+   * and reload-recovery: on a fresh page load the client has only the
+   * persisted sessionToken/sessionId and needs to rebuild "what did I
+   * already upload" from scratch.
+   */
+  async listForSession(sessionId: string, claims: StatusTokenClaims) {
+    await this.requireOwnSession(sessionId, claims.shopId, claims);
+    return this.prisma.document.findMany({
+      where: { sessionId },
+      orderBy: { uploadedAt: 'asc' },
+    });
+  }
+
+  private async requireOwnSession(sessionId: string, shopId: string, claims?: StatusTokenClaims) {
+    if (claims && claims.sessionId !== sessionId) {
+      throw new ShopAccessDeniedException('Status token does not grant access to this session.');
+    }
+    const session = await this.prisma.printSession.findUnique({ where: { id: sessionId } });
+    if (!session || session.shopId !== shopId) {
+      throw new AppNotFoundException('Upload session not found.');
+    }
+    return session;
   }
 
   async getPreviewUrlForShop(documentId: string, shopId: string) {

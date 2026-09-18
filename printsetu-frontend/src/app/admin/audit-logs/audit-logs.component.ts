@@ -1,6 +1,9 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
+import { InputTextModule } from 'primeng/inputtext';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 import { AdminService } from '../../core/services/admin.service';
 import { AuditLogRow } from '../../core/models/models';
 import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
@@ -8,14 +11,23 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 @Component({
   selector: 'app-audit-logs',
   standalone: true,
-  imports: [CommonModule, TableModule, EllipsisDirective],
+  imports: [CommonModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, EllipsisDirective],
   template: `
     <h1 class="page-title">Audit Logs</h1>
     <p class="page-subtitle">Append-only record of administrative and sensitive operational actions.</p>
 
+    <div class="flex justify-content-end mb-3">
+      <p-iconfield>
+        <p-inputicon styleClass="pi pi-search" />
+        <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+      </p-iconfield>
+    </div>
+
     <p-table
+      #dt
       [value]="logs()"
       [loading]="loading()"
+      [globalFilterFields]="['action', 'entityType', 'entityId', 'actorUserId']"
       styleClass="surface-card-flat table-fill"
       [scrollable]="true"
       scrollHeight="flex"
@@ -24,10 +36,10 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 22%">When</th>
-          <th style="width: 30%">Action</th>
-          <th style="width: 28%">Entity</th>
-          <th style="width: 20%">Actor</th>
+          <th style="width: 22%" pSortableColumn="createdAt">When <p-sortIcon field="createdAt" /></th>
+          <th style="width: 30%" pSortableColumn="action">Action <p-sortIcon field="action" /></th>
+          <th style="width: 28%" pSortableColumn="entityType">Entity <p-sortIcon field="entityType" /></th>
+          <th style="width: 20%" pSortableColumn="actorUserId">Actor <p-sortIcon field="actorUserId" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-log>
