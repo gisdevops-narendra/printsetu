@@ -126,16 +126,22 @@ export interface ConfirmJobResponse {
   currency: string;
 }
 
-// Shop-side document editor: rotate/crop/brightness/contrast/sharpness
-// state for one PrintJobItem. Null on an item = unedited (prints the
-// original document). Coordinates in `crop` are 0..1, normalized against
-// the document's native page/image size.
+// Shop-side document editor state for one PrintJobItem. Null on an item =
+// unedited (prints the original document). Two shapes share this field:
+// - PDFs: params the server applies itself (pdf-lib) — rotation/crop below,
+//   crop coordinates 0..1 normalized against the page size.
+// - Images: `source: 'canvas'` means the client's Fabric.js editor already
+//   composited the final pixels and uploaded them directly — this is just
+//   display metadata (paperSize guide + measured dpi), not re-applied.
 export interface EditState {
-  rotation: 0 | 90 | 180 | 270;
-  crop: { x: number; y: number; width: number; height: number } | null;
-  brightness: number;
-  contrast: number;
-  sharpness: number;
+  rotation?: 0 | 90 | 180 | 270;
+  crop?: { x: number; y: number; width: number; height: number } | null;
+  brightness?: number;
+  contrast?: number;
+  sharpness?: number;
+  source?: 'canvas';
+  paperSize?: string | null;
+  dpi?: number | null;
 }
 
 export interface PrintJobItemRow {

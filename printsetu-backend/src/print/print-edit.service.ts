@@ -92,6 +92,63 @@ export class PrintEditService {
     };
   }
 
+  /**
+   * Stores the client-composited canvas export as the item's print-ready
+   * file directly — no server-side re-render. Always re-encoded through
+   * sharp so the stored object matches `document.mimeType` regardless of
+   * what format the browser's canvas export produced.
+   */
+  async applyRenderedImage(
+    jobId: string,
+    shopId: string,
+    itemId: string,
+    file: Express.Multer.File | undefined,
+    meta: { paperSize?: string; dpi?: string },
+  ) {
+    const item = await this.getEditableItemOrThrow(jobId, shopId, itemId);
+    const { document } = item;
+    if (document.mimeType === 'application/pdf') {
+      throw new InvalidPrintOptionException(
+        'PDF documents use the rotate/crop tool, not the image canvas editor.',
+      );
+    }
+    if (!file) {
+      throw new InvalidPrintOptionException('No rendered image was uploaded.');
+    }
+
+    const isPng = document.mimeType === 'image/png';
+    const pipeline = sharp(file.buffer);
+    const normalized = await (isPng ? pipeline.png() : pipeline.jpeg({ quality: 92 })).toBuffer();
+
+    const ext = MIME_EXTENSIONS[document.mimeType] ?? 'bin';
+    const key = `${document.shopId}/${document.id}/edits/${itemId}-${Date.now()}.${ext}`;
+    await this.storage.putObject({ key, body: normalized, contentType: document.mimeType });
+
+    const dpi = meta.dpi ? Number(meta.dpi) : NaN;
+    const editState = {
+      source: 'canvas',
+      paperSize: meta.paperSize ?? null,
+      dpi: Number.isFinite(dpi) ? dpi : null,
+    } satisfies Prisma.InputJsonValue;
+
+    const previousRenderedKey = item.renderedS3Key;
+    const updated = await this.prisma.printJobItem.update({
+      where: { id: itemId },
+      data: { editState, renderedS3Key: key, renderedAt: new Date() },
+    });
+
+    if (previousRenderedKey) {
+      await this.storage.deleteObject(previousRenderedKey).catch(() => undefined);
+    }
+
+    return {
+      itemId: updated.id,
+      editState: updated.editState,
+      renderedS3Key: updated.renderedS3Key,
+      renderedAt: updated.renderedAt,
+    };
+  }
+
   async resetEdit(jobId: string, shopId: string, itemId: string) {
     const item = await this.getEditableItemOrThrow(jobId, shopId, itemId);
     if (item.renderedS3Key) {

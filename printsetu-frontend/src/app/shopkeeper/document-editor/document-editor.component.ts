@@ -11,6 +11,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { ColorMode, EditState, PaperSize, PrintJobItemRow, PrintJobRow, SideMode } from '../../core/models/models';
+import { ImageCanvasEditorComponent, CanvasEditorSaveResult } from './image-canvas-editor/image-canvas-editor.component';
 
 type CropDraft = { x: number; y: number; width: number; height: number };
 
@@ -49,43 +50,68 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
     SliderModule,
     ProgressSpinnerModule,
     TooltipModule,
+    ImageCanvasEditorComponent,
   ],
   template: `
     <div class="editor-page">
       @if (loading()) {
-        <div class="flex justify-content-center p-6"><p-progressSpinner strokeWidth="4" /></div>
+        <div class="state-box"><p-progressSpinner strokeWidth="4" /></div>
       } @else if (!job()) {
-        <p class="text-color-secondary">Print job not found.</p>
+        <div class="state-box">
+          <i class="pi pi-inbox state-box__icon"></i>
+          <p class="m-0">Print job not found.</p>
+          <p-button label="Back to queue" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" size="small" (onClick)="backToQueue()" />
+        </div>
       } @else {
         <header class="editor-header">
-          <button type="button" class="back-link" (click)="backToQueue()">
-            <i class="pi pi-arrow-left"></i> Back to queue
+          <button type="button" class="back-btn" (click)="backToQueue()" pTooltip="Back to queue" tooltipPosition="bottom">
+            <i class="pi pi-arrow-left"></i>
           </button>
           <div class="editor-header__title">
-            <h1 class="page-title m-0">Token #{{ job()!.tokenNumber }}</h1>
-            <p class="page-subtitle m-0">
-              Document {{ selectedIndex() + 1 }} of {{ job()!.items.length }} &middot; {{ selectedItem()?.document?.originalName }}
+            <div class="title-row">
+              <h1 class="editor-title">Token #{{ job()!.tokenNumber }}</h1>
+              <span class="pill">{{ job()!.items.length }} {{ job()!.items.length === 1 ? 'document' : 'documents' }}</span>
+            </div>
+            <p class="editor-subtitle" [title]="selectedItem()?.document?.originalName">
+              {{ selectedItem()?.document?.originalName }}
             </p>
           </div>
-          <div class="flex align-items-center gap-2">
-            <p-button icon="pi pi-chevron-left" [text]="true" severity="secondary" [disabled]="selectedIndex() === 0" (onClick)="prev()" />
-            <p-button icon="pi pi-chevron-right" [text]="true" severity="secondary" [disabled]="selectedIndex() >= job()!.items.length - 1" (onClick)="next()" />
+          <div class="header-actions">
+            @if (hasEdits()) {
+              <p-button label="Revert to original" icon="pi pi-undo" severity="secondary" [outlined]="true" size="small" (onClick)="resetEdits()" [disabled]="savingEdit()" />
+            }
+            <div class="pager">
+              <button type="button" class="pager__btn" [disabled]="selectedIndex() === 0" (click)="prev()" aria-label="Previous document">
+                <i class="pi pi-chevron-left"></i>
+              </button>
+              <span class="pager__label">{{ selectedIndex() + 1 }} / {{ job()!.items.length }}</span>
+              <button type="button" class="pager__btn" [disabled]="selectedIndex() >= job()!.items.length - 1" (click)="next()" aria-label="Next document">
+                <i class="pi pi-chevron-right"></i>
+              </button>
+            </div>
           </div>
         </header>
 
         <div class="editor-body">
           <!-- Left rail: document list + reorder + delete -->
-          <aside class="rail rail--left">
-            <h3 class="rail__heading">Documents</h3>
+          <aside class="docs">
+            <h3 class="section-heading">Documents</h3>
             <ul class="doc-list">
               @for (item of job()!.items; track item.id; let i = $index) {
-                <li class="doc-list__item" [class.is-active]="i === selectedIndex()" (click)="selectIndex(i)">
-                  <i class="pi pi-file"></i>
-                  <span class="doc-list__name">{{ item.document?.originalName }}</span>
-                  @if (item.renderedS3Key) {
-                    <i class="pi pi-pencil doc-list__edited" pTooltip="Edited"></i>
-                  }
-                  <div class="doc-list__actions" (click)="$event.stopPropagation()">
+                <li class="doc-card" [class.is-active]="i === selectedIndex()" (click)="selectIndex(i)">
+                  <span class="doc-card__icon" [class.is-pdf]="item.document?.mimeType === 'application/pdf'">
+                    <i class="pi" [ngClass]="item.document?.mimeType === 'application/pdf' ? 'pi-file-pdf' : 'pi-image'"></i>
+                  </span>
+                  <div class="doc-card__text">
+                    <span class="doc-card__name" [title]="item.document?.originalName">{{ item.document?.originalName }}</span>
+                    <span class="doc-card__meta">
+                      {{ item.paperSize }} &middot; {{ item.colorMode === 'COLOR' ? 'Color' : 'B/W' }} &middot; &times;{{ item.copies }} &middot; {{ job()!.currency }} {{ item.amount }}
+                      @if (item.renderedS3Key) {
+                        <span class="edited-tag"><i class="pi pi-pencil"></i> Edited</span>
+                      }
+                    </span>
+                  </div>
+                  <div class="doc-card__actions" (click)="$event.stopPropagation()">
                     <button type="button" class="icon-btn" [disabled]="i === 0" (click)="moveItem(i, -1)" title="Move up">
                       <i class="pi pi-arrow-up"></i>
                     </button>
@@ -107,162 +133,282 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
             </ul>
           </aside>
 
-          <!-- Center: preview / editor canvas -->
-          <main class="preview">
-            <div class="preview__toolbar">
-              <p-button icon="pi pi-search-minus" [text]="true" severity="secondary" (onClick)="zoomOut()" />
-              <span class="text-sm text-color-secondary">{{ (zoom() * 100).toFixed(0) }}%</span>
-              <p-button icon="pi pi-search-plus" [text]="true" severity="secondary" (onClick)="zoomIn()" />
-              <p-button label="Reset zoom" [text]="true" size="small" severity="secondary" (onClick)="resetZoom()" />
-              <span class="flex-spacer"></span>
-              <p-button
-                [label]="finalPreview() ? 'Back to editing' : 'Final Preview'"
-                [icon]="finalPreview() ? 'pi pi-pencil' : 'pi pi-eye'"
-                severity="secondary"
-                [outlined]="true"
-                size="small"
-                (onClick)="finalPreview.set(!finalPreview())"
-              />
-            </div>
-
+          <!-- Center: workspace -->
+          <main class="workspace">
             @if (previewLoading()) {
-              <div class="preview__frame flex align-items-center justify-content-center">
-                <p-progressSpinner strokeWidth="4" />
+              <div class="stage stage--center"><p-progressSpinner strokeWidth="4" /></div>
+            } @else if (!previewUrl()) {
+              <div class="stage stage--center state-box">
+                <i class="pi pi-eye-slash state-box__icon"></i>
+                <p class="m-0">Preview unavailable for this document.</p>
               </div>
-            } @else if (finalPreview()) {
-              <div class="paper-frame" [style.aspect-ratio]="paperAspectRatio()">
-                <img [src]="previewUrl()" class="paper-frame__img" />
-              </div>
+            } @else if (!isPdf()) {
+              <!-- Images: full free-form canvas editor (pan/zoom, paper guide,
+                   aspect-locked crop, brightness/contrast/saturation, rotate/
+                   straighten, DPI warning, print preview). Exports one final
+                   rendered file directly — see onCanvasEditorSave(). -->
+              <app-image-canvas-editor
+                class="workspace__fill"
+                [imageUrl]="previewUrl()!"
+                [saving]="savingEdit()"
+                (save)="onCanvasEditorSave($event)"
+                (cancelled)="loadPreview()"
+              />
             } @else {
-              <div
-                #previewContainer
-                class="preview__frame"
-                [class.is-cropping]="cropMode()"
-                (mousedown)="onCropStart($event)"
-                (mousemove)="onCropMove($event)"
-                (mouseup)="onCropEnd()"
-                (mouseleave)="onCropEnd()"
-              >
-                <div #previewZoomed class="preview__zoomed" [style.transform]="'scale(' + zoom() + ')'">
-                  @if (isPdf()) {
-                    <canvas #pdfCanvas></canvas>
-                  } @else if (previewUrl()) {
-                    <img [src]="previewUrl()" (load)="onImageLoad($event)" />
-                  }
-                  @if (cropDraft()) {
+              <div class="pdf-editor">
+                <div class="pdf-editor__main">
+                  <div class="toolbar">
+                    <div class="segmented">
+                      <button type="button" [class.is-on]="!finalPreview()" (click)="setFinalPreview(false)">
+                        <i class="pi pi-pencil"></i> Edit
+                      </button>
+                      <button type="button" [class.is-on]="finalPreview()" (click)="setFinalPreview(true)">
+                        <i class="pi pi-eye"></i> Final preview
+                      </button>
+                    </div>
+                    <span class="flex-spacer"></span>
+                    @if (!finalPreview()) {
+                      <div class="zoom-controls">
+                        <button type="button" class="icon-btn icon-btn--lg" (click)="zoomOut()" title="Zoom out"><i class="pi pi-search-minus"></i></button>
+                        <button type="button" class="zoom-controls__value" (click)="resetZoom()" title="Reset zoom">{{ (zoom() * 100).toFixed(0) }}%</button>
+                        <button type="button" class="icon-btn icon-btn--lg" (click)="zoomIn()" title="Zoom in"><i class="pi pi-search-plus"></i></button>
+                      </div>
+                    }
+                  </div>
+
+                  @if (finalPreview()) {
+                    <div class="stage stage--center">
+                      <div class="paper-frame" [style.--ar]="paperAspectRatio()">
+                        <canvas #finalCanvas class="paper-frame__img"></canvas>
+                      </div>
+                    </div>
+                  } @else {
                     <div
-                      class="crop-rect"
-                      [style.left.%]="cropDraft()!.x * 100"
-                      [style.top.%]="cropDraft()!.y * 100"
-                      [style.width.%]="cropDraft()!.width * 100"
-                      [style.height.%]="cropDraft()!.height * 100"
-                    ></div>
+                      #previewContainer
+                      class="stage stage--center"
+                      [class.is-cropping]="cropMode()"
+                      (mousedown)="onCropStart($event)"
+                      (mousemove)="onCropMove($event)"
+                      (mouseup)="onCropEnd()"
+                      (mouseleave)="onCropEnd()"
+                    >
+                      <div #previewZoomed class="preview__zoomed" [style.transform]="'scale(' + zoom() + ')'">
+                        <canvas #pdfCanvas></canvas>
+                        @if (cropDraft()) {
+                          <div
+                            class="crop-rect"
+                            [style.left.%]="cropDraft()!.x * 100"
+                            [style.top.%]="cropDraft()!.y * 100"
+                            [style.width.%]="cropDraft()!.width * 100"
+                            [style.height.%]="cropDraft()!.height * 100"
+                          ></div>
+                        }
+                      </div>
+                    </div>
                   }
                 </div>
+
+                <aside class="inspector">
+                  <section class="panel">
+                    <h4 class="panel__title"><i class="pi pi-sliders-h"></i> Edit</h4>
+                    <div class="btn-grid">
+                      <p-button icon="pi pi-refresh" label="Rotate 90°" severity="secondary" [outlined]="true" size="small" styleClass="w-full" (onClick)="rotate(90)" [disabled]="savingEdit()" />
+                      <p-button
+                        [label]="cropMode() ? 'Cancel crop' : 'Crop'"
+                        icon="pi pi-crop"
+                        [severity]="cropMode() ? 'danger' : 'secondary'"
+                        [outlined]="true"
+                        size="small"
+                        styleClass="w-full"
+                        (onClick)="toggleCropMode()"
+                        [disabled]="savingEdit() || finalPreview()"
+                      />
+                    </div>
+                    @if (cropMode()) {
+                      <p class="hint"><i class="pi pi-info-circle"></i> Drag on the page to draw the area to keep.</p>
+                    }
+                    @if (cropMode() && cropDraft()) {
+                      <p-button label="Apply crop" icon="pi pi-check" size="small" styleClass="w-full" (onClick)="applyCrop()" [loading]="savingEdit()" />
+                    }
+                    @if (selectedItem()?.editState?.crop) {
+                      <p-button label="Clear crop" icon="pi pi-times" [text]="true" size="small" severity="secondary" styleClass="w-full" (onClick)="clearCrop()" [disabled]="savingEdit()" />
+                    }
+                  </section>
+                </aside>
               </div>
             }
           </main>
-
-          <!-- Right rail: editing tools + per-document print settings -->
-          <aside class="rail rail--right">
-            <h3 class="rail__heading">Edit</h3>
-            <div class="tool-group">
-              <p-button icon="pi pi-refresh" label="Rotate 90°" severity="secondary" [outlined]="true" size="small" (onClick)="rotate(90)" [disabled]="savingEdit()" />
-              <p-button
-                [label]="cropMode() ? 'Cancel crop' : 'Crop'"
-                icon="pi pi-crop"
-                severity="secondary"
-                [outlined]="true"
-                size="small"
-                (onClick)="toggleCropMode()"
-                [disabled]="savingEdit()"
-              />
-              @if (cropMode() && cropDraft()) {
-                <p-button label="Apply crop" icon="pi pi-check" size="small" (onClick)="applyCrop()" [loading]="savingEdit()" />
-              }
-              @if (selectedItem()?.editState?.crop) {
-                <p-button label="Clear crop" icon="pi pi-times" [text]="true" size="small" severity="secondary" (onClick)="clearCrop()" [disabled]="savingEdit()" />
-              }
-            </div>
-
-            <div class="tool-group" [class.is-disabled]="isPdf()" [pTooltip]="isPdf() ? 'Brightness/contrast/sharpness are only supported for image documents' : ''">
-              <label class="tool-label">Brightness</label>
-              <p-slider [(ngModel)]="editDraft.brightness" [min]="-100" [max]="100" [disabled]="isPdf()" (onSlideEnd)="commitEdit()" />
-              <label class="tool-label">Contrast</label>
-              <p-slider [(ngModel)]="editDraft.contrast" [min]="-100" [max]="100" [disabled]="isPdf()" (onSlideEnd)="commitEdit()" />
-              <label class="tool-label">Sharpness</label>
-              <p-slider [(ngModel)]="editDraft.sharpness" [min]="0" [max]="100" [disabled]="isPdf()" (onSlideEnd)="commitEdit()" />
-            </div>
-
-            @if (hasEdits()) {
-              <p-button label="Reset all edits" icon="pi pi-undo" [text]="true" size="small" severity="secondary" (onClick)="resetEdits()" [disabled]="savingEdit()" />
-            }
-
-            <h3 class="rail__heading mt-4">Print settings</h3>
-            @if (selectedItem(); as item) {
-              <div class="settings-form">
-                <label class="tool-label">Paper size</label>
-                <p-select [options]="paperSizes" [(ngModel)]="settingsDraft.paperSize" (onChange)="commitSettings()" />
-                <label class="tool-label">Color mode</label>
-                <p-select [options]="colorModes" [(ngModel)]="settingsDraft.colorMode" (onChange)="commitSettings()" />
-                <label class="tool-label">Sides</label>
-                <p-select [options]="sideModes" [(ngModel)]="settingsDraft.sideMode" (onChange)="commitSettings()" />
-                <label class="tool-label">Copies</label>
-                <p-inputNumber [(ngModel)]="settingsDraft.copies" [min]="1" [max]="999" (onInput)="commitSettings()" />
-                <p class="text-sm text-color-secondary mt-2">Line amount: {{ job()!.currency }} {{ item.amount }}</p>
-              </div>
-            }
-          </aside>
         </div>
 
-        <footer class="editor-footer">
-          <span class="text-color-secondary">Job total: {{ job()!.currency }} {{ job()!.amount }}</span>
-          <p-button label="Confirm &amp; Print" icon="pi pi-print" [loading]="printing()" (onClick)="confirmAndPrint()" />
+        <footer class="print-bar">
+          <div class="print-bar__settings">
+            @if (selectedItem()) {
+              <div class="field">
+                <label>Paper size</label>
+                <p-select [options]="paperSizes" [(ngModel)]="settingsDraft.paperSize" (onChange)="commitSettings()" size="small" appendTo="body" styleClass="field__control" />
+              </div>
+              <div class="field">
+                <label>Color</label>
+                <p-select [options]="colorModeOptions" optionLabel="label" optionValue="value" [(ngModel)]="settingsDraft.colorMode" (onChange)="commitSettings()" size="small" appendTo="body" styleClass="field__control" />
+              </div>
+              <div class="field">
+                <label>Sides</label>
+                <p-select [options]="sideModeOptions" optionLabel="label" optionValue="value" [(ngModel)]="settingsDraft.sideMode" (onChange)="commitSettings()" size="small" appendTo="body" styleClass="field__control" />
+              </div>
+              <div class="field field--copies">
+                <label>Copies</label>
+                <p-inputNumber [(ngModel)]="settingsDraft.copies" [min]="1" [max]="999" [showButtons]="true" buttonLayout="horizontal" incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus" size="small" (onInput)="commitSettings()" />
+              </div>
+            }
+          </div>
+          <div class="print-bar__total">
+            <div class="total">
+              <span>Job total</span>
+              <strong>{{ job()!.currency }} {{ job()!.amount }}</strong>
+            </div>
+            <p-button label="Confirm &amp; Print" icon="pi pi-print" [loading]="printing()" (onClick)="confirmAndPrint()" />
+          </div>
         </footer>
       }
     </div>
   `,
   styles: [
     `
+      :host {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: #e2e8f0;
+        --surface: #ffffff;
+        --soft: #f8fafc;
+      }
       .editor-page {
         display: flex;
         flex-direction: column;
+        gap: 1rem;
         height: 100%;
         min-height: 0;
       }
+      .state-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        padding: 3rem 1rem;
+        color: var(--muted);
+      }
+      .state-box__icon {
+        font-size: 2rem;
+        color: #94a3b8;
+      }
+
+      /* ---------- Header ---------- */
       .editor-header {
         display: flex;
         align-items: center;
-        gap: 1rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid #e2e8f0;
-        margin-bottom: 1rem;
+        gap: 0.875rem;
+        flex: 0 0 auto;
+      }
+      .back-btn {
+        width: 2.5rem;
+        height: 2.5rem;
+        flex: 0 0 auto;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: #475569;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+      }
+      .back-btn:hover {
+        border-color: var(--p-primary-300);
+        color: var(--p-primary-600);
+        background: var(--p-primary-50);
       }
       .editor-header__title {
         flex: 1 1 auto;
         min-width: 0;
       }
-      .back-link {
-        background: none;
-        border: none;
-        padding: 0;
-        color: #64748b;
-        font-weight: 600;
-        font-size: 0.8125rem;
-        cursor: pointer;
-        display: inline-flex;
+      .title-row {
+        display: flex;
         align-items: center;
-        gap: 0.375rem;
+        gap: 0.625rem;
+      }
+      .editor-title {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+      }
+      .pill {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        padding: 0.125rem 0.5rem;
+        border-radius: 999px;
+        background: var(--p-primary-50);
+        color: var(--p-primary-700);
+      }
+      .editor-subtitle {
+        margin: 0.125rem 0 0 0;
+        font-size: 0.8125rem;
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
         white-space: nowrap;
       }
-      .back-link:hover {
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 0 0 auto;
+      }
+      .pager {
+        display: inline-flex;
+        align-items: center;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.125rem;
+      }
+      .pager__btn {
+        width: 2rem;
+        height: 2rem;
+        border: none;
+        background: none;
+        border-radius: 8px;
+        color: #475569;
+        cursor: pointer;
+      }
+      .pager__btn:hover:not(:disabled) {
+        background: var(--soft);
         color: var(--p-primary-600);
       }
+      .pager__btn:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+      .pager__label {
+        min-width: 3.25rem;
+        text-align: center;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #334155;
+        font-variant-numeric: tabular-nums;
+      }
 
+      /* ---------- Body ---------- */
       .editor-body {
         flex: 1 1 auto;
         display: grid;
-        grid-template-columns: 220px 1fr 260px;
+        grid-template-columns: 220px minmax(0, 1fr);
         gap: 1rem;
         min-height: 0;
       }
@@ -270,24 +416,56 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         .editor-body {
           grid-template-columns: 1fr;
         }
+        .docs {
+          max-height: 200px;
+        }
       }
 
-      .rail {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 0.875rem;
-        overflow-y: auto;
+      /* Narrow windows: stop forcing everything into the viewport height —
+         let the page grow and the shell scroll instead of overlapping. */
+      @media (max-width: 1180px) {
+        :host {
+          height: auto !important;
+          min-height: 100%;
+        }
+        .editor-page {
+          height: auto;
+        }
+        .editor-body {
+          flex: 0 0 auto;
+          grid-template-rows: auto auto;
+        }
+        .workspace,
+        .workspace__fill {
+          flex: 0 0 auto;
+        }
+        .pdf-editor {
+          grid-template-rows: auto auto;
+        }
+        .pdf-editor .stage {
+          flex: 0 0 auto;
+          height: 60vh;
+        }
       }
-      .rail__heading {
-        font-size: 0.75rem;
+
+      .section-heading {
+        font-size: 0.6875rem;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: #64748b;
-        margin: 0 0 0.625rem 0;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin: 0 0 0.625rem 0.25rem;
       }
 
+      /* ---------- Documents rail ---------- */
+      .docs {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 0.875rem 0.625rem;
+        overflow-y: auto;
+        min-height: 0;
+      }
       .doc-list {
         list-style: none;
         margin: 0;
@@ -296,51 +474,114 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         flex-direction: column;
         gap: 0.375rem;
       }
-      .doc-list__item {
+      .doc-card {
+        position: relative;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 0.625rem;
-        border-radius: 8px;
+        gap: 0.625rem;
+        padding: 0.5rem 0.5rem;
+        border-radius: 10px;
         border: 1px solid transparent;
         cursor: pointer;
-        background: #fff;
+        transition: background 0.12s ease, border-color 0.12s ease;
       }
-      .doc-list__item.is-active {
-        border-color: var(--p-primary-300);
+      .doc-card:hover {
+        background: var(--soft);
+      }
+      .doc-card.is-active {
+        border-color: var(--p-primary-200);
         background: var(--p-primary-50);
       }
-      .doc-list__name {
+      .doc-card__icon {
+        flex: 0 0 auto;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 9px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #e0e7ff;
+        color: #4f46e5;
+        font-size: 1rem;
+      }
+      .doc-card__icon.is-pdf {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+      .doc-card__text {
         flex: 1 1 auto;
         min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+      }
+      .doc-card__name {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--ink);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        font-size: 0.8125rem;
       }
-      .doc-list__edited {
-        color: var(--p-primary-600);
-        font-size: 0.7rem;
-      }
-      .doc-list__actions {
+      .doc-card__meta {
+        font-size: 0.6875rem;
+        color: var(--muted);
         display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.25rem;
+      }
+      .edited-tag {
+        color: var(--p-primary-600);
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+      }
+      .edited-tag i {
+        font-size: 0.6rem;
+      }
+      .doc-card__actions {
+        position: absolute;
+        right: 0.375rem;
+        top: 50%;
+        transform: translateY(-50%);
+        display: none;
         gap: 0.125rem;
+        padding: 0.125rem;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+      }
+      .doc-card:hover .doc-card__actions,
+      .doc-card.is-active:focus-within .doc-card__actions {
+        display: inline-flex;
       }
       .icon-btn {
         border: none;
         background: none;
-        color: #94a3b8;
+        color: #64748b;
         cursor: pointer;
-        padding: 0.25rem;
-        border-radius: 4px;
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 6px;
         font-size: 0.7rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .icon-btn--lg {
+        width: 2rem;
+        height: 2rem;
+        font-size: 0.8125rem;
       }
       .icon-btn:hover:not(:disabled) {
-        background: #e2e8f0;
-        color: #334155;
+        background: #eef2ff;
+        color: var(--p-primary-600);
       }
       .icon-btn:disabled {
-        opacity: 0.35;
+        opacity: 0.3;
         cursor: default;
       }
       .icon-btn--danger:hover:not(:disabled) {
@@ -348,101 +589,252 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         color: #dc2626;
       }
 
-      .preview {
+      /* ---------- Workspace ---------- */
+      .workspace {
         display: flex;
         flex-direction: column;
         min-width: 0;
         min-height: 0;
       }
-      .preview__toolbar {
+      .workspace__fill {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: block;
+      }
+      .pdf-editor {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 232px;
+        gap: 1rem;
+      }
+      @media (max-width: 1180px) {
+        .pdf-editor {
+          grid-template-columns: 1fr;
+        }
+      }
+      .pdf-editor__main {
+        display: flex;
+        flex-direction: column;
+        gap: 0.625rem;
+        min-width: 0;
+        min-height: 0;
+      }
+      .toolbar {
         display: flex;
         align-items: center;
-        gap: 0.375rem;
-        margin-bottom: 0.625rem;
+        gap: 0.75rem;
+        flex: 0 0 auto;
       }
       .flex-spacer {
         flex: 1 1 auto;
       }
-      .preview__frame {
+      .segmented {
+        display: inline-flex;
+        background: #eef1f6;
+        border-radius: 10px;
+        padding: 0.1875rem;
+      }
+      .segmented button {
+        border: none;
+        background: none;
+        padding: 0.375rem 0.875rem;
+        border-radius: 8px;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--muted);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .segmented button.is-on {
+        background: var(--surface);
+        color: var(--ink);
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+      }
+      .zoom-controls {
+        display: inline-flex;
+        align-items: center;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.125rem;
+      }
+      .zoom-controls__value {
+        border: none;
+        background: none;
+        min-width: 3.25rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #334155;
+        cursor: pointer;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .stage {
         flex: 1 1 auto;
         position: relative;
+        min-height: 320px;
         overflow: auto;
-        background: #0f172a0d;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background-color: #eef1f6;
+        background-image: radial-gradient(#cfd6e2 1px, transparent 1px);
+        background-size: 18px 18px;
+        container-type: size;
+        user-select: none;
+      }
+      .stage--center {
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 360px;
-        user-select: none;
       }
-      .preview__frame.is-cropping {
+      .stage.is-cropping {
         cursor: crosshair;
       }
       .preview__zoomed {
         position: relative;
         transform-origin: center center;
-        max-width: 100%;
-        max-height: 100%;
+        box-shadow: 0 6px 24px rgba(15, 23, 42, 0.18);
+        background: #fff;
+        line-height: 0;
       }
-      .preview__zoomed img,
       .preview__zoomed canvas {
-        max-width: 100%;
-        max-height: 70vh;
         display: block;
+        max-width: calc(100cqw - 2rem);
+        max-height: calc(100cqh - 2rem);
       }
       .crop-rect {
         position: absolute;
         border: 2px dashed var(--p-primary-500);
-        background: rgba(99, 102, 241, 0.15);
+        background: rgba(99, 102, 241, 0.18);
         pointer-events: none;
       }
-
       .paper-frame {
-        width: min(100%, 420px);
-        margin: 0 auto;
+        aspect-ratio: var(--ar, 0.707);
+        width: min(calc(100cqw - 2rem), calc((100cqh - 2rem) * var(--ar, 0.707)));
         background: #fff;
-        border: 1px solid #cbd5e1;
-        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+        box-shadow: 0 6px 24px rgba(15, 23, 42, 0.18);
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
       }
       .paper-frame__img {
-        max-width: 100%;
-        max-height: 100%;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
       }
 
-      .tool-group {
+      /* ---------- Inspector (PDF tools) ---------- */
+      .inspector {
         display: flex;
         flex-direction: column;
+        gap: 0.75rem;
+        min-height: 0;
+        overflow-y: auto;
+      }
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 0.875rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.625rem;
+      }
+      .panel__title {
+        margin: 0;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .btn-grid {
+        display: grid;
+        grid-template-columns: 1fr;
         gap: 0.5rem;
-        margin-bottom: 1rem;
       }
-      .tool-group.is-disabled {
-        opacity: 0.55;
-      }
-      .tool-label {
-        font-size: 0.7rem;
-        font-weight: 600;
-        color: #64748b;
-        margin-top: 0.375rem;
-      }
-
-      .settings-form {
+      .hint {
+        margin: 0;
+        font-size: 0.75rem;
+        color: var(--muted);
+        line-height: 1.4;
         display: flex;
-        flex-direction: column;
         gap: 0.375rem;
       }
 
-      .editor-footer {
+      /* ---------- Bottom print bar ---------- */
+      .print-bar {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.5rem;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 0.75rem 1rem;
+        box-shadow: 0 -2px 12px rgba(15, 23, 42, 0.04);
+      }
+      .print-bar__settings {
+        display: flex;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      .field label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      .field :is(p-select, p-inputnumber) {
+        width: 9.5rem;
+      }
+      .field--copies :is(p-inputnumber) {
+        width: 9rem;
+      }
+      .field--copies ::ng-deep .p-inputnumber-input {
+        width: 100%;
+        text-align: center;
+      }
+      .total {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+        font-size: 0.6875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .total strong {
+        font-size: 0.9375rem;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--ink);
+      }
+      .print-bar__total {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        padding-top: 1rem;
-        margin-top: 1rem;
-        border-top: 1px solid #e2e8f0;
+        gap: 1.25rem;
+        margin-left: auto;
+      }
+      .total strong {
+        font-size: 1.25rem;
       }
     `,
   ],
@@ -451,6 +843,11 @@ export class DocumentEditorComponent implements OnInit {
   @ViewChild('previewContainer') previewContainer?: ElementRef<HTMLDivElement>;
   @ViewChild('previewZoomed') previewZoomed?: ElementRef<HTMLDivElement>;
   @ViewChild('pdfCanvas') pdfCanvas?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('finalCanvas') finalCanvas?: ElementRef<HTMLCanvasElement>;
+
+  // Cached first page of the current PDF so toggling Edit <-> Final preview
+  // can repaint without re-fetching/re-parsing the document.
+  private pdfPage: import('pdfjs-dist').PDFPageProxy | null = null;
 
   job = signal<PrintJobRow | null>(null);
   loading = signal(true);
@@ -476,8 +873,14 @@ export class DocumentEditorComponent implements OnInit {
   private cropStart: { x: number; y: number } | null = null;
 
   paperSizes: PaperSize[] = ['A4', 'A3', 'LETTER', 'LEGAL'];
-  colorModes: ColorMode[] = ['BW', 'COLOR'];
-  sideModes: SideMode[] = ['SIMPLEX', 'DUPLEX'];
+  colorModeOptions: { label: string; value: ColorMode }[] = [
+    { label: 'Black & white', value: 'BW' },
+    { label: 'Color', value: 'COLOR' },
+  ];
+  sideModeOptions: { label: string; value: SideMode }[] = [
+    { label: 'Single-sided', value: 'SIMPLEX' },
+    { label: 'Double-sided', value: 'DUPLEX' },
+  ];
   settingsDraft: { paperSize: PaperSize; colorMode: ColorMode; sideMode: SideMode; copies: number } = {
     paperSize: 'A4',
     colorMode: 'BW',
@@ -549,10 +952,12 @@ export class DocumentEditorComponent implements OnInit {
     if (this.selectedIndex() > 0) this.selectIndex(this.selectedIndex() - 1);
   }
 
-  private loadPreview(): void {
+  loadPreview(): void {
     const item = this.selectedItem();
     if (!item) return;
     this.previewLoading.set(true);
+    this.previewUrl.set(null);
+    this.pdfPage = null;
     this.shopkeeperService.itemPreviewUrl(this.jobId, item.id).subscribe({
       next: (res) => {
         this.previewUrl.set(res.url);
@@ -577,8 +982,6 @@ export class DocumentEditorComponent implements OnInit {
   }
 
   private async renderPdfPreview(url: string): Promise<void> {
-    const canvas = this.pdfCanvas?.nativeElement;
-    if (!canvas) return;
     const pdfjsLib = await import('pdfjs-dist');
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.mjs';
     // Fetch the bytes ourselves and hand pdf.js raw `data` rather than a
@@ -589,12 +992,28 @@ export class DocumentEditorComponent implements OnInit {
     // thing upfront is cheap and sidesteps that transport entirely.
     const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
     const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
-    const page = await pdf.getPage(1);
-    const viewport = page.getViewport({ scale: 1.5 });
+    this.pdfPage = await pdf.getPage(1);
+    await this.paintPdf();
+  }
+
+  /** Paints the cached PDF page into whichever preview canvas is on screen. */
+  private async paintPdf(): Promise<void> {
+    const canvas = (this.finalPreview() ? this.finalCanvas : this.pdfCanvas)?.nativeElement;
+    if (!canvas || !this.pdfPage) return;
+    const viewport = this.pdfPage.getViewport({ scale: 1.5 });
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     const canvasContext = canvas.getContext('2d')!;
-    await page.render({ canvasContext, viewport }).promise;
+    await this.pdfPage.render({ canvasContext, viewport }).promise;
+  }
+
+  setFinalPreview(on: boolean): void {
+    if (this.finalPreview() === on) return;
+    this.finalPreview.set(on);
+    this.cropMode.set(false);
+    this.cropDraft.set(null);
+    // The target <canvas> is created by the @if branch that just flipped.
+    afterNextRender(() => this.paintPdf(), { injector: this.injector });
   }
 
   onImageLoad(_event: Event): void {
@@ -660,7 +1079,9 @@ export class DocumentEditorComponent implements OnInit {
   // ---- Rotate / crop / brightness-contrast-sharpness ----
 
   rotate(delta: 90): void {
-    this.editDraft = { ...this.editDraft, rotation: (((this.editDraft.rotation + delta) % 360) + 360) % 360 as EditState['rotation'] };
+    const current = this.editDraft.rotation ?? 0;
+    const next = (((current + delta) % 360) + 360) % 360;
+    this.editDraft = { ...this.editDraft, rotation: next as EditState['rotation'] };
     this.commitEdit();
   }
 
@@ -737,6 +1158,40 @@ export class DocumentEditorComponent implements OnInit {
         });
       },
     });
+  }
+
+  // ---- Image canvas editor (images only — see app-image-canvas-editor) ----
+
+  onCanvasEditorSave(result: CanvasEditorSaveResult): void {
+    const item = this.selectedItem();
+    if (!item) return;
+    const blob = this.dataUrlToBlob(result.imageData);
+    this.savingEdit.set(true);
+    this.shopkeeperService.uploadRenderedImage(this.jobId, item.id, blob, result.paperSize, result.dpi).subscribe({
+      next: (res) => {
+        this.savingEdit.set(false);
+        this.patchSelectedItem({ editState: res.editState, renderedS3Key: res.renderedS3Key });
+        this.loadPreview();
+        this.messageService.add({ severity: 'success', summary: 'Edit saved' });
+      },
+      error: (err) => {
+        this.savingEdit.set(false);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Could not save edit',
+          detail: err?.error?.message,
+        });
+      },
+    });
+  }
+
+  private dataUrlToBlob(dataUrl: string): Blob {
+    const [header, base64] = dataUrl.split(',');
+    const mime = /data:(.*?);base64/.exec(header)?.[1] ?? 'image/jpeg';
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
   }
 
   resetEdits(): void {

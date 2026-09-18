@@ -1,4 +1,18 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { Throttle } from '@nestjs/throttler';
 import { PrintJobsService } from './print-jobs.service';
 import { PrintEditService } from './print-edit.service';
@@ -16,6 +30,8 @@ import { StatusToken } from '../common/decorators/status-token.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { StatusTokenClaims, AuthenticatedUser } from '../common/types/request-context';
 import { ShopAccessDeniedException } from '../common/exceptions/app.exceptions';
+
+const RENDERED_IMAGE_CEILING_BYTES = parseInt(process.env.MAX_UPLOAD_SIZE_BYTES || '26214400', 10);
 
 /** Customer-facing: confirm + track. SRS §17 auth column "Customer/status token". */
 @Controller('print-jobs')
@@ -114,6 +130,34 @@ export class ShopPrintJobsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.printEditService.applyEdit(id, this.requireShop(user), itemId, dto);
+  }
+
+  /**
+   * Image documents (v2): the client-side canvas editor composites
+   * crop/rotate/brightness/contrast/saturation itself and uploads one
+   * final rendered file here, rather than sending edit parameters for the
+   * server to re-apply (SRS: what the shopkeeper sees in the editor is
+   * pixel-for-pixel what prints). PDFs still use the params-based
+   * PATCH .../edit above.
+   */
+  @Post(':id/items/:itemId/edit/render')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: RENDERED_IMAGE_CEILING_BYTES },
+    }),
+  )
+  uploadRenderedImage(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: Record<string, unknown>,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.printEditService.applyRenderedImage(id, this.requireShop(user), itemId, file, {
+      paperSize: typeof body?.paperSize === 'string' ? body.paperSize : undefined,
+      dpi: typeof body?.dpi === 'string' ? body.dpi : undefined,
+    });
   }
 
   @Post(':id/items/:itemId/edit/reset')

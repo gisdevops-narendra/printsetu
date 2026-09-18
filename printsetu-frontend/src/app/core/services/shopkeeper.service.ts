@@ -116,6 +116,18 @@ export class ShopkeeperService {
     );
   }
 
+  /** Image documents only: uploads the canvas editor's final composited export as the print-ready file. */
+  uploadRenderedImage(jobId: string, itemId: string, blob: Blob, paperSize: string, dpi: number) {
+    const form = new FormData();
+    form.append('file', blob, 'edit.jpg');
+    form.append('paperSize', paperSize);
+    form.append('dpi', String(Math.round(dpi)));
+    return this.http.post<{ itemId: string; editState: EditState; renderedS3Key: string; renderedAt: string }>(
+      `${BASE}/shop/print-jobs/${jobId}/items/${itemId}/edit/render`,
+      form,
+    );
+  }
+
   itemPreviewUrl(jobId: string, itemId: string) {
     return this.http.get<{ url: string; expiresInSeconds: number }>(
       `${BASE}/shop/print-jobs/${jobId}/items/${itemId}/preview-url`,
