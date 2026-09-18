@@ -217,7 +217,9 @@ app-root {
    the paginator docked to the bottom of that filled area. */
 .table-fill {
   flex: 1 1 auto;
-  min-height: 0;
+  /* On short screens (or when a form/header sits above the table) the table
+     must not be squeezed into a sliver; the page scrolls instead. */
+  min-height: 14rem;
 }
 
 .p-datatable.surface-card-flat {
@@ -383,6 +385,20 @@ app-root {
    Every <td> carries data-label="Column name"; the header row is hidden and
    each row turns into a card of "label ... value" lines. */
 @media (max-width: 640px) {
+  /* On a phone the page scrolls as a whole; a table (now a stack of cards)
+     takes its natural height instead of scrolling inside a small box. */
+  .p-datatable.table-fill {
+    flex: 0 0 auto;
+    min-height: 0;
+    height: auto;
+  }
+
+  .p-datatable .p-datatable-table-container {
+    overflow: visible;
+    height: auto !important;
+    flex: 0 0 auto;
+  }
+
   .p-datatable .p-datatable-table {
     display: block;
     min-width: 0 !important;
@@ -457,6 +473,12 @@ app-root {
 
   .p-datatable .p-datatable-tbody > tr > td:not([data-label]) .flex {
     justify-content: flex-end;
+  }
+
+  /* Comfortable touch targets for the row actions (edit, delete, ...). */
+  .p-datatable .p-datatable-tbody > tr > td .p-button.p-button-icon-only {
+    width: 2.5rem;
+    height: 2.5rem;
   }
 
   /* The value side of a card line takes the remaining width; the ellipsis

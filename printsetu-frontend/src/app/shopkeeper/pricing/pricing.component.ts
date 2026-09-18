@@ -37,27 +37,29 @@ import { PricingRate } from '../../core/models/models';
 
     <div class="surface-card-flat p-4 mb-4">
       <h3 class="mt-0 mb-3 text-base">{{ editingId() ? 'Update rate' : 'Set a new rate' }}</h3>
-      <div class="flex flex-wrap gap-3 align-items-end">
-        <div class="flex flex-column gap-2">
+      <div class="rate-form">
+        <div class="rate-form__field">
           <label class="text-sm">Paper size</label>
-          <p-select [options]="paperSizes" [(ngModel)]="form.paperSize" [disabled]="!!editingId()" />
+          <p-select [options]="paperSizes" [(ngModel)]="form.paperSize" [disabled]="!!editingId()" styleClass="w-full" />
         </div>
-        <div class="flex flex-column gap-2">
+        <div class="rate-form__field">
           <label class="text-sm">Color mode</label>
-          <p-select [options]="colorModes" [(ngModel)]="form.colorMode" [disabled]="!!editingId()" />
+          <p-select [options]="colorModes" [(ngModel)]="form.colorMode" [disabled]="!!editingId()" styleClass="w-full" />
         </div>
-        <div class="flex flex-column gap-2">
+        <div class="rate-form__field">
           <label class="text-sm">Side mode</label>
-          <p-select [options]="sideModes" [(ngModel)]="form.sideMode" [disabled]="!!editingId()" />
+          <p-select [options]="sideModes" [(ngModel)]="form.sideMode" [disabled]="!!editingId()" styleClass="w-full" />
         </div>
-        <div class="flex flex-column gap-2">
+        <div class="rate-form__field">
           <label class="text-sm">Price per page (₹)</label>
-          <p-inputNumber [(ngModel)]="form.pricePerPage" mode="decimal" [minFractionDigits]="2" />
+          <p-inputNumber [(ngModel)]="form.pricePerPage" mode="decimal" [minFractionDigits]="2" styleClass="w-full" inputStyleClass="w-full" />
         </div>
-        <p-button [label]="editingId() ? 'Update rate' : 'Save rate'" (onClick)="save()" [loading]="saving()" />
-        @if (editingId()) {
-          <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="cancelEdit()" />
-        }
+        <div class="rate-form__actions">
+          <p-button [label]="editingId() ? 'Update rate' : 'Save rate'" (onClick)="save()" [loading]="saving()" />
+          @if (editingId()) {
+            <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="cancelEdit()" />
+          }
+        </div>
       </div>
     </div>
 
@@ -126,6 +128,45 @@ import { PricingRate } from '../../core/models/models';
       </ng-template>
     </p-table>
   `,
+  styles: [
+    `
+      /* One row of four fields + button on wide screens; 2-up on phones; the
+         fields always fill their column instead of hugging their content. */
+      .rate-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+        gap: 1rem;
+        align-items: end;
+      }
+      .rate-form__field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        min-width: 0;
+      }
+      .rate-form__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      @media (max-width: 640px) {
+        .rate-form {
+          grid-template-columns: 1fr 1fr;
+        }
+        /* The action buttons get their own full-width line. */
+        .rate-form__actions {
+          grid-column: 1 / -1;
+        }
+        .rate-form__actions ::ng-deep .p-button {
+          width: 100%;
+        }
+        .rate-form__actions > * {
+          flex: 1 1 100%;
+        }
+      }
+    `,
+  ],
 })
 export class ShopPricingComponent implements OnInit {
   rates = signal<PricingRate[]>([]);
@@ -170,6 +211,9 @@ export class ShopPricingComponent implements OnInit {
       sideMode: rate.sideMode,
       pricePerPage: Number(rate.pricePerPage),
     };
+    // The form is at the top of the page; on a phone the tapped rate can be
+    // screens below it, so bring the form into view.
+    document.querySelector('.app-shell-content')?.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   cancelEdit(): void {
