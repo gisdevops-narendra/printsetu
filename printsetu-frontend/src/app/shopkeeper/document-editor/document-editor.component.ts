@@ -143,22 +143,22 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
                 (mouseup)="onCropEnd()"
                 (mouseleave)="onCropEnd()"
               >
-                <div class="preview__zoomed" [style.transform]="'scale(' + zoom() + ')'">
+                <div #previewZoomed class="preview__zoomed" [style.transform]="'scale(' + zoom() + ')'">
                   @if (isPdf()) {
                     <canvas #pdfCanvas></canvas>
                   } @else if (previewUrl()) {
                     <img [src]="previewUrl()" (load)="onImageLoad($event)" />
                   }
+                  @if (cropDraft()) {
+                    <div
+                      class="crop-rect"
+                      [style.left.%]="cropDraft()!.x * 100"
+                      [style.top.%]="cropDraft()!.y * 100"
+                      [style.width.%]="cropDraft()!.width * 100"
+                      [style.height.%]="cropDraft()!.height * 100"
+                    ></div>
+                  }
                 </div>
-                @if (cropDraft()) {
-                  <div
-                    class="crop-rect"
-                    [style.left.%]="cropDraft()!.x * 100"
-                    [style.top.%]="cropDraft()!.y * 100"
-                    [style.width.%]="cropDraft()!.width * 100"
-                    [style.height.%]="cropDraft()!.height * 100"
-                  ></div>
-                }
               </div>
             }
           </main>
@@ -380,6 +380,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         cursor: crosshair;
       }
       .preview__zoomed {
+        position: relative;
         transform-origin: center center;
         max-width: 100%;
         max-height: 100%;
@@ -448,6 +449,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
 })
 export class DocumentEditorComponent implements OnInit {
   @ViewChild('previewContainer') previewContainer?: ElementRef<HTMLDivElement>;
+  @ViewChild('previewZoomed') previewZoomed?: ElementRef<HTMLDivElement>;
   @ViewChild('pdfCanvas') pdfCanvas?: ElementRef<HTMLCanvasElement>;
 
   job = signal<PrintJobRow | null>(null);
@@ -667,16 +669,23 @@ export class DocumentEditorComponent implements OnInit {
     this.cropDraft.set(null);
   }
 
+  // Crop fractions must be measured against the rendered image/canvas
+  // itself (#previewZoomed), not the outer #previewContainer frame — the
+  // frame centers and can be larger than the image (letterboxing), so
+  // fractions taken from it don't line up with what the backend crops
+  // out of the actual image pixels.
   onCropStart(event: MouseEvent): void {
-    if (!this.cropMode() || this.finalPreview()) return;
-    const rect = this.previewContainer!.nativeElement.getBoundingClientRect();
-    this.cropStart = { x: (event.clientX - rect.left) / rect.width, y: (event.clientY - rect.top) / rect.height };
+    if (!this.cropMode() || this.finalPreview() || !this.previewZoomed) return;
+    const rect = this.previewZoomed.nativeElement.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    const y = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+    this.cropStart = { x, y };
     this.cropDraft.set({ x: this.cropStart.x, y: this.cropStart.y, width: 0, height: 0 });
   }
 
   onCropMove(event: MouseEvent): void {
-    if (!this.cropStart || !this.previewContainer) return;
-    const rect = this.previewContainer.nativeElement.getBoundingClientRect();
+    if (!this.cropStart || !this.previewZoomed) return;
+    const rect = this.previewZoomed.nativeElement.getBoundingClientRect();
     const x = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
     const y = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
     const start = this.cropStart;

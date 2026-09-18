@@ -167,15 +167,55 @@ export class PrintEditService {
       }
       if (dto.crop) {
         const { width, height } = page.getSize();
-        const cropWidth = dto.crop.width * width;
-        const cropHeight = dto.crop.height * height;
-        const cropX = dto.crop.x * width;
-        // PDF coordinates are bottom-up; crop.y is measured from the top like on-screen rects.
-        const cropY = height - dto.crop.y * height - cropHeight;
+        const { x, y, width: w, height: h } = this.rotateCropToPageSpace(dto.crop, dto.rotation ?? 0);
+        const cropWidth = w * width;
+        const cropHeight = h * height;
+        const cropX = x * width;
+        // PDF coordinates are bottom-up; the (rotation-adjusted) rect is
+        // still measured from the top like on-screen rects.
+        const cropY = height - y * height - cropHeight;
         page.setCropBox(cropX, cropY, cropWidth, cropHeight);
       }
     }
     const bytes = await pdfDoc.save();
     return Buffer.from(bytes);
+  }
+
+  /**
+   * The crop rect (fractions, top-left origin, y-down) is drawn on the
+   * PREVIEW, which pdf.js renders already rotated by `rotation`. But
+   * setCropBox always operates in the page's own un-rotated coordinate
+   * space (page.setRotation is just a display flag) — so a rect drawn on a
+   * 90°/270°-rotated preview has to be mapped back into that space, or the
+   * crop ends up in the wrong place/aspect entirely. No-op for 0/180 in
+   * position but 180 still mirrors both axes.
+   */
+  private rotateCropToPageSpace(
+    crop: { x: number; y: number; width: number; height: number },
+    rotation: number,
+  ): { x: number; y: number; width: number; height: number } {
+    const x2 = crop.x + crop.width;
+    const y2 = crop.y + crop.height;
+
+    // Map both opposite corners from displayed (rotated) space back to
+    // base page space, then take the axis-aligned bounding box.
+    const toBase = (dx: number, dy: number): [number, number] => {
+      switch (((rotation % 360) + 360) % 360) {
+        case 90:
+          return [dy, 1 - dx];
+        case 180:
+          return [1 - dx, 1 - dy];
+        case 270:
+          return [1 - dy, dx];
+        default:
+          return [dx, dy];
+      }
+    };
+
+    const [bx1, by1] = toBase(crop.x, crop.y);
+    const [bx2, by2] = toBase(x2, y2);
+    const x = Math.min(bx1, bx2);
+    const y = Math.min(by1, by2);
+    return { x, y, width: Math.abs(bx2 - bx1), height: Math.abs(by2 - by1) };
   }
 }
