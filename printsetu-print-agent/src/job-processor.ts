@@ -3,7 +3,7 @@ import * as path from 'path';
 import { v4 as uuid } from 'uuid';
 import { AgentConfig } from './config';
 import { BackendHttpClient, AgentJobPayload } from './http-client';
-import { PrinterAdapter } from './printing/printer-adapter.interface';
+import { PrinterAdapter, PrintOptions } from './printing/printer-adapter.interface';
 import { logger } from './logger';
 
 /**
@@ -12,6 +12,13 @@ import { logger } from './logger';
  * §13.1: "the agent is not trusted to change print-eligibility or order
  * status") — this class only ever *reports* what happened.
  */
+const PRINT_RETRY_ATTEMPTS = 2;
+const PRINT_RETRY_DELAY_MS = 2000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export class JobProcessor {
   private readonly inProgress = new Set<string>();
 
@@ -46,7 +53,7 @@ export class JobProcessor {
         const filePath = path.join(this.config.downloadDir, `${job.jobId}-${doc.documentId}${extension}`);
         try {
           await this.http.downloadToFile(doc.documentSignedUrl, filePath);
-          await this.printer.print(filePath, this.config.printerName, doc.options);
+          await this.printWithRetry(filePath, doc.options);
         } finally {
           fs.promises.unlink(filePath).catch(() => undefined);
         }
@@ -65,5 +72,30 @@ export class JobProcessor {
     } finally {
       this.inProgress.delete(job.jobId);
     }
+  }
+
+  // USB/IPP-class-driver printers (e.g. small HP LaserJets) can transiently
+  // report "printer doesn't exist" to the spooler API under rapid/back-to-
+  // back submissions even though the OS printer list is correct — a driver
+  // hiccup, not a real failure. Retry once with a short delay before
+  // surfacing PRINT_FAILED, rather than relying on the shopkeeper to notice
+  // and re-click Print.
+  private async printWithRetry(filePath: string, options: PrintOptions): Promise<void> {
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= PRINT_RETRY_ATTEMPTS; attempt++) {
+      try {
+        await this.printer.print(filePath, this.config.printerName, options);
+        return;
+      } catch (error) {
+        lastError = error;
+        if (attempt < PRINT_RETRY_ATTEMPTS) {
+          logger.warn(
+            `Print attempt ${attempt} failed, retrying in ${PRINT_RETRY_DELAY_MS}ms: ${(error as Error).message}`,
+          );
+          await sleep(PRINT_RETRY_DELAY_MS);
+        }
+      }
+    }
+    throw lastError;
   }
 }
