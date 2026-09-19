@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { KeycloakAdminService } from '../auth/keycloak-admin.service';
-import { AppNotFoundException, InvalidPrintOptionException } from '../common/exceptions/app.exceptions';
+import { AppNotFoundException } from '../common/exceptions/app.exceptions';
 import { CreateUserDto } from './dto/admin-user.dto';
 import { RoleName, UserStatus } from '@prisma/client';
 
@@ -21,26 +21,27 @@ export class AdminUsersService {
     });
   }
 
-  /** Creates both the Keycloak login and the local role/shop-scoped record. */
+  /**
+   * Creates both the Keycloak login and the local role/shop-scoped record.
+   * Always a SHOPKEEPER: the platform has exactly one ADMIN account, seeded
+   * directly in Keycloak, so there is no path here to mint another one.
+   */
   async create(dto: CreateUserDto) {
-    if (dto.role === RoleName.SHOPKEEPER && !dto.shopId) {
-      throw new InvalidPrintOptionException('SHOPKEEPER users must be assigned to a shop.');
-    }
-    const role = await this.prisma.role.findUnique({ where: { name: dto.role } });
-    if (!role) throw new AppNotFoundException(`Role ${dto.role} is not seeded.`);
+    const role = await this.prisma.role.findUnique({ where: { name: RoleName.SHOPKEEPER } });
+    if (!role) throw new AppNotFoundException('Role SHOPKEEPER is not seeded.');
 
     const temporaryPassword = randomBytes(9).toString('base64url');
     const keycloakUserId = await this.keycloakAdmin.provisionUser({
       email: dto.email,
       firstName: dto.name.split(' ')[0] || dto.name,
       lastName: dto.name.split(' ').slice(1).join(' ') || '-',
-      role: dto.role,
+      role: RoleName.SHOPKEEPER,
       temporaryPassword,
     });
 
     const user = await this.prisma.user.create({
       data: {
-        shopId: dto.shopId ?? null,
+        shopId: dto.shopId,
         roleId: role.id,
         name: dto.name,
         email: dto.email,

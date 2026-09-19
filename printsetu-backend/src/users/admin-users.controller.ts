@@ -35,7 +35,7 @@ export class AdminUsersController {
       entityId: user.id,
       ip: req.ip,
       userAgent: req.headers['user-agent'],
-      metadata: { role: dto.role, email: dto.email },
+      metadata: { role: 'SHOPKEEPER', email: dto.email },
     });
     return user;
   }

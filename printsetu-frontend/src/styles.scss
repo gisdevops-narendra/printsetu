@@ -18,6 +18,17 @@ app-root {
   height: 100%;
 }
 
+/* Set only while an admin/shop shell layout is mounted (see
+   AdminLayoutComponent / ShopkeeperLayoutComponent). The shell pins itself
+   to the viewport and scrolls its own content area internally; this stops
+   the *document* from ever growing past the viewport on a tall page, which
+   is what let scrolling drag the fixed sidebar along with it. Routes that
+   legitimately need page-level scroll (login, the customer order flow)
+   never set this class. */
+body.shell-locked {
+  overflow: hidden;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -747,4 +758,106 @@ app-root {
   font-size: 0.8125rem;
   line-height: 1.5;
   color: #64748b;
+}
+
+/* ---------- Toast notifications ----------
+   The stock PrimeNG toast is a flat coloured banner that clashes with the
+   rest of the app's white-card language. Skinned here to match: a white
+   card, soft shadow, a severity-tinted icon badge and a coloured edge,
+   instead of a solid block of colour. */
+.p-toast-message {
+  margin-bottom: 0.75rem;
+  border: 1px solid #e6eaf2;
+  border-left: 3px solid #94a3b8;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+}
+
+.p-toast-message-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+}
+
+.p-toast-message-icon {
+  flex: none;
+  box-sizing: border-box;
+  width: 2rem;
+  height: 2rem;
+  padding: 0.4375rem;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.p-toast-message-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+  margin: 0;
+}
+
+.p-toast-summary {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #0f172a;
+}
+
+.p-toast-detail {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.p-toast-close-button {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: -0.25rem -0.25rem 0 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.p-toast-close-button:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.p-toast-close-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.p-toast-message-success { border-left-color: #22c55e; }
+.p-toast-message-info    { border-left-color: #6366f1; }
+.p-toast-message-warn    { border-left-color: #f59e0b; }
+.p-toast-message-error   { border-left-color: #ef4444; }
+
+.p-toast-message-success .p-toast-message-icon { background: #dcfce7; color: #15803d; }
+.p-toast-message-info .p-toast-message-icon    { background: #e0e7ff; color: #4338ca; }
+.p-toast-message-warn .p-toast-message-icon    { background: #fef3c7; color: #92400e; }
+.p-toast-message-error .p-toast-message-icon   { background: #fee2e2; color: #b91c1c; }
+
+@media (max-width: 640px) {
+  .p-toast-message-content {
+    padding: 0.75rem 0.875rem;
+  }
+  .p-toast-message-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
 }

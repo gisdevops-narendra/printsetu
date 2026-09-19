@@ -32,6 +32,21 @@ const LOCKED_NAV: ShellNavItem[] = [BILLING];
       <router-outlet />
     </app-shell>
   `,
+  styles: [
+    `
+      /* This is the routed component <app-shell> sits inside. Without an
+         explicit height here, it has no defined height of its own, so a
+         page that's taller than the viewport (e.g. Billing) can push this
+         element — and the whole document — past 100vh, dragging the
+         sidebar along when the page scrolls instead of scrolling only
+         <app-shell>'s own internal content area. */
+      :host {
+        display: block;
+        height: 100%;
+        overflow: hidden;
+      }
+    `,
+  ],
 })
 export class ShopkeeperLayoutComponent implements OnInit, OnDestroy {
   constructor(
@@ -57,12 +72,21 @@ export class ShopkeeperLayoutComponent implements OnInit, OnDestroy {
     return this.status.suspended() ? LOCKED_NAV : FULL_NAV;
   }
 
+  /**
+   * Belt-and-suspenders for the shell's own height:100vh/overflow:hidden:
+   * locks the *document* to the viewport too, only while this shell-based
+   * layout is mounted, so a tall page (e.g. Billing) can never grow the
+   * page itself and drag the sidebar into the scroll. Off again on
+   * navigation away, e.g. to /login, which legitimately needs page scroll.
+   */
   ngOnInit(): void {
     this.status.start();
+    document.body.classList.add('shell-locked');
   }
 
   ngOnDestroy(): void {
     this.alerts.stop();
     this.status.stop();
+    document.body.classList.remove('shell-locked');
   }
 }

@@ -25,66 +25,70 @@ interface Form {
       <div class="pf-skeleton" style="height: 24rem"></div>
     } @else {
       <div class="grid">
-        <section class="pf-card">
-          <header class="pf-card__head"><h3 class="pf-eyebrow">When a payment is missed</h3></header>
+        <div class="col">
+          <section class="pf-card">
+            <header class="pf-card__head"><h3 class="pf-eyebrow">When a payment is missed</h3></header>
 
-          <ol class="timeline">
-            <li>
-              <span class="tl tl--warn">1</span>
-              <div class="tl__body">
-                <strong>Grace period</strong>
-                <p>The shop keeps <b>full access</b> and sees a warning banner.</p>
-                <label class="num"><input type="number" min="0" max="60" [(ngModel)]="form.graceDays" name="grace" /> days</label>
-              </div>
-            </li>
-            <li>
-              <span class="tl tl--bad">2</span>
-              <div class="tl__body">
-                <strong>Past due</strong>
-                <p>Read-only: old orders can be viewed but no new print requests are accepted. Customers see the shop as unavailable.</p>
-                <label class="num">Suspend after <input type="number" min="0" max="90" [(ngModel)]="form.suspendAfterPastDueDays" name="susp" /> days</label>
-              </div>
-            </li>
-            <li>
-              <span class="tl tl--dark">3</span>
-              <div class="tl__body">
-                <strong>Suspended</strong>
-                <p>The shop portal is locked except Billing. Customers see &ldquo;This shop is temporarily unavailable&rdquo;.</p>
-              </div>
-            </li>
-          </ol>
-        </section>
+            <ol class="timeline">
+              <li>
+                <span class="tl tl--warn">1</span>
+                <div class="tl__body">
+                  <strong>Grace period</strong>
+                  <p>The shop keeps <b>full access</b> and sees a warning banner.</p>
+                  <label class="num"><input type="number" min="0" max="60" [(ngModel)]="form.graceDays" name="grace" /> days</label>
+                </div>
+              </li>
+              <li>
+                <span class="tl tl--bad">2</span>
+                <div class="tl__body">
+                  <strong>Past due</strong>
+                  <p>Read-only: old orders can be viewed but no new print requests are accepted. Customers see the shop as unavailable.</p>
+                  <label class="num">Suspend after <input type="number" min="0" max="90" [(ngModel)]="form.suspendAfterPastDueDays" name="susp" /> days</label>
+                </div>
+              </li>
+              <li>
+                <span class="tl tl--dark">3</span>
+                <div class="tl__body">
+                  <strong>Suspended</strong>
+                  <p>The shop portal is locked except Billing. Customers see &ldquo;This shop is temporarily unavailable&rdquo;.</p>
+                </div>
+              </li>
+            </ol>
+          </section>
 
-        <section class="pf-card">
-          <header class="pf-card__head"><h3 class="pf-eyebrow">Automatic payment retries</h3></header>
-          <p class="lead">Only for shops paying through a connected payment gateway. Shops that pay offline are followed up with reminders instead.</p>
-          <div class="row">
-            <label class="num"><input type="number" min="0" max="10" [(ngModel)]="form.retryAttempts" name="retries" /> retries</label>
-            <label class="num">every <input type="number" min="1" max="14" [(ngModel)]="form.retryIntervalDays" name="interval" /> days</label>
-          </div>
-          <p class="fine"><i class="pi pi-info-circle"></i> No payment gateway is connected yet, so these rules take effect once one is added.</p>
-        </section>
+          <section class="pf-card">
+            <header class="pf-card__head"><h3 class="pf-eyebrow">Reminders</h3></header>
+            <p class="lead">Automatic messages are sent: before renewal, when a payment fails, halfway through the grace period, and a final warning before suspension.</p>
+            <label class="num">Renewal reminder <input type="number" min="0" max="30" [(ngModel)]="form.renewalReminderDays" name="remind" /> days before <span class="fine inline">(0 turns it off)</span></label>
+          </section>
+        </div>
 
-        <section class="pf-card">
-          <header class="pf-card__head"><h3 class="pf-eyebrow">Reminders</h3></header>
-          <p class="lead">Automatic messages are sent: before renewal, when a payment fails, halfway through the grace period, and a final warning before suspension.</p>
-          <label class="num">Renewal reminder <input type="number" min="0" max="30" [(ngModel)]="form.renewalReminderDays" name="remind" /> days before <span class="fine inline">(0 turns it off)</span></label>
-        </section>
+        <div class="col">
+          <section class="pf-card">
+            <header class="pf-card__head"><h3 class="pf-eyebrow">Automatic payment retries</h3></header>
+            <p class="lead">Only for shops paying through a connected payment gateway. Shops that pay offline are followed up with reminders instead.</p>
+            <div class="row">
+              <label class="num"><input type="number" min="0" max="10" [(ngModel)]="form.retryAttempts" name="retries" /> retries</label>
+              <label class="num">every <input type="number" min="1" max="14" [(ngModel)]="form.retryIntervalDays" name="interval" /> days</label>
+            </div>
+            <p class="fine"><i class="pi pi-info-circle"></i> No payment gateway is connected yet, so these rules take effect once one is added.</p>
+          </section>
 
-        <section class="pf-card">
-          <header class="pf-card__head"><h3 class="pf-eyebrow">Default notification channels</h3></header>
-          <p class="lead">Used for every shop unless that shop picks its own on its billing page.</p>
-          <div class="channels">
-            @for (c of channels; track c.value) {
-              <button type="button" class="channel" [class.is-on]="has(c.value)" [disabled]="c.locked" (click)="toggle(c.value)" [attr.aria-pressed]="has(c.value)">
-                <i class="pi" [ngClass]="c.icon"></i>
-                <span>{{ c.label }}</span>
-                @if (c.locked) { <em>always on</em> }
-              </button>
-            }
-          </div>
-          <p class="fine"><i class="pi pi-info-circle"></i> In-app messages are delivered now. Email, SMS and WhatsApp messages are queued and recorded, but no provider is connected yet, so nothing is sent on those channels.</p>
-        </section>
+          <section class="pf-card">
+            <header class="pf-card__head"><h3 class="pf-eyebrow">Default notification channels</h3></header>
+            <p class="lead">Used for every shop unless that shop picks its own on its billing page.</p>
+            <div class="channels">
+              @for (c of channels; track c.value) {
+                <button type="button" class="channel" [class.is-on]="has(c.value)" [disabled]="c.locked" (click)="toggle(c.value)" [attr.aria-pressed]="has(c.value)">
+                  <i class="pi" [ngClass]="c.icon"></i>
+                  <span>{{ c.label }}</span>
+                  @if (c.locked) { <em>always on</em> }
+                </button>
+              }
+            </div>
+            <p class="fine"><i class="pi pi-info-circle"></i> In-app messages are delivered now. Email, SMS and WhatsApp messages are queued and recorded, but no provider is connected yet, so nothing is sent on those channels.</p>
+          </section>
+        </div>
       </div>
 
       <div class="foot">
@@ -115,6 +119,15 @@ interface Form {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: clamp(0.75rem, 1.6vw, 1.25rem);
         align-items: start;
+      }
+      /* Each column stacks its own cards independently (no shared row
+         height with the other column), so a short card never leaves a
+         block of empty space under it just because its neighbour is tall. */
+      .col {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(0.75rem, 1.6vw, 1.25rem);
+        min-width: 0;
       }
       @media (max-width: 900px) {
         .grid {

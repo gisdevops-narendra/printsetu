@@ -53,14 +53,14 @@
   "users": [
     {
       "id": "11111111-1111-1111-1111-111111111111",
-      "username": "admin.demo",
+      "username": "admin",
       "email": "admin.demo@printsetu.local",
       "enabled": true,
       "emailVerified": true,
       "firstName": "PrintSetu",
       "lastName": "Admin",
       "credentials": [
-        { "type": "password", "value": "Admin@12345", "temporary": false }
+        { "type": "password", "value": "admin", "temporary": false }
       ],
       "realmRoles": ["ADMIN", "offline_access", "uma_authorization"]
     },

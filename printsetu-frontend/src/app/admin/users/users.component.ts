@@ -11,7 +11,7 @@ import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { AdminService } from '../../core/services/admin.service';
-import { RoleName, Shop, UserRow } from '../../core/models/models';
+import { Shop, UserRow } from '../../core/models/models';
 import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 
 @Component({
@@ -34,14 +34,14 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     <div class="page-header">
       <div>
         <h1 class="page-title">Users</h1>
-        <p class="page-subtitle m-0">Admin and shopkeeper accounts. Credentials are managed by Keycloak.</p>
+        <p class="page-subtitle m-0">Shop user accounts. There is one admin for the whole platform; every user created here is a shop user. Credentials are managed by Keycloak.</p>
       </div>
       <div class="page-actions">
         <p-iconfield>
           <p-inputicon styleClass="pi pi-search" />
           <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
         </p-iconfield>
-        <p-button label="New User" icon="pi pi-plus" (onClick)="openCreate()" />
+        <p-button label="New Shop User" icon="pi pi-plus" (onClick)="openCreate()" />
       </div>
     </div>
 
@@ -107,7 +107,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
       </ng-template>
     </p-table>
 
-    <p-dialog header="New User" [(visible)]="createVisible" [modal]="true" [style]="{ width: '460px' }">
+    <p-dialog header="New Shop User" [(visible)]="createVisible" [modal]="true" [style]="{ width: '460px' }">
       <div class="flex flex-column gap-3">
         <div class="flex flex-column gap-2">
           <label>Full name</label>
@@ -122,15 +122,9 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
           <input pInputText [(ngModel)]="form.mobile" />
         </div>
         <div class="flex flex-column gap-2">
-          <label>Role</label>
-          <p-select [options]="roles" [(ngModel)]="form.role" />
+          <label>Shop</label>
+          <p-select [options]="shops()" optionLabel="name" optionValue="id" [(ngModel)]="form.shopId" placeholder="Select a shop" />
         </div>
-        @if (form.role === 'SHOPKEEPER') {
-          <div class="flex flex-column gap-2">
-            <label>Shop</label>
-            <p-select [options]="shops()" optionLabel="name" optionValue="id" [(ngModel)]="form.shopId" placeholder="Select a shop" />
-          </div>
-        }
       </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="createVisible = false" />
@@ -145,13 +139,12 @@ export class UsersComponent implements OnInit {
   loading = signal(true);
   saving = signal(false);
   createVisible = false;
-  roles: RoleName[] = ['ADMIN', 'SHOPKEEPER'];
 
-  form: { name: string; email: string; mobile: string; role: RoleName; shopId?: string } = {
+  form: { name: string; email: string; mobile: string; shopId: string } = {
     name: '',
     email: '',
     mobile: '',
-    role: 'SHOPKEEPER',
+    shopId: '',
   };
 
   constructor(
@@ -174,11 +167,15 @@ export class UsersComponent implements OnInit {
   }
 
   openCreate(): void {
-    this.form = { name: '', email: '', mobile: '', role: 'SHOPKEEPER' };
+    this.form = { name: '', email: '', mobile: '', shopId: '' };
     this.createVisible = true;
   }
 
   submitCreate(): void {
+    if (!this.form.name.trim() || !this.form.email.trim() || !this.form.shopId) {
+      this.messageService.add({ severity: 'warn', summary: 'Name, email and shop are required' });
+      return;
+    }
     this.saving.set(true);
     this.adminService.createUser(this.form).subscribe({
       next: (user) => {

@@ -55,69 +55,73 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
       </div>
 
       <div class="sections">
-        <section class="pf-card">
-          <header class="pf-card__head"><div><h3 class="pf-eyebrow">Revenue collected</h3><p class="sub">Last 6 months, net of refunds</p></div></header>
-          <app-bar-chart [data]="series()" [format]="fmt" ariaLabel="Revenue collected in the last six months" />
-        </section>
+        <div class="col">
+          <section class="pf-card">
+            <header class="pf-card__head"><div><h3 class="pf-eyebrow">Revenue collected</h3><p class="sub">Last 6 months, net of refunds</p></div></header>
+            <app-bar-chart [data]="series()" [format]="fmt" ariaLabel="Revenue collected in the last six months" />
+          </section>
 
-        <section class="pf-card">
-          <header class="pf-card__head"><h3 class="pf-eyebrow">Failed payments</h3></header>
-          <div class="fail">
-            <div><strong>{{ d.failedPayments.last30Days }}</strong><span>failed in 30 days</span></div>
-            <div><strong>{{ d.failedPayments.shopsAffected }}</strong><span>shops affected</span></div>
-            <div>
-              <strong [class.ok]="(d.failedPayments.recoveryRate ?? 0) >= 50">{{ d.failedPayments.recoveryRate === null ? '—' : d.failedPayments.recoveryRate + '%' }}</strong>
-              <span>recovery rate</span>
-            </div>
-          </div>
-          <p class="note">{{ d.failedPayments.recovered }} of {{ d.failedPayments.shopsAffected }} shops paid or were reactivated afterwards. Right now {{ d.failedPayments.currentlyPending }} in grace and {{ d.failedPayments.currentlyPastDue }} past due.</p>
-        </section>
-
-        <section class="pf-card">
-          <header class="pf-card__head"><h3 class="pf-eyebrow">Renewals in the next 7 days</h3></header>
-          @if (d.upcomingRenewals.length === 0) {
-            <p class="empty">Nothing renews this week.</p>
-          } @else {
-            <ul class="list">
-              @for (r of d.upcomingRenewals; track r.shopId) {
-                <li>
-                  <div class="list__main">
-                    <strong>{{ r.shopName }}</strong>
-                    <span>{{ r.plan }} &middot; {{ r.cycle === 'YEARLY' ? 'yearly' : 'monthly' }}@if (r.isTrial) { &middot; trial ends } @else if (!r.autoRenew) { &middot; won't auto-renew }</span>
-                  </div>
-                  <div class="list__side"><strong>{{ money(r.amount) }}</strong><span>{{ r.date | date: 'd MMM' }}</span></div>
-                </li>
-              }
-            </ul>
-          }
-        </section>
-
-        <section class="pf-card">
-          <header class="pf-card__head"><h3 class="pf-eyebrow">Shops by status</h3></header>
-          <ul class="list list--tight">
-            @for (s of statuses(); track s.key) {
-              <li>
-                <div class="list__main"><span class="swatch" [ngClass]="'swatch--' + s.tone"></span><strong>{{ s.label }}</strong></div>
-                <div class="list__side"><strong>{{ s.count }}</strong></div>
-              </li>
+          <section class="pf-card">
+            <header class="pf-card__head"><h3 class="pf-eyebrow">Renewals in the next 7 days</h3></header>
+            @if (d.upcomingRenewals.length === 0) {
+              <p class="empty">Nothing renews this week.</p>
+            } @else {
+              <ul class="list">
+                @for (r of d.upcomingRenewals; track r.shopId) {
+                  <li>
+                    <div class="list__main">
+                      <strong>{{ r.shopName }}</strong>
+                      <span>{{ r.plan }} &middot; {{ r.cycle === 'YEARLY' ? 'yearly' : 'monthly' }}@if (r.isTrial) { &middot; trial ends } @else if (!r.autoRenew) { &middot; won't auto-renew }</span>
+                    </div>
+                    <div class="list__side"><strong>{{ money(r.amount) }}</strong><span>{{ r.date | date: 'd MMM' }}</span></div>
+                  </li>
+                }
+              </ul>
             }
-            <li>
-              <div class="list__main"><span class="swatch swatch--muted"></span><strong>No plan yet</strong></div>
-              <div class="list__side"><strong>{{ noPlan() }}</strong></div>
-            </li>
-          </ul>
-          @if (d.perPlan.length) {
-            <h3 class="pf-eyebrow sep">Revenue by plan</h3>
+          </section>
+        </div>
+
+        <div class="col">
+          <section class="pf-card">
+            <header class="pf-card__head"><h3 class="pf-eyebrow">Failed payments</h3></header>
+            <div class="fail">
+              <div><strong>{{ d.failedPayments.last30Days }}</strong><span>failed in 30 days</span></div>
+              <div><strong>{{ d.failedPayments.shopsAffected }}</strong><span>shops affected</span></div>
+              <div>
+                <strong [class.ok]="(d.failedPayments.recoveryRate ?? 0) >= 50">{{ d.failedPayments.recoveryRate === null ? '—' : d.failedPayments.recoveryRate + '%' }}</strong>
+                <span>recovery rate</span>
+              </div>
+            </div>
+            <p class="note">{{ d.failedPayments.recovered }} of {{ d.failedPayments.shopsAffected }} shops paid or were reactivated afterwards. Right now {{ d.failedPayments.currentlyPending }} in grace and {{ d.failedPayments.currentlyPastDue }} past due.</p>
+          </section>
+
+          <section class="pf-card">
+            <header class="pf-card__head"><h3 class="pf-eyebrow">Shops by status</h3></header>
             <ul class="list list--tight">
-              @for (p of d.perPlan; track p.planId) {
+              @for (s of statuses(); track s.key) {
                 <li>
-                  <div class="list__main"><strong>{{ p.name }}</strong><span>{{ p.shops }} {{ p.shops === 1 ? 'shop' : 'shops' }}</span></div>
-                  <div class="list__side"><strong>{{ money(p.mrr) }}</strong><span>per month</span></div>
+                  <div class="list__main"><span class="swatch" [ngClass]="'swatch--' + s.tone"></span><strong>{{ s.label }}</strong></div>
+                  <div class="list__side"><strong>{{ s.count }}</strong></div>
                 </li>
               }
+              <li>
+                <div class="list__main"><span class="swatch swatch--muted"></span><strong>No plan yet</strong></div>
+                <div class="list__side"><strong>{{ noPlan() }}</strong></div>
+              </li>
             </ul>
-          }
-        </section>
+            @if (d.perPlan.length) {
+              <h3 class="pf-eyebrow sep">Revenue by plan</h3>
+              <ul class="list list--tight">
+                @for (p of d.perPlan; track p.planId) {
+                  <li>
+                    <div class="list__main"><strong>{{ p.name }}</strong><span>{{ p.shops }} {{ p.shops === 1 ? 'shop' : 'shops' }}</span></div>
+                    <div class="list__side"><strong>{{ money(p.mrr) }}</strong><span>per month</span></div>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        </div>
       </div>
       <p class="foot">MRR counts shops that are paying (Active and Payment pending); trials are not counted. Yearly plans count as one twelfth of the yearly price.</p>
     }
@@ -140,7 +144,22 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
       }
       @media (max-width: 520px) {
         .kpis {
+          grid-template-columns: minmax(0, 1fr);
           gap: 0.625rem;
+        }
+        .fail {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 0.625rem;
+        }
+        .fail div {
+          flex-direction: row;
+          align-items: baseline;
+          justify-content: space-between;
+          padding: 0.375rem 0;
+          border-bottom: 1px solid #eef1f7;
+        }
+        .fail div:last-child {
+          border-bottom: none;
         }
       }
       .kpi {
@@ -224,6 +243,15 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
         gap: clamp(0.75rem, 1.6vw, 1.25rem);
         margin-top: clamp(0.75rem, 1.6vw, 1.25rem);
         align-items: start;
+      }
+      /* Each column stacks its own cards independently (no shared row
+         height with the other column), so a short card never leaves a
+         block of empty space under it just because its neighbour is tall. */
+      .col {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(0.75rem, 1.6vw, 1.25rem);
+        min-width: 0;
       }
       @media (max-width: 900px) {
         .sections {

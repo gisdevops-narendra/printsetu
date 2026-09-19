@@ -142,6 +142,11 @@ import { money } from '../../shared/billing/billing.util';
         line-height: 1.5;
         color: #64748b;
       }
+      @media (max-width: 420px) {
+        .sum {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
     `,
   ],
 })

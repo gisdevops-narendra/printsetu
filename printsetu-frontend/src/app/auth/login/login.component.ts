@@ -1030,11 +1030,18 @@ export class LoginComponent {
 
   readonly secureConnection = typeof location !== 'undefined' && location.protocol === 'https:';
 
-  /** One-tap demo sign-ins; only offered in development builds. */
+  /**
+   * One-tap demo sign-ins; only offered in development builds.
+   * The platform has exactly one admin account. Its dev-only credentials
+   * (admin / admin) are fixed for convenience while building — they must
+   * be replaced with a real, secure password (or a forced first-login
+   * reset) before any non-development deployment. See
+   * keycloak/printsetu-realm.json.
+   */
   readonly demoAccounts: DemoAccount[] = environment.production
     ? []
     : [
-        { label: 'Admin', icon: 'pi-shield', username: 'admin.demo@printsetu.local', password: 'Admin@12345' },
+        { label: 'Admin', icon: 'pi-shield', username: 'admin', password: 'admin' },
         { label: 'Shopkeeper', icon: 'pi-shop', username: 'shopkeeper.demo@printsetu.local', password: 'Shop@12345' },
       ];
 

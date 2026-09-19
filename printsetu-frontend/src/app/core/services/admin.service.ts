@@ -46,13 +46,8 @@ export class AdminService {
   listUsers(shopId?: string) {
     return this.http.get<UserRow[]>(`${BASE}/admin/users`, { params: shopId ? { shopId } : {} });
   }
-  createUser(dto: {
-    name: string;
-    email: string;
-    mobile?: string;
-    role: 'ADMIN' | 'SHOPKEEPER';
-    shopId?: string;
-  }) {
+  /** Always creates a SHOPKEEPER: the platform has exactly one ADMIN account. */
+  createUser(dto: { name: string; email: string; mobile?: string; shopId: string }) {
     return this.http.post<UserRow & { temporaryPassword: string }>(`${BASE}/admin/users`, dto);
   }
   setUserStatus(id: string, status: 'ACTIVE' | 'DISABLED') {
