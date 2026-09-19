@@ -228,12 +228,12 @@ interface Faq {
   styles: [
     `
       :host {
-        --ink: #0f172a;
-        --muted: #64748b;
-        --line: #e6eaf2;
-        --ok: #16a34a;
-        --warn: #d97706;
-        --bad: #dc2626;
+        --ink: var(--tx-0f172a);
+        --muted: var(--tx-64748b);
+        --line: var(--bd-e6eaf2);
+        --ok: var(--tx-16a34a);
+        --warn: var(--tx-d97706);
+        --bad: var(--tx-dc2626);
       }
 
       /* ---------- Header: live indicator ---------- */
@@ -244,7 +244,7 @@ interface Faq {
         padding: 0.25rem 0.25rem 0.25rem 0.875rem;
         border: 1px solid var(--line);
         border-radius: 999px;
-        background: #fff;
+        background: var(--bg-ffffff);
         font-size: 0.75rem;
         color: var(--muted);
         white-space: nowrap;
@@ -258,7 +258,7 @@ interface Faq {
         animation: pulse 2s infinite;
       }
       .live__dot.is-paused {
-        background: #cbd5e1;
+        background: var(--bg-cbd5e1);
         animation: none;
       }
       @keyframes pulse {
@@ -275,11 +275,11 @@ interface Faq {
         border: none;
         border-radius: 50%;
         background: transparent;
-        color: #475569;
+        color: var(--tx-475569);
         cursor: pointer;
       }
       .live__refresh:hover:not(:disabled) {
-        background: #eef1f7;
+        background: var(--bg-eef1f7);
       }
 
       .mobile-note {
@@ -288,8 +288,8 @@ interface Faq {
         margin-bottom: 1rem;
         padding: 1rem;
         border-radius: 14px;
-        background: #eef2ff;
-        color: #3730a3;
+        background: var(--bg-eef2ff);
+        color: var(--tx-3730a3);
       }
       .mobile-note > i {
         margin-top: 0.15rem;
@@ -310,7 +310,7 @@ interface Faq {
         padding: clamp(1rem, 2.4vw, 1.5rem);
         border: 1px solid var(--line);
         border-radius: 18px;
-        background: #fff;
+        background: var(--bg-ffffff);
       }
       .hero__icon {
         flex: 0 0 auto;
@@ -320,8 +320,8 @@ interface Faq {
         width: 3.25rem;
         height: 3.25rem;
         border-radius: 16px;
-        background: #eef2ff;
-        color: var(--p-primary-600);
+        background: var(--bg-eef2ff);
+        color: var(--accent-text-600);
         font-size: 1.5rem;
       }
       .hero__body {
@@ -339,38 +339,38 @@ interface Faq {
         margin: 0.25rem 0 0;
         font-size: 0.9375rem;
         line-height: 1.5;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .hero--none {
-        background: linear-gradient(135deg, #eef2ff, #f5f3ff);
-        border-color: #dfe4fb;
+        background: linear-gradient(135deg, var(--bg-eef2ff), var(--bg-f5f3ff));
+        border-color: var(--bd-dfe4fb);
       }
       .hero--none .hero__icon {
-        background: #fff;
+        background: var(--bg-ffffff);
         box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
       }
       .hero--online {
-        background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
-        border-color: #bbf7d0;
+        background: linear-gradient(135deg, var(--bg-ecfdf5), var(--bg-f0fdf4));
+        border-color: var(--bd-bbf7d0);
       }
       .hero--online .hero__icon {
-        background: #dcfce7;
+        background: var(--bg-dcfce7);
         color: var(--ok);
       }
       .hero--offline {
-        background: linear-gradient(135deg, #fffbeb, #fff7ed);
-        border-color: #fde68a;
+        background: linear-gradient(135deg, var(--bg-fffbeb), var(--bg-fff7ed));
+        border-color: var(--bd-fde68a);
       }
       .hero--offline .hero__icon {
-        background: #fef3c7;
+        background: var(--bg-fef3c7);
         color: var(--warn);
       }
       .hero--error {
-        background: #fef2f2;
-        border-color: #fecaca;
+        background: var(--bg-fef2f2);
+        border-color: var(--bd-fecaca);
       }
       .hero--error .hero__icon {
-        background: #fee2e2;
+        background: var(--bg-fee2e2);
         color: var(--bad);
       }
       @media (max-width: 640px) {
@@ -420,7 +420,7 @@ interface Faq {
       }
       .card {
         padding: clamp(1rem, 2.2vw, 1.5rem);
-        background: #fff;
+        background: var(--bg-ffffff);
         border: 1px solid var(--line);
         border-radius: 18px;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
@@ -495,7 +495,7 @@ interface Faq {
         font: inherit;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
         cursor: pointer;
         text-decoration: none;
       }
@@ -538,17 +538,17 @@ interface Faq {
         width: 2.25rem;
         height: 2.25rem;
         border-radius: 50%;
-        background: #eef1f7;
-        color: #475569;
+        background: var(--bg-eef1f7);
+        color: var(--tx-475569);
         font-size: 0.875rem;
         font-weight: 700;
       }
       .step.is-done .step__badge {
-        background: #dcfce7;
+        background: var(--bg-dcfce7);
         color: var(--ok);
       }
       .step.is-waiting .step__badge {
-        background: #fef3c7;
+        background: var(--bg-fef3c7);
         color: var(--warn);
         animation: breathe 1.6s ease-in-out infinite;
       }
@@ -571,7 +571,7 @@ interface Faq {
         margin: 0 0 0.75rem;
         font-size: 0.875rem;
         line-height: 1.5;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .step--last .step__body p {
         margin-bottom: 0;
@@ -579,7 +579,7 @@ interface Faq {
       .step code {
         padding: 0.1rem 0.4rem;
         border-radius: 6px;
-        background: #eef1f7;
+        background: var(--bg-eef1f7);
         font-size: 0.8125rem;
       }
       .fineprint {
@@ -588,7 +588,7 @@ interface Faq {
         margin: 1.25rem 0 0;
         padding: 0.875rem 1rem;
         border-radius: 12px;
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
         font-size: 0.8125rem;
         line-height: 1.5;
         color: var(--muted);
@@ -618,7 +618,7 @@ interface Faq {
         padding: 0.875rem 1rem;
         border: 1px solid var(--line);
         border-radius: 14px;
-        background: #fbfcfe;
+        background: var(--bg-fbfcfe);
       }
       .printer__icon {
         flex: 0 0 auto;
@@ -628,15 +628,15 @@ interface Faq {
         width: 2.5rem;
         height: 2.5rem;
         border-radius: 12px;
-        background: #eef1f7;
-        color: #64748b;
+        background: var(--bg-eef1f7);
+        color: var(--tx-64748b);
       }
       .printer--online .printer__icon {
-        background: #dcfce7;
+        background: var(--bg-dcfce7);
         color: var(--ok);
       }
       .printer--offline .printer__icon {
-        background: #fee2e2;
+        background: var(--bg-fee2e2);
         color: var(--bad);
       }
       .printer__main {
@@ -686,10 +686,10 @@ interface Faq {
         gap: 0.4rem;
         padding: 0.2rem 0.6rem;
         border-radius: 999px;
-        background: #eef1f7;
+        background: var(--bg-eef1f7);
         font-size: 0.75rem;
         font-weight: 700;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .pill__dot {
         width: 0.4rem;
@@ -698,15 +698,15 @@ interface Faq {
         background: #94a3b8;
       }
       .printer--online .pill {
-        background: #dcfce7;
-        color: #15803d;
+        background: var(--bg-dcfce7);
+        color: var(--tx-15803d);
       }
       .printer--online .pill__dot {
         background: var(--ok);
       }
       .printer--offline .pill {
-        background: #fee2e2;
-        color: #b91c1c;
+        background: var(--bg-fee2e2);
+        color: var(--tx-b91c1c);
       }
       .printer--offline .pill__dot {
         background: var(--bad);
@@ -735,7 +735,7 @@ interface Faq {
         gap: 0.375rem;
         padding: 1.5rem 1rem;
         text-align: center;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .empty__icon {
         display: flex;
@@ -745,8 +745,8 @@ interface Faq {
         height: 3.5rem;
         margin-bottom: 0.25rem;
         border-radius: 50%;
-        background: #f1f5f9;
-        color: #94a3b8;
+        background: var(--bg-f1f5f9);
+        color: var(--tx-94a3b8);
         font-size: 1.5rem;
       }
       .empty p {
@@ -759,7 +759,7 @@ interface Faq {
         height: 4.25rem;
         margin-bottom: 0.75rem;
         border-radius: 14px;
-        background: linear-gradient(90deg, #f1f5f9 25%, #e8edf5 37%, #f1f5f9 63%);
+        background: linear-gradient(90deg, var(--bg-f1f5f9) 25%, var(--bg-e8edf5) 37%, var(--bg-f1f5f9) 63%);
         background-size: 400% 100%;
         animation: shimmer 1.4s ease infinite;
       }
@@ -817,7 +817,7 @@ interface Faq {
         padding-left: 1.25rem;
         font-size: 0.875rem;
         line-height: 1.6;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .faq__a li + li {
         margin-top: 0.25rem;

@@ -81,6 +81,7 @@ export class ShopProfileService {
       },
       settings: {
         autoAcceptOrders: settings?.autoAcceptOrders ?? false,
+        acceptingOrders: settings?.acceptingOrders ?? true,
         defaultPrinterId: settings?.defaultPrinterId ?? null,
         notificationPrefs: this.normalizePrefs(settings?.notificationPrefs),
         // Admin-managed, shown for information only.
@@ -189,6 +190,7 @@ export class ShopProfileService {
   async updateSettings(shopId: string, actorUserId: string, dto: UpdateShopSettingsDto) {
     const data: Prisma.PrintSettingsUpdateInput = {};
     if (dto.autoAcceptOrders !== undefined) data.autoAcceptOrders = dto.autoAcceptOrders;
+    if (dto.acceptingOrders !== undefined) data.acceptingOrders = dto.acceptingOrders;
     if (dto.notificationPrefs) {
       const current = await this.prisma.printSettings.findUnique({ where: { shopId } });
       data.notificationPrefs = { ...this.normalizePrefs(current?.notificationPrefs), ...dto.notificationPrefs } as unknown as Prisma.InputJsonValue;
@@ -205,6 +207,7 @@ export class ShopProfileService {
         create: {
           shopId,
           autoAcceptOrders: dto.autoAcceptOrders ?? false,
+          acceptingOrders: dto.acceptingOrders ?? true,
           defaultPrinterId: dto.defaultPrinterId,
           notificationPrefs: (data.notificationPrefs as Prisma.InputJsonValue | undefined) ?? undefined,
         },

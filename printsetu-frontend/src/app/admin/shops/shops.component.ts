@@ -1,8 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { TableModule } from 'primeng/table';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { Table, TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -45,7 +46,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
       <div class="page-actions">
         <p-iconfield>
           <p-inputicon styleClass="pi pi-search" />
-          <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+          <input pInputText type="text" placeholder="Search" [value]="search()" (input)="onSearch($any($event.target).value)" />
         </p-iconfield>
         <p-button label="New Shop" icon="pi pi-plus" (onClick)="openCreate()" />
       </div>
@@ -234,8 +235,12 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     </p-dialog>
   `,
 })
-export class ShopsComponent implements OnInit {
+export class ShopsComponent implements OnInit, OnDestroy {
+  @ViewChild('dt') table?: Table;
   shops = signal<Shop[]>([]);
+  /** Mirrors the search box; the header's shop search deep-links here via ?q= */
+  search = signal('');
+  private querySub?: Subscription;
   loading = signal(true);
   saving = signal(false);
   createVisible = false;
@@ -254,10 +259,26 @@ export class ShopsComponent implements OnInit {
     private readonly adminService: AdminService,
     private readonly confirmationService: ConfirmationService,
     private readonly messageService: MessageService,
+    private readonly route: ActivatedRoute,
+    private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
     this.load();
+    // The admin header links here with ?q=<text> (shop search) or ?new=1 (Add shop).
+    this.querySub = this.route.queryParamMap.subscribe((params) => {
+      const q = params.get('q');
+      if (q !== null) this.onSearch(q);
+      if (params.get('new')) {
+        this.openCreate();
+        // Drop the flag so a second click on "Add shop" re-opens the dialog.
+        void this.router.navigate([], { queryParams: { new: null }, queryParamsHandling: 'merge', replaceUrl: true });
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.querySub?.unsubscribe();
   }
 
   load(): void {
@@ -265,7 +286,14 @@ export class ShopsComponent implements OnInit {
     this.adminService.listShops().subscribe((res) => {
       this.shops.set(res.items);
       this.loading.set(false);
+      // A search that arrived before the rows did still needs applying.
+      if (this.search()) setTimeout(() => this.table?.filterGlobal(this.search(), 'contains'));
     });
+  }
+
+  onSearch(value: string): void {
+    this.search.set(value);
+    this.table?.filterGlobal(value, 'contains');
   }
 
   openCreate(): void {

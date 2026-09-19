@@ -201,7 +201,7 @@ body.shell-locked {
   justify-content: center;
   font-size: 1.1rem;
   background: var(--p-primary-50);
-  color: var(--p-primary-600);
+  color: var(--accent-text-600);
 }
 
 .stat-tile__icon.success {
@@ -621,7 +621,7 @@ body.shell-locked {
 
 .pf-btn:hover:not(:disabled) {
   border-color: var(--p-primary-300);
-  color: var(--p-primary-700);
+  color: var(--accent-text-700);
 }
 
 .pf-btn:active:not(:disabled) {
@@ -651,7 +651,7 @@ body.shell-locked {
   padding: 0 0.75rem;
   border-color: transparent;
   background: transparent;
-  color: var(--p-primary-600);
+  color: var(--accent-text-600);
 }
 
 .pf-btn--quiet:hover:not(:disabled) {
@@ -859,5 +859,248 @@ body.shell-locked {
   .p-toast-message-icon {
     width: 1.75rem;
     height: 1.75rem;
+  }
+}
+
+/* ---------- Page header (admin + shop) ----------
+   Tokens shared by the header, its dropdowns and status chips. Redefined under
+   html.app-dark, which ThemeService toggles and PrimeNG also keys off. */
+:root {
+  --hdr-bg: linear-gradient(180deg, #ffffff 0%, #fafbff 100%);
+  --hdr-bg-solid: #ffffff;
+  --hdr-surface: #ffffff;
+  --hdr-strip-bg: #f6f8fc;
+  --hdr-border: #e2e8f0;
+  --hdr-text: #0f172a;
+  --hdr-muted: #64748b;
+  --hdr-hover: #f1f5f9;
+  --hdr-field: #eef1f7;
+  --hdr-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 24px -20px rgba(15, 23, 42, 0.35);
+  --hdr-panel-shadow: 0 20px 44px -14px rgba(15, 23, 42, 0.28), 0 2px 6px rgba(15, 23, 42, 0.06);
+
+  --tone-ok-bg: #dcfce7;
+  --tone-ok-fg: #15803d;
+  --tone-info-bg: #e0e7ff;
+  --tone-info-fg: #4338ca;
+  --tone-warn-bg: #fef3c7;
+  --tone-warn-fg: #92400e;
+  --tone-bad-bg: #fee2e2;
+  --tone-bad-fg: #b91c1c;
+  --tone-muted-bg: #f1f5f9;
+  --tone-muted-fg: #475569;
+
+  /* Accent-coloured text (links, active tabs). Same as the primary shade in light mode. */
+  --accent-text-400: var(--p-primary-400);
+  --accent-text-500: var(--p-primary-500);
+  --accent-text-600: var(--p-primary-600);
+  --accent-text-700: var(--p-primary-700);
+  --accent-text-800: var(--p-primary-800);
+  --dot-grid: #cfd6e2;
+}
+
+html.app-dark {
+  color-scheme: dark;
+  /* PrimeNG's primary 50-200 are pale tints; the app uses them as backgrounds, so they become translucent in dark mode. */
+  --p-primary-50: rgba(99, 102, 241, 0.14);
+  --p-primary-100: rgba(99, 102, 241, 0.22);
+  --p-primary-200: rgba(99, 102, 241, 0.32);
+  --hdr-bg: linear-gradient(180deg, #111a2e 0%, #0e1628 100%);
+  --hdr-bg-solid: #111a2e;
+  --hdr-surface: #16213a;
+  --hdr-strip-bg: #0d1526;
+  --hdr-border: #24314d;
+  --hdr-text: #f1f5f9;
+  --hdr-muted: #94a3b8;
+  --hdr-hover: #1c2a47;
+  --hdr-field: #1a2742;
+  --hdr-shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 12px 24px -18px rgba(0, 0, 0, 0.7);
+  --hdr-panel-shadow: 0 20px 44px -14px rgba(0, 0, 0, 0.7), 0 2px 6px rgba(0, 0, 0, 0.4);
+
+  --tone-ok-bg: rgba(34, 197, 94, 0.16);
+  --tone-ok-fg: #4ade80;
+  --tone-info-bg: rgba(99, 102, 241, 0.2);
+  --tone-info-fg: #a5b4fc;
+  --tone-warn-bg: rgba(245, 158, 11, 0.16);
+  --tone-warn-fg: #fbbf24;
+  --tone-bad-bg: rgba(239, 68, 68, 0.18);
+  --tone-bad-fg: #f87171;
+  --tone-muted-bg: rgba(148, 163, 184, 0.14);
+  --tone-muted-fg: #cbd5e1;
+
+  --accent-text-400: #a5b4fc;
+  --accent-text-500: #a5b4fc;
+  --accent-text-600: #a5b4fc;
+  --accent-text-700: #c7d2fe;
+  --accent-text-800: #c7d2fe;
+  --dot-grid: #2a3a5c;
+}
+
+/* Square icon button (theme toggle, bell, hamburger, ...). */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--hdr-border);
+  border-radius: 12px;
+  background: var(--hdr-surface);
+  color: var(--hdr-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.icon-btn:hover {
+  border-color: var(--p-primary-300);
+  color: var(--accent-text-600);
+}
+
+.icon-btn[aria-expanded='true'] {
+  border-color: var(--p-primary-400);
+  color: var(--accent-text-600);
+}
+
+/* Avatar + name pill that opens the account menu. */
+.profile-btn {
+  padding: 0.1875rem 0.625rem 0.1875rem 0.1875rem;
+  border: 1px solid var(--hdr-border);
+  border-radius: 999px;
+  background: var(--hdr-surface);
+  color: var(--hdr-text);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.profile-btn:hover,
+.profile-btn[aria-expanded='true'] {
+  border-color: var(--p-primary-300);
+}
+
+/* ---------- Dark mode: app-wide surfaces ----------
+   PrimeNG components restyle themselves via darkModeSelector. What follows covers
+   the shared page classes above; a page that hard-codes its own light colours in
+   a component stylesheet is not converted by this. */
+html.app-dark,
+html.app-dark body {
+  background: #0b1120;
+  color: #e2e8f0;
+}
+
+html.app-dark .page-title {
+  color: #f1f5f9;
+}
+
+html.app-dark .page-subtitle,
+html.app-dark .pf-eyebrow,
+html.app-dark .table-empty span,
+html.app-dark .pf-empty {
+  color: #94a3b8;
+}
+
+html.app-dark .surface-card-flat,
+html.app-dark .pf-card {
+  background: #111a2e;
+  border-color: #24314d;
+  color: #e2e8f0;
+}
+
+html.app-dark .surface-card-hover:hover {
+  border-color: #33456b;
+}
+
+html.app-dark .p-datatable .p-datatable-thead > tr > th {
+  background: #0d1526;
+  color: #94a3b8;
+  border-bottom-color: #24314d;
+}
+
+html.app-dark .p-datatable .p-datatable-tbody > tr > td {
+  border-bottom-color: #1b2740;
+}
+
+html.app-dark .p-datatable .p-datatable-tbody > tr:hover > td {
+  background: #0d1526;
+}
+
+html.app-dark .p-datatable .p-paginator {
+  background: #111a2e;
+  border-top-color: #24314d;
+}
+
+html.app-dark .pf-btn {
+  background: #16213a;
+  border-color: #2b3a5c;
+  color: #e2e8f0;
+}
+
+html.app-dark .pf-btn--primary {
+  background: var(--p-primary-600);
+  border-color: transparent;
+  color: #fff;
+}
+
+html.app-dark .pf-btn--quiet {
+  background: transparent;
+  border-color: transparent;
+  color: #a5b4fc;
+}
+
+html.app-dark .pf-seg {
+  background: #16213a;
+}
+
+html.app-dark .pf-seg button.is-on {
+  background: #24314d;
+  color: #f1f5f9;
+}
+
+html.app-dark .p-dialog .p-dialog-title {
+  color: #f1f5f9;
+}
+
+html.app-dark .p-dialog-content label,
+html.app-dark .surface-card-flat label {
+  color: #cbd5e1;
+}
+
+html.app-dark .p-toast-message {
+  background: #16213a;
+  border-color: #24314d;
+}
+
+html.app-dark .p-toast-summary {
+  color: #f1f5f9;
+}
+
+html.app-dark .p-toast-detail {
+  color: #94a3b8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-btn,
+  .profile-btn {
+    transition: none;
+  }
+}
+
+/* The counter sign is a print artefact: always light, whatever the app theme. */
+html.app-dark .print-poster {
+  --p-primary-50: #eef2ff;
+  --p-primary-100: #e0e7ff;
+  --p-primary-200: #c7d2fe;
+}
+
+/* Phones: tables render as stacked cards (see "Phones: tables become stacked cards" above),
+   whose light card colours are hard-coded there. */
+@media (max-width: 640px) {
+  html.app-dark .p-datatable .p-datatable-tbody > tr {
+    background: #111a2e;
+    border-color: #24314d;
+  }
+
+  html.app-dark .p-datatable .p-datatable-tbody > tr > td[data-label]::before {
+    color: #94a3b8;
   }
 }

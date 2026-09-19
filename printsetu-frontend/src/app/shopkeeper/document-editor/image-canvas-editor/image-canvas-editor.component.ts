@@ -674,11 +674,11 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
     `
       :host {
         display: block;
-        --ink: #0f172a;
-        --muted: #64748b;
-        --line: #e2e8f0;
-        --surface: #ffffff;
-        --soft: #f8fafc;
+        --ink: var(--tx-0f172a);
+        --muted: var(--tx-64748b);
+        --line: var(--bd-e2e8f0);
+        --surface: var(--bg-ffffff);
+        --soft: var(--bg-f8fafc);
       }
       .ce {
         height: 100%;
@@ -760,7 +760,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
           width: 2.25rem;
           height: 0.25rem;
           border-radius: 999px;
-          background: #cbd5e1;
+          background: var(--bg-cbd5e1);
         }
         .ce .ce__inspector .tabs button {
           padding: 0.5rem 0.125rem;
@@ -838,7 +838,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
         border: 1px solid var(--line);
         border-radius: 10px;
         background: var(--surface);
-        color: #334155;
+        color: var(--tx-334155);
         font-size: 0.8125rem;
         font-weight: 600;
         cursor: pointer;
@@ -847,7 +847,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
       }
       .tb-btn:hover:not(:disabled) {
         border-color: var(--p-primary-300);
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
       }
       .tb-btn:disabled {
         opacity: 0.4;
@@ -864,14 +864,14 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
         min-width: 3.25rem;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #334155;
+        color: var(--tx-334155);
         cursor: pointer;
         font-variant-numeric: tabular-nums;
       }
       .icon-btn {
         border: none;
         background: none;
-        color: #64748b;
+        color: var(--tx-64748b);
         cursor: pointer;
         width: 2rem;
         height: 2rem;
@@ -882,8 +882,8 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
         justify-content: center;
       }
       .icon-btn:hover:not(:disabled) {
-        background: #eef2ff;
-        color: var(--p-primary-600);
+        background: var(--bg-eef2ff);
+        color: var(--accent-text-600);
       }
       .icon-btn:disabled {
         opacity: 0.35;
@@ -898,8 +898,8 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
         border: 1px solid var(--line);
         border-radius: 14px;
         overflow: hidden;
-        background-color: #eef1f6;
-        background-image: radial-gradient(#cfd6e2 1px, transparent 1px);
+        background-color: var(--bg-eef1f6);
+        background-image: radial-gradient(var(--dot-grid) 1px, transparent 1px);
         background-size: 18px 18px;
       }
       /* Absolutely positioned so Fabric's own pixel-sized wrapper can never
@@ -944,9 +944,9 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
         align-items: center;
         gap: 0.5rem;
         max-width: calc(100% - 1.5rem);
-        background: #fffbeb;
-        border: 1px solid #fcd34d;
-        color: #92400e;
+        background: var(--bg-fffbeb);
+        border: 1px solid var(--bd-fcd34d);
+        color: var(--tx-92400e);
         border-radius: 999px;
         padding: 0.375rem 0.875rem;
         font-size: 0.75rem;
@@ -963,7 +963,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
       }
       .tabs {
         display: flex;
-        background: #eef1f6;
+        background: var(--bg-eef1f6);
         border-radius: 10px;
         padding: 0.1875rem;
         flex: 0 0 auto;
@@ -1020,7 +1020,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
         gap: 0.5rem;
         font-size: 0.75rem;
         font-weight: 500;
-        color: #475569;
+        color: var(--tx-475569);
         cursor: pointer;
       }
       .group__label {
@@ -1046,7 +1046,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
         border: none;
         background: none;
         padding: 0;
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
         font-size: 0.75rem;
         font-weight: 600;
         cursor: pointer;
@@ -1075,7 +1075,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
         border: 1px solid var(--line);
         border-radius: 10px;
         background: var(--surface);
-        color: #475569;
+        color: var(--tx-475569);
         font-size: 0.75rem;
         font-weight: 600;
         cursor: pointer;
@@ -1091,7 +1091,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
       .mode.is-on {
         border-color: var(--p-primary-500);
         background: var(--p-primary-50);
-        color: var(--p-primary-700);
+        color: var(--accent-text-700);
       }
 
       .slider-row__head {
@@ -1141,7 +1141,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
         font-size: 0.8125rem;
       }
       .icon-btn.lock.is-on {
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
         background: var(--p-primary-50);
       }
       :host ::ng-deep .unit-select {
@@ -1155,7 +1155,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
       .chip {
         border: 1px solid var(--line);
         background: var(--surface);
-        color: #475569;
+        color: var(--tx-475569);
         border-radius: 999px;
         padding: 0.3125rem 0.75rem;
         font-size: 0.75rem;
@@ -1168,7 +1168,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
       .chip.is-on {
         border-color: var(--p-primary-500);
         background: var(--p-primary-50);
-        color: var(--p-primary-700);
+        color: var(--accent-text-700);
       }
 
       .tabs button {
@@ -1199,7 +1199,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
         grid-template-columns: minmax(0, 1fr) auto;
       }
       .link-btn.danger {
-        color: #dc2626;
+        color: var(--tx-dc2626);
       }
       .compare-tag--info {
         left: 50%;
@@ -1216,7 +1216,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
         gap: 0.5rem;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #334155;
+        color: var(--tx-334155);
       }
       .list-row {
         display: flex;
@@ -1233,7 +1233,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
         min-width: 0;
         font-size: 0.8125rem;
         font-weight: 500;
-        color: #334155;
+        color: var(--tx-334155);
         display: flex;
         flex-direction: column;
       }
@@ -1272,12 +1272,12 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
         font-weight: 600;
         padding: 0.3125rem 0.625rem;
         border-radius: 8px;
-        background: #ecfdf5;
-        color: #047857;
+        background: var(--bg-ecfdf5);
+        color: var(--tx-047857);
       }
       .dpi-chip.is-low {
-        background: #fffbeb;
-        color: #b45309;
+        background: var(--bg-fffbeb);
+        color: var(--tx-b45309);
       }
     `,
   ],
@@ -1873,7 +1873,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
       originX: 'center',
       originY: 'center',
       fill: 'transparent',
-      stroke: '#f59e0b',
+      stroke: 'var(--tx-f59e0b)',
       strokeWidth: 1,
       strokeUniform: true,
       strokeDashArray: [3, 3],
@@ -2015,7 +2015,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
         evented: false,
         hasControls: false,
         hasBorders: false,
-        stroke: '#94a3b8',
+        stroke: 'var(--tx-94a3b8)',
         strokeWidth: 1,
         fill: 'transparent',
       });
@@ -2027,7 +2027,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
       evented: active,
       hasControls: active,
       hasBorders: active,
-      stroke: '#4f46e5',
+      stroke: 'var(--tx-4f46e5)',
       strokeWidth: 2,
       fill: 'rgba(79,70,229,0.08)',
     });
@@ -2330,7 +2330,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
       originY: 'center',
       fontFamily: 'Inter',
       fontSize: (watermark ? 42 : 20) * PT_MM * pxMm,
-      fill: watermark ? '#64748b' : '#111827',
+      fill: watermark ? 'var(--tx-64748b)' : 'var(--tx-111827)',
       fontWeight: watermark ? 'bold' : 'normal',
       opacity: watermark ? 0.25 : 1,
       angle: watermark ? -30 : 0,
@@ -2478,7 +2478,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
   }
 
   selFilled(on: boolean): void {
-    this.editSelected((o) => o.set({ fill: on ? this.hexOf(this.selection()?.stroke ?? '#dc2626') : 'transparent' }));
+    this.editSelected((o) => o.set({ fill: on ? this.hexOf(this.selection()?.stroke ?? 'var(--tx-dc2626)') : 'transparent' }));
   }
   selFill(v: string): void {
     this.editSelected((o) => o.set({ fill: v }));
@@ -2734,7 +2734,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
     const lines = pts.map(
       (_, i) =>
         new Line([pts[i].x, pts[i].y, pts[(i + 1) % 4].x, pts[(i + 1) % 4].y], {
-          stroke: '#4f46e5',
+          stroke: 'var(--tx-4f46e5)',
           strokeWidth: 2,
           strokeDashArray: [6, 4],
           selectable: false,
@@ -2750,7 +2750,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
           originX: 'center',
           originY: 'center',
           radius: 11,
-          fill: '#4f46e5',
+          fill: 'var(--tx-4f46e5)',
           stroke: '#ffffff',
           strokeWidth: 3,
           hasControls: false,

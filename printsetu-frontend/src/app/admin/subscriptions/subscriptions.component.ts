@@ -1,4 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { ScrollActiveTabDirective } from '../../shared/directives/scroll-active-tab.directive';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SubOverviewComponent } from './sub-overview.component';
@@ -21,7 +22,7 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
 @Component({
   selector: 'app-subscriptions',
   standalone: true,
-  imports: [CommonModule, SubOverviewComponent, SubPlansComponent, SubShopsComponent, SubPaymentsComponent, SubSettingsComponent],
+  imports: [ScrollActiveTabDirective, CommonModule, SubOverviewComponent, SubPlansComponent, SubShopsComponent, SubPaymentsComponent, SubSettingsComponent],
   template: `
     <div class="page-header">
       <div>
@@ -30,7 +31,7 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
       </div>
     </div>
 
-    <nav class="tabs" role="tablist" aria-label="Subscription sections">
+    <nav class="tabs" appScrollActiveTab role="tablist" aria-label="Subscription sections">
       @for (t of tabs; track t.key) {
         <button type="button" role="tab" class="tab" [class.is-on]="tab() === t.key" [attr.aria-selected]="tab() === t.key" (click)="select(t.key)">
           <i class="pi" [ngClass]="t.icon"></i><span>{{ t.label }}</span>
@@ -63,7 +64,7 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
         overflow-x: auto;
         padding: 0.375rem;
         margin-bottom: clamp(1rem, 2vw, 1.5rem);
-        background: #eef1f7;
+        background: var(--bg-eef1f7);
         border-radius: 16px;
         scrollbar-width: none;
       }
@@ -81,17 +82,17 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
         font: inherit;
         font-size: 0.875rem;
         font-weight: 600;
-        color: #64748b;
+        color: var(--tx-64748b);
         white-space: nowrap;
         cursor: pointer;
         transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
       }
       .tab:hover:not(.is-on) {
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .tab.is-on {
-        background: #fff;
-        color: var(--p-primary-700);
+        background: var(--bg-ffffff);
+        color: var(--accent-text-700);
         box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
       }
       .panel {

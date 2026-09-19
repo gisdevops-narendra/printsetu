@@ -44,7 +44,7 @@ import { QrData, QrPanelComponent } from '../../shared/components/qr-panel/qr-pa
         margin-bottom: 0.75rem;
         font-size: 0.875rem;
         font-weight: 600;
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
         text-decoration: none;
       }
       .back-link:hover {

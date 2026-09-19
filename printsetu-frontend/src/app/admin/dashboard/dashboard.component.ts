@@ -44,7 +44,7 @@ import { StatusTagComponent } from '../../shared/components/status-tag/status-ta
             <div class="stat-tile__icon success"><i class="pi pi-check-circle"></i></div>
             <div>
               <div class="text-color-secondary text-sm mb-1">Printed</div>
-              <div class="text-3xl font-bold line-height-2" style="color:#16a34a">{{ s.printedJobs }}</div>
+              <div class="text-3xl font-bold line-height-2" style="color:var(--tx-16a34a)">{{ s.printedJobs }}</div>
               <div class="text-xs text-color-secondary">{{ s.failedJobs }} failed / needs review</div>
             </div>
           </div>
@@ -102,18 +102,18 @@ import { StatusTagComponent } from '../../shared/components/status-tag/status-ta
         justify-content: space-between;
         gap: 1rem;
         padding: 1rem clamp(1rem, 1.6vw, 1.5rem);
-        border-bottom: 1px solid #e2e8f0;
+        border-bottom: 1px solid var(--bd-e2e8f0);
       }
       .recent__title {
         margin: 0;
         font-size: 1rem;
         font-weight: 700;
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .recent__link {
         font-size: 0.8125rem;
         font-weight: 600;
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
         text-decoration: none;
         white-space: nowrap;
       }
@@ -130,7 +130,7 @@ import { StatusTagComponent } from '../../shared/components/status-tag/status-ta
         align-items: center;
         gap: 1rem;
         padding: 0.75rem clamp(1rem, 1.6vw, 1.5rem);
-        border-bottom: 1px solid #f1f5f9;
+        border-bottom: 1px solid var(--bd-f1f5f9);
       }
       .recent__row:last-child {
         border-bottom: none;
@@ -138,7 +138,7 @@ import { StatusTagComponent } from '../../shared/components/status-tag/status-ta
       .recent__token {
         flex: 0 0 3.5rem;
         font-weight: 700;
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .recent__main {
         flex: 1 1 auto;
@@ -150,20 +150,20 @@ import { StatusTagComponent } from '../../shared/components/status-tag/status-ta
       .recent__shop {
         font-size: 0.9rem;
         font-weight: 500;
-        color: #1e293b;
+        color: var(--tx-1e293b);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
       .recent__meta {
         font-size: 0.75rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .recent__amount {
         flex: 0 0 auto;
         font-size: 0.875rem;
         font-weight: 600;
-        color: #334155;
+        color: var(--tx-334155);
       }
       .recent__empty {
         display: flex;
@@ -171,7 +171,7 @@ import { StatusTagComponent } from '../../shared/components/status-tag/status-ta
         align-items: center;
         gap: 0.5rem;
         padding: 2.5rem 1rem;
-        color: #64748b;
+        color: var(--tx-64748b);
         font-size: 0.875rem;
       }
       .recent__empty i {

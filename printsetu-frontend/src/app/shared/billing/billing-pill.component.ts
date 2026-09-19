@@ -32,24 +32,24 @@ import { INVOICE_META, STATE_META, Tone } from './billing.util';
         background: currentColor;
       }
       .pill--ok {
-        background: #dcfce7;
-        color: #15803d;
+        background: var(--bg-dcfce7);
+        color: var(--tx-15803d);
       }
       .pill--info {
-        background: #e0e7ff;
-        color: #4338ca;
+        background: var(--bg-e0e7ff);
+        color: var(--tx-4338ca);
       }
       .pill--warn {
-        background: #fef3c7;
-        color: #92400e;
+        background: var(--bg-fef3c7);
+        color: var(--tx-92400e);
       }
       .pill--bad {
-        background: #fee2e2;
-        color: #b91c1c;
+        background: var(--bg-fee2e2);
+        color: var(--tx-b91c1c);
       }
       .pill--muted {
-        background: #f1f5f9;
-        color: #475569;
+        background: var(--bg-f1f5f9);
+        color: var(--tx-475569);
       }
     `,
   ],

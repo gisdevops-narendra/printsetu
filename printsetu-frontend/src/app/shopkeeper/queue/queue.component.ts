@@ -59,7 +59,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
         <tr>
           <th style="width: 8%" pSortableColumn="tokenNumber">Token <p-sortIcon field="tokenNumber" /></th>
           <th style="width: 23%">Documents</th>
-          <th style="width: 17%; border-left: 1px solid #f1f5f9">Options</th>
+          <th style="width: 17%; border-left: 1px solid var(--hdr-hover)">Options</th>
           <th style="width: 10%" pSortableColumn="amount">Amount <p-sortIcon field="amount" /></th>
           <th style="width: 14%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
           <th style="width: 13%" pSortableColumn="createdAt">Received <p-sortIcon field="createdAt" /></th>
@@ -78,7 +78,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
               }
             </div>
           </td>
-          <td class="text-xs" style="border-left: 1px solid #f1f5f9" data-label="Options">
+          <td class="text-xs" style="border-left: 1px solid var(--hdr-hover)" data-label="Options">
             <div class="item-stack">
               @for (item of job.items; track item.id) {
                 <span>{{ item.paperSize }} · {{ item.colorMode }} · {{ item.sideMode }} ×{{ item.copies }}</span>

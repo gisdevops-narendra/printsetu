@@ -138,7 +138,7 @@ import { DAY_KEYS, DAY_LABELS, OpenStatus, dayKeyOf, format12h, openStatus } fro
         height: 2.5rem;
         border-radius: 12px;
         background: var(--p-primary-50);
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
       }
       .rows__icon--lg {
         width: 3rem;
@@ -153,7 +153,7 @@ import { DAY_KEYS, DAY_LABELS, OpenStatus, dayKeyOf, format12h, openStatus } fro
       }
       .rows__text small {
         font-size: 0.75rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .rows__text span,
       .rows__text a {
@@ -162,11 +162,11 @@ import { DAY_KEYS, DAY_LABELS, OpenStatus, dayKeyOf, format12h, openStatus } fro
         white-space: nowrap;
         font-size: 0.9375rem;
         font-weight: 600;
-        color: #0f172a;
+        color: var(--tx-0f172a);
         text-decoration: none;
       }
       .rows__text a:hover {
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
         text-decoration: underline;
       }
       .icon {
@@ -176,12 +176,12 @@ import { DAY_KEYS, DAY_LABELS, OpenStatus, dayKeyOf, format12h, openStatus } fro
         border: none;
         border-radius: 10px;
         background: transparent;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
         cursor: pointer;
       }
       .icon:hover {
-        background: #eef1f7;
-        color: #0f172a;
+        background: var(--bg-eef1f7);
+        color: var(--tx-0f172a);
       }
       .place {
         display: flex;
@@ -192,12 +192,12 @@ import { DAY_KEYS, DAY_LABELS, OpenStatus, dayKeyOf, format12h, openStatus } fro
         font-size: 1rem;
         font-weight: 600;
         line-height: 1.45;
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .place__city {
         margin: 0.125rem 0 0;
         font-size: 0.875rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .actions {
         display: flex;
@@ -222,16 +222,16 @@ import { DAY_KEYS, DAY_LABELS, OpenStatus, dayKeyOf, format12h, openStatus } fro
         background: currentColor;
       }
       .status--open {
-        background: #dcfce7;
-        color: #15803d;
+        background: var(--bg-dcfce7);
+        color: var(--tx-15803d);
       }
       .status--closed {
-        background: #fee2e2;
-        color: #b91c1c;
+        background: var(--bg-fee2e2);
+        color: var(--tx-b91c1c);
       }
       .status--unknown {
-        background: #eef1f7;
-        color: #64748b;
+        background: var(--bg-eef1f7);
+        color: var(--tx-64748b);
       }
       .hours {
         display: flex;
@@ -258,7 +258,7 @@ import { DAY_KEYS, DAY_LABELS, OpenStatus, dayKeyOf, format12h, openStatus } fro
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        color: #334155;
+        color: var(--tx-334155);
       }
       .hours__day em {
         padding: 0.05rem 0.5rem;
@@ -273,20 +273,20 @@ import { DAY_KEYS, DAY_LABELS, OpenStatus, dayKeyOf, format12h, openStatus } fro
       }
       .hours__time {
         font-variant-numeric: tabular-nums;
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .hours__closed {
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .about {
         margin: 0;
         font-size: 0.9375rem;
         line-height: 1.65;
-        color: #334155;
+        color: var(--tx-334155);
         white-space: pre-line;
       }
       .about--empty {
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
         font-style: italic;
       }
       .facts {
@@ -295,17 +295,17 @@ import { DAY_KEYS, DAY_LABELS, OpenStatus, dayKeyOf, format12h, openStatus } fro
         gap: 1.5rem;
         margin: 1.25rem 0 0;
         padding-top: 1rem;
-        border-top: 1px solid #eef1f7;
+        border-top: 1px solid var(--bd-eef1f7);
       }
       .facts dt {
         font-size: 0.75rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .facts dd {
         margin: 0.125rem 0 0;
         font-size: 0.9375rem;
         font-weight: 700;
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
     `,
   ],

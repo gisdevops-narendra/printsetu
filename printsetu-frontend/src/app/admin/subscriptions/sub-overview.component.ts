@@ -156,7 +156,7 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
           align-items: baseline;
           justify-content: space-between;
           padding: 0.375rem 0;
-          border-bottom: 1px solid #eef1f7;
+          border-bottom: 1px solid var(--bd-eef1f7);
         }
         .fail div:last-child {
           border-bottom: none;
@@ -168,8 +168,8 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
         gap: 0.25rem;
         min-width: 0;
         padding: clamp(0.875rem, 2vw, 1.25rem);
-        background: #fff;
-        border: 1px solid #e6eaf2;
+        background: var(--bg-ffffff);
+        border: 1px solid var(--bd-e6eaf2);
         border-radius: 18px;
       }
       .kpi__icon {
@@ -183,42 +183,42 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
         font-size: 1.05rem;
       }
       .kpi__icon--ok {
-        background: #dcfce7;
-        color: #15803d;
+        background: var(--bg-dcfce7);
+        color: var(--tx-15803d);
       }
       .kpi__icon--info {
-        background: #e0e7ff;
-        color: #4338ca;
+        background: var(--bg-e0e7ff);
+        color: var(--tx-4338ca);
       }
       .kpi__icon--warn {
-        background: #fef3c7;
-        color: #b45309;
+        background: var(--bg-fef3c7);
+        color: var(--tx-b45309);
       }
       .kpi__icon--bad {
-        background: #fee2e2;
-        color: #b91c1c;
+        background: var(--bg-fee2e2);
+        color: var(--tx-b91c1c);
       }
       .kpi__label {
         margin: 0;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .kpi__label em {
         font-style: normal;
         font-weight: 500;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .kpi__value {
         font-size: clamp(1.5rem, 2.6vw, 2rem);
         line-height: 1.15;
         letter-spacing: -0.02em;
-        color: #0f172a;
+        color: var(--tx-0f172a);
         overflow-wrap: anywhere;
       }
       .kpi__sub {
         font-size: 0.8125rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .split {
         display: flex;
@@ -227,7 +227,7 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
         margin-top: 0.375rem;
         border-radius: 999px;
         overflow: hidden;
-        background: #f1f5f9;
+        background: var(--bg-f1f5f9);
       }
       .split__m {
         flex: 1 1 0;
@@ -261,7 +261,7 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
       .sub {
         margin: 0.25rem 0 0;
         font-size: 0.8125rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .fail {
         display: grid;
@@ -276,21 +276,21 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
       .fail strong {
         font-size: 1.5rem;
         line-height: 1.2;
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .fail strong.ok {
-        color: #15803d;
+        color: var(--tx-15803d);
       }
       .fail span {
         font-size: 0.75rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .note,
       .foot {
         margin: 0.875rem 0 0;
         font-size: 0.8125rem;
         line-height: 1.5;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .foot {
         margin-top: 1rem;
@@ -298,7 +298,7 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
       .empty {
         margin: 0;
         font-size: 0.9rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .list {
         display: flex;
@@ -313,7 +313,7 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
         justify-content: space-between;
         gap: 0.75rem;
         padding: 0.75rem 0;
-        border-bottom: 1px solid #eef1f7;
+        border-bottom: 1px solid var(--bd-eef1f7);
       }
       .list li:last-child {
         border-bottom: none;
@@ -336,12 +336,12 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
       }
       .list strong {
         font-size: 0.9375rem;
-        color: #0f172a;
+        color: var(--tx-0f172a);
         overflow-wrap: anywhere;
       }
       .list span {
         font-size: 0.8125rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .list--tight .list__main {
         flex-direction: row;

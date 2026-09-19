@@ -161,7 +161,7 @@ import { timeAgo } from '../../shared/utils/browser.util';
         align-items: center;
         gap: 0.875rem;
         padding: 0.875rem 0;
-        border-bottom: 1px solid #eef1f7;
+        border-bottom: 1px solid var(--bd-eef1f7);
       }
       .setting:first-of-type {
         padding-top: 0;
@@ -175,7 +175,7 @@ import { timeAgo } from '../../shared/utils/browser.util';
         height: 2.5rem;
         border-radius: 12px;
         background: var(--p-primary-50);
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
       }
       .setting__text {
         flex: 1 1 auto;
@@ -185,29 +185,29 @@ import { timeAgo } from '../../shared/utils/browser.util';
         display: block;
         font-size: 0.9375rem;
         font-weight: 700;
-        color: #0f172a;
+        color: var(--tx-0f172a);
         cursor: pointer;
       }
       .setting__text p {
         margin: 0.125rem 0 0;
         font-size: 0.8125rem;
         line-height: 1.45;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .test {
         flex: 0 0 auto;
         width: 2rem;
         height: 2rem;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--bd-e2e8f0);
         border-radius: 50%;
-        background: #fff;
+        background: var(--bg-ffffff);
         font-size: 0.6875rem;
-        color: #64748b;
+        color: var(--tx-64748b);
         cursor: pointer;
       }
       .test:hover {
         border-color: var(--p-primary-300);
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
       }
       .callout {
         display: flex;
@@ -215,22 +215,22 @@ import { timeAgo } from '../../shared/utils/browser.util';
         margin: 0.875rem 0 0;
         padding: 0.75rem 0.875rem;
         border-radius: 12px;
-        background: #f1f5f9;
+        background: var(--bg-f1f5f9);
         font-size: 0.8125rem;
         line-height: 1.45;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .callout i {
         margin-top: 0.15rem;
       }
       .callout--warn {
-        background: #fffbeb;
-        color: #92400e;
+        background: var(--bg-fffbeb);
+        color: var(--tx-92400e);
       }
       .fine {
         margin: 0.875rem 0 0;
         font-size: 0.75rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .printers {
         display: flex;
@@ -245,9 +245,9 @@ import { timeAgo } from '../../shared/utils/browser.util';
         align-items: center;
         gap: 0.875rem;
         padding: 0.875rem 1rem;
-        border: 1.5px solid #e6eaf2;
+        border: 1.5px solid var(--bd-e6eaf2);
         border-radius: 14px;
-        background: #fbfcfe;
+        background: var(--bg-fbfcfe);
       }
       .printer.is-default {
         border-color: var(--p-primary-300);
@@ -261,16 +261,16 @@ import { timeAgo } from '../../shared/utils/browser.util';
         width: 2.5rem;
         height: 2.5rem;
         border-radius: 12px;
-        background: #eef1f7;
-        color: #64748b;
+        background: var(--bg-eef1f7);
+        color: var(--tx-64748b);
       }
       .printer__icon.s-online {
-        background: #dcfce7;
-        color: #16a34a;
+        background: var(--bg-dcfce7);
+        color: var(--tx-16a34a);
       }
       .printer__icon.s-offline {
-        background: #fee2e2;
-        color: #dc2626;
+        background: var(--bg-fee2e2);
+        color: var(--tx-dc2626);
       }
       .printer__main {
         flex: 1 1 auto;
@@ -292,7 +292,7 @@ import { timeAgo } from '../../shared/utils/browser.util';
         align-items: center;
         gap: 0.25rem 0.625rem;
         font-size: 0.75rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .pill {
         display: inline-flex;
@@ -300,9 +300,9 @@ import { timeAgo } from '../../shared/utils/browser.util';
         gap: 0.375rem;
         padding: 0.125rem 0.5rem;
         border-radius: 999px;
-        background: #eef1f7;
+        background: var(--bg-eef1f7);
         font-weight: 700;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .pill__dot {
         width: 0.375rem;
@@ -311,15 +311,15 @@ import { timeAgo } from '../../shared/utils/browser.util';
         background: #94a3b8;
       }
       .pill.s-online {
-        background: #dcfce7;
-        color: #15803d;
+        background: var(--bg-dcfce7);
+        color: var(--tx-15803d);
       }
       .pill.s-online .pill__dot {
         background: #16a34a;
       }
       .pill.s-offline {
-        background: #fee2e2;
-        color: #b91c1c;
+        background: var(--bg-fee2e2);
+        color: var(--tx-b91c1c);
       }
       .pill.s-offline .pill__dot {
         background: #dc2626;
@@ -345,7 +345,7 @@ import { timeAgo } from '../../shared/utils/browser.util';
       .facts div {
         padding: 0.875rem 1rem;
         border-radius: 14px;
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
       }
       .facts dt {
         display: flex;
@@ -353,16 +353,16 @@ import { timeAgo } from '../../shared/utils/browser.util';
         gap: 0.5rem;
         font-size: 0.8125rem;
         font-weight: 700;
-        color: #334155;
+        color: var(--tx-334155);
       }
       .facts dt i {
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
       }
       .facts dd {
         margin: 0.375rem 0 0;
         font-size: 0.875rem;
         line-height: 1.45;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       @media (max-width: 520px) {
         .printer {

@@ -143,7 +143,7 @@ export interface QrData {
       .stage {
         padding: clamp(1rem, 3vw, 1.75rem);
         border-radius: 20px;
-        background: linear-gradient(180deg, #eef2ff 0%, #f1f5f9 100%);
+        background: linear-gradient(180deg, var(--bg-eef2ff) 0%, var(--bg-f1f5f9) 100%);
         border: 1px solid var(--line);
       }
       .poster {
@@ -233,7 +233,7 @@ export interface QrData {
         height: 7cqw;
         border-radius: 50%;
         background: var(--p-primary-50);
-        color: var(--p-primary-700);
+        color: var(--accent-text-700);
         font-size: 3.4cqw;
       }
       .poster__url {
@@ -264,13 +264,13 @@ export interface QrData {
         flex-direction: column;
         gap: 0.875rem;
         padding: clamp(1rem, 2vw, 1.5rem);
-        background: #fff;
+        background: var(--bg-ffffff);
         border: 1px solid var(--line);
         border-radius: 16px;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
       }
       .card--soft {
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
         box-shadow: none;
       }
       .card--danger {
@@ -278,8 +278,8 @@ export interface QrData {
         align-items: center;
         justify-content: space-between;
         gap: 1rem;
-        border-color: #fecaca;
-        background: #fffafa;
+        border-color: var(--bd-fecaca);
+        background: var(--bg-fffafa);
       }
       .card__title {
         margin: 0;
@@ -322,22 +322,22 @@ export interface QrData {
         background: var(--p-primary-700);
       }
       .btn--outline {
-        background: #fff;
-        border-color: #d6dcec;
-        color: #334155;
+        background: var(--bg-ffffff);
+        border-color: var(--bd-d6dcec);
+        color: var(--tx-334155);
       }
       .btn--outline:hover:not(:disabled) {
         border-color: var(--p-primary-300);
-        color: var(--p-primary-700);
+        color: var(--accent-text-700);
       }
       .btn--danger {
         flex: 0 0 auto;
-        background: #fff;
-        border-color: #fca5a5;
-        color: #b91c1c;
+        background: var(--bg-ffffff);
+        border-color: var(--bd-fca5a5);
+        color: var(--tx-b91c1c);
       }
       .btn--danger:hover {
-        background: #fef2f2;
+        background: var(--bg-fef2f2);
       }
       .grid2,
       .grid3 {
@@ -358,11 +358,11 @@ export interface QrData {
         padding: 0.875rem 0.25rem;
         border: 1px solid var(--line);
         border-radius: 12px;
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
         font: inherit;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #334155;
+        color: var(--tx-334155);
         cursor: pointer;
       }
       .tile i {
@@ -378,7 +378,7 @@ export interface QrData {
         align-items: center;
         gap: 0.25rem;
         padding: 0.25rem 0.25rem 0.25rem 0.875rem;
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
         border: 1px solid var(--line);
         border-radius: 12px;
       }
@@ -390,7 +390,7 @@ export interface QrData {
         white-space: nowrap;
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 0.8125rem;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .iconbtn {
         flex: 0 0 auto;
@@ -402,12 +402,12 @@ export interface QrData {
         border: none;
         border-radius: 10px;
         background: transparent;
-        color: #64748b;
+        color: var(--tx-64748b);
         cursor: pointer;
         text-decoration: none;
       }
       .iconbtn:hover {
-        background: #e8edf7;
+        background: var(--bg-e8edf7);
         color: var(--ink);
       }
       .meta {
@@ -421,10 +421,10 @@ export interface QrData {
       .meta code {
         padding: 0.2rem 0.6rem;
         border-radius: 999px;
-        background: #eef1f7;
+        background: var(--bg-eef1f7);
         font-weight: 700;
         letter-spacing: 0.04em;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .tips {
         display: flex;
@@ -435,11 +435,11 @@ export interface QrData {
         list-style: none;
         font-size: 0.875rem;
         line-height: 1.45;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .tips i {
         margin-right: 0.5rem;
-        color: #16a34a;
+        color: var(--tx-16a34a);
       }
       .note {
         margin: 0.25rem 0 0;
@@ -481,8 +481,8 @@ export interface QrData {
         height: 3rem;
         border: 1px solid var(--line);
         border-radius: 50%;
-        background: #fff;
-        color: #334155;
+        background: var(--bg-ffffff);
+        color: var(--tx-334155);
         font-size: 1.125rem;
         cursor: pointer;
       }
@@ -503,7 +503,7 @@ export interface QrData {
       .fs__shop {
         margin: 0;
         font-size: 1.0625rem;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .fs__qr {
         width: min(80vw, 70vh, 560px);

@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Subject, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   EditState,
@@ -42,28 +43,37 @@ const BASE = environment.apiBaseUrl;
 
 @Injectable({ providedIn: 'root' })
 export class ShopkeeperService {
+  /**
+   * Emits every profile/settings payload the API returns, so the portal header
+   * (shop name, logo, Online switch) follows edits made on other pages without
+   * each of those pages knowing about it.
+   */
+  readonly profileChanged = new Subject<ShopProfileResponse>();
+
   constructor(private readonly http: HttpClient) {}
 
+  private publish = tap<ShopProfileResponse>((res) => this.profileChanged.next(res));
+
   profile() {
-    return this.http.get<ShopProfileResponse>(`${BASE}/shop/profile`);
+    return this.http.get<ShopProfileResponse>(`${BASE}/shop/profile`).pipe(this.publish);
   }
 
   updateProfile(dto: { description?: string; mobile?: string; address?: string; city?: string; openingHours?: OpeningHours }) {
-    return this.http.patch<ShopProfileResponse>(`${BASE}/shop/profile`, dto);
+    return this.http.patch<ShopProfileResponse>(`${BASE}/shop/profile`, dto).pipe(this.publish);
   }
 
   uploadProfileImage(kind: 'logo' | 'banner', file: Blob) {
     const form = new FormData();
     form.append('file', file, `${kind}.webp`);
-    return this.http.post<ShopProfileResponse>(`${BASE}/shop/profile/${kind}`, form);
+    return this.http.post<ShopProfileResponse>(`${BASE}/shop/profile/${kind}`, form).pipe(this.publish);
   }
 
   removeProfileImage(kind: 'logo' | 'banner') {
-    return this.http.delete<ShopProfileResponse>(`${BASE}/shop/profile/${kind}`);
+    return this.http.delete<ShopProfileResponse>(`${BASE}/shop/profile/${kind}`).pipe(this.publish);
   }
 
-  updateSettings(dto: { autoAcceptOrders?: boolean; notificationPrefs?: Partial<NotificationPrefs>; defaultPrinterId?: string }) {
-    return this.http.patch<ShopProfileResponse>(`${BASE}/shop/settings`, dto);
+  updateSettings(dto: { autoAcceptOrders?: boolean; acceptingOrders?: boolean; notificationPrefs?: Partial<NotificationPrefs>; defaultPrinterId?: string }) {
+    return this.http.patch<ShopProfileResponse>(`${BASE}/shop/settings`, dto).pipe(this.publish);
   }
 
   stats() {

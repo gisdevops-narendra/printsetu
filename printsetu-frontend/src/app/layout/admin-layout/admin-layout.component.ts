@@ -1,14 +1,16 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { AppShellComponent, ShellNavItem } from '../../shared/components/app-shell/app-shell.component';
+import { AdminHeaderComponent } from './admin-header.component';
 
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [RouterOutlet, AppShellComponent],
+  imports: [RouterOutlet, AppShellComponent, AdminHeaderComponent],
   template: `
-    <app-shell title="Platform Administration" [email]="auth.user()?.email ?? ''" [navItems]="navItems" (logout)="auth.logout()">
+    <app-shell [navItems]="navItems">
+      <app-admin-header shellHeader [navItems]="navItems" />
       <router-outlet />
     </app-shell>
   `,
@@ -27,6 +29,8 @@ import { AppShellComponent, ShellNavItem } from '../../shared/components/app-she
   ],
 })
 export class AdminLayoutComponent implements OnInit, OnDestroy {
+  private readonly theme = inject(ThemeService);
+
   navItems: ShellNavItem[] = [
     { label: 'Dashboard', icon: 'pi pi-th-large', route: '/admin/dashboard' },
     { label: 'Shops', icon: 'pi pi-building', route: '/admin/shops' },
@@ -37,8 +41,6 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
     { label: 'Audit Logs', icon: 'pi pi-shield', route: '/admin/audit-logs' },
   ];
 
-  constructor(public readonly auth: AuthService) {}
-
   /**
    * Belt-and-suspenders for the shell's own height:100vh/overflow:hidden:
    * locks the *document* to the viewport too, only while this shell-based
@@ -48,9 +50,11 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
    */
   ngOnInit(): void {
     document.body.classList.add('shell-locked');
+    this.theme.attach();
   }
 
   ngOnDestroy(): void {
     document.body.classList.remove('shell-locked');
+    this.theme.detach();
   }
 }

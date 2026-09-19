@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { NotificationPrefs, PrintJobRow, PrintJobStatus } from '../models/models';
 import { ShopkeeperService } from './shopkeeper.service';
@@ -19,6 +19,8 @@ const DEFAULT_PREFS: NotificationPrefs = { newOrderSound: true, desktopAlerts: f
  */
 @Injectable({ providedIn: 'root' })
 export class OrderAlertsService {
+  /** The latest queue snapshot, shared with the shop header's queue indicator so it needn't poll again. */
+  readonly jobs = signal<PrintJobRow[]>([]);
   private prefs: NotificationPrefs = { ...DEFAULT_PREFS };
   private known = new Map<string, PrintJobStatus>();
   private primed = false;
@@ -47,6 +49,7 @@ export class OrderAlertsService {
     document.removeEventListener('visibilitychange', this.onVisibility);
     this.primed = false;
     this.known.clear();
+    this.jobs.set([]);
   }
 
   /** Keep alerts in sync when the shopkeeper changes their preferences. */
@@ -84,7 +87,13 @@ export class OrderAlertsService {
     });
   }
 
+  /** Pull the queue right now (e.g. after the shopkeeper acts) instead of waiting for the next tick. */
+  refresh(): void {
+    this.poll();
+  }
+
   private detect(jobs: PrintJobRow[]): void {
+    this.jobs.set(jobs);
     const fresh: PrintJobRow[] = [];
     const problems: PrintJobRow[] = [];
     for (const job of jobs) {

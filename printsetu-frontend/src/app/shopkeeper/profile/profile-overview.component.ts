@@ -143,6 +143,9 @@ type Metric = 'earnings' | 'jobs';
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 0.625rem;
         }
+        .kpi--earn {
+          grid-column: 1 / -1;
+        }
       }
       .kpi {
         position: relative;
@@ -151,8 +154,8 @@ type Metric = 'earnings' | 'jobs';
         gap: 0.25rem;
         min-width: 0;
         padding: clamp(1rem, 2vw, 1.25rem);
-        background: #fff;
-        border: 1px solid #e6eaf2;
+        background: var(--bg-ffffff);
+        border: 1px solid var(--bd-e6eaf2);
         border-radius: 18px;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         transition: box-shadow 0.15s ease, transform 0.15s ease;
@@ -172,19 +175,19 @@ type Metric = 'earnings' | 'jobs';
         font-size: 1.125rem;
       }
       .kpi__icon--ok {
-        background: #dcfce7;
-        color: #16a34a;
+        background: var(--bg-dcfce7);
+        color: var(--tx-16a34a);
       }
       .kpi__icon--info {
-        background: #e0e7ff;
-        color: #4f46e5;
+        background: var(--bg-e0e7ff);
+        color: var(--tx-4f46e5);
       }
       .kpi__icon--warn {
-        background: #fef3c7;
-        color: #d97706;
+        background: var(--bg-fef3c7);
+        color: var(--tx-d97706);
       }
       .kpi__icon--violet {
-        background: #f3e8ff;
+        background: var(--bg-f3e8ff);
         color: #9333ea;
       }
       .kpi__top {
@@ -204,19 +207,19 @@ type Metric = 'earnings' | 'jobs';
         margin: 0;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .kpi__value {
         font-size: clamp(1.5rem, 2.4vw, 1.875rem);
         line-height: 1.15;
         font-weight: 800;
         letter-spacing: -0.03em;
-        color: #0f172a;
+        color: var(--tx-0f172a);
         font-variant-numeric: tabular-nums;
       }
       .kpi__sub {
         font-size: 0.8125rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .kpi__link {
         display: inline-flex;
@@ -224,7 +227,7 @@ type Metric = 'earnings' | 'jobs';
         gap: 0.375rem;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
         text-decoration: none;
       }
       .kpi__link:hover {
@@ -297,7 +300,7 @@ type Metric = 'earnings' | 'jobs';
       }
       .legend__name {
         flex: 1 1 auto;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .legend b {
         font-variant-numeric: tabular-nums;
@@ -305,7 +308,7 @@ type Metric = 'earnings' | 'jobs';
       .legend small {
         width: 2.75rem;
         text-align: right;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
         font-variant-numeric: tabular-nums;
       }
       .dot {

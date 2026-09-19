@@ -116,6 +116,7 @@ interface Form {
       }
       .grid {
         display: grid;
+        margin: 0; /* PrimeFlex's global .grid has negative side margins */
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: clamp(0.75rem, 1.6vw, 1.25rem);
         align-items: start;
@@ -138,17 +139,17 @@ interface Form {
         margin: 0 0 1rem;
         font-size: 0.875rem;
         line-height: 1.55;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .fine {
         margin: 0.875rem 0 0;
         font-size: 0.8125rem;
         line-height: 1.5;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .fine.inline {
         margin: 0;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .fine.center {
         text-align: center;
@@ -193,13 +194,13 @@ interface Form {
         min-width: 0;
       }
       .tl__body strong {
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .tl__body p {
         margin: 0.125rem 0 0.5rem;
         font-size: 0.875rem;
         line-height: 1.5;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .row {
         display: flex;
@@ -213,14 +214,14 @@ interface Form {
         gap: 0.5rem;
         font-size: 0.9375rem;
         font-weight: 600;
-        color: #334155;
+        color: var(--tx-334155);
       }
       .num input {
         width: 5rem;
         padding: 0.5rem 0.625rem;
-        border: 1.5px solid #e2e8f0;
+        border: 1.5px solid var(--bd-e2e8f0);
         border-radius: 10px;
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
         font: inherit;
         font-size: 1rem;
         text-align: center;
@@ -228,7 +229,7 @@ interface Form {
       }
       .num input:focus {
         border-color: var(--p-primary-500);
-        background: #fff;
+        background: var(--bg-ffffff);
       }
       .channels {
         display: grid;
@@ -241,13 +242,13 @@ interface Form {
         align-items: center;
         gap: 0.25rem;
         padding: 0.875rem 0.5rem;
-        border: 1.5px solid #e2e8f0;
+        border: 1.5px solid var(--bd-e2e8f0);
         border-radius: 14px;
-        background: #fff;
+        background: var(--bg-ffffff);
         font: inherit;
         font-size: 0.875rem;
         font-weight: 700;
-        color: #64748b;
+        color: var(--tx-64748b);
         cursor: pointer;
         transition: border-color 0.15s ease, background 0.15s ease;
       }
@@ -258,12 +259,12 @@ interface Form {
         font-style: normal;
         font-size: 0.6875rem;
         font-weight: 600;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .channel.is-on {
         border-color: var(--p-primary-500);
         background: var(--p-primary-50);
-        color: var(--p-primary-700);
+        color: var(--accent-text-700);
       }
       .channel:disabled {
         cursor: default;
@@ -279,15 +280,15 @@ interface Form {
         margin-top: 1rem;
         padding: 0.875rem 1rem;
         border-radius: 14px;
-        background: #f0fdf4;
-        border: 1px solid #bbf7d0;
+        background: var(--bg-f0fdf4);
+        border: 1px solid var(--bd-bbf7d0);
         font-size: 0.875rem;
-        color: #166534;
+        color: var(--tx-166534);
       }
       .result ul {
         margin: 0.5rem 0 0;
         padding-left: 1.25rem;
-        color: #15803d;
+        color: var(--tx-15803d);
       }
     `,
   ],

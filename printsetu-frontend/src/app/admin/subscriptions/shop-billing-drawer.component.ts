@@ -407,17 +407,17 @@ const DAY = 86_400_000;
         font-size: 1.25rem;
         font-weight: 800;
         letter-spacing: -0.02em;
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .dh__sub {
         font-size: 0.8125rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .sum {
         padding: 1rem 1.125rem;
-        border: 1px solid #e6eaf2;
+        border: 1px solid var(--bd-e6eaf2);
         border-radius: 18px;
-        background: #fff;
+        background: var(--bg-ffffff);
       }
       .sum__top {
         display: flex;
@@ -439,12 +439,12 @@ const DAY = 86_400_000;
         color: #fff;
       }
       .tag--warn {
-        background: #fef3c7;
-        color: #92400e;
+        background: var(--bg-fef3c7);
+        color: var(--tx-92400e);
       }
       .tag--info {
-        background: #e0e7ff;
-        color: #4338ca;
+        background: var(--bg-e0e7ff);
+        color: var(--tx-4338ca);
       }
       .facts {
         display: grid;
@@ -460,16 +460,16 @@ const DAY = 86_400_000;
       }
       .facts span {
         font-size: 0.75rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .facts strong {
         font-size: 1rem;
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .facts em {
         font-style: normal;
         font-size: 0.75rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .access {
         display: flex;
@@ -485,12 +485,12 @@ const DAY = 86_400_000;
         margin-top: 0.15rem;
       }
       .access--full {
-        background: #f0fdf4;
-        color: #166534;
+        background: var(--bg-f0fdf4);
+        color: var(--tx-166534);
       }
       .access--read_only {
-        background: #fef2f2;
-        color: #991b1b;
+        background: var(--bg-fef2f2);
+        color: var(--tx-991b1b);
       }
       .access--suspended {
         background: #0f172a;
@@ -508,19 +508,19 @@ const DAY = 86_400_000;
         gap: 0.5rem;
         min-height: 2.5rem;
         padding: 0 0.875rem;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--bd-e2e8f0);
         border-radius: 12px;
-        background: #fff;
+        background: var(--bg-ffffff);
         font: inherit;
         font-size: 0.875rem;
         font-weight: 600;
-        color: #334155;
+        color: var(--tx-334155);
         cursor: pointer;
       }
       .act:hover {
         border-color: var(--p-primary-300);
         background: var(--p-primary-50);
-        color: var(--p-primary-700);
+        color: var(--accent-text-700);
       }
       .act--primary {
         border-color: var(--p-primary-600);
@@ -532,12 +532,12 @@ const DAY = 86_400_000;
         color: #fff;
       }
       .act--danger {
-        color: #b91c1c;
+        color: var(--tx-b91c1c);
       }
       .act--danger:hover {
-        border-color: #fca5a5;
-        background: #fef2f2;
-        color: #b91c1c;
+        border-color: var(--bd-fca5a5);
+        background: var(--bg-fef2f2);
+        color: var(--tx-b91c1c);
       }
       .tabs {
         display: flex;
@@ -545,7 +545,7 @@ const DAY = 86_400_000;
         overflow-x: auto;
         padding: 0.25rem;
         border-radius: 14px;
-        background: #eef1f7;
+        background: var(--bg-eef1f7);
         scrollbar-width: none;
       }
       .tab {
@@ -562,19 +562,19 @@ const DAY = 86_400_000;
         font: inherit;
         font-size: 0.875rem;
         font-weight: 600;
-        color: #64748b;
+        color: var(--tx-64748b);
         white-space: nowrap;
         cursor: pointer;
       }
       .tab.is-on {
-        background: #fff;
-        color: var(--p-primary-700);
+        background: var(--bg-ffffff);
+        color: var(--accent-text-700);
         box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
       }
       .n {
         padding: 0 0.4rem;
         border-radius: 999px;
-        background: #e2e8f0;
+        background: var(--bg-e2e8f0);
         font-size: 0.6875rem;
         font-weight: 700;
       }
@@ -587,7 +587,7 @@ const DAY = 86_400_000;
         font-weight: 700;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .usage {
         display: flex;
@@ -600,15 +600,15 @@ const DAY = 86_400_000;
         gap: 0.75rem;
         margin-bottom: 0.375rem;
         font-size: 0.875rem;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .bar__row strong {
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .track {
         height: 8px;
         border-radius: 999px;
-        background: #eef1f7;
+        background: var(--bg-eef1f7);
         overflow: hidden;
       }
       .track span {
@@ -629,14 +629,14 @@ const DAY = 86_400_000;
         padding: 0;
         list-style: none;
         font-size: 0.875rem;
-        color: #334155;
+        color: var(--tx-334155);
       }
       .feat i {
         margin-right: 0.375rem;
-        color: #6366f1;
+        color: var(--tx-6366f1);
       }
       .feat li.off {
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .feat li.off i {
         color: #cbd5e1;
@@ -647,19 +647,19 @@ const DAY = 86_400_000;
         justify-content: space-between;
         gap: 1rem;
         padding: 0.75rem 0;
-        border-bottom: 1px solid #eef1f7;
+        border-bottom: 1px solid var(--bd-eef1f7);
       }
       .pref--col {
         flex-direction: column;
         align-items: flex-start;
       }
       .pref strong {
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .pref p {
         margin: 0.125rem 0 0;
         font-size: 0.8125rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .chans {
         display: flex;
@@ -672,19 +672,19 @@ const DAY = 86_400_000;
         align-items: center;
         gap: 0.375rem;
         padding: 0.4rem 0.75rem;
-        border: 1.5px solid #e2e8f0;
+        border: 1.5px solid var(--bd-e2e8f0);
         border-radius: 999px;
-        background: #fff;
+        background: var(--bg-ffffff);
         font: inherit;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #64748b;
+        color: var(--tx-64748b);
         cursor: pointer;
       }
       .chan.is-on {
         border-color: var(--p-primary-500);
         background: var(--p-primary-50);
-        color: var(--p-primary-700);
+        color: var(--accent-text-700);
       }
       .chan:disabled {
         cursor: default;
@@ -696,16 +696,16 @@ const DAY = 86_400_000;
         font: inherit;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
         cursor: pointer;
       }
       .quote {
         margin: 1rem 0 0;
         padding: 0.75rem 0.875rem;
         border-radius: 12px;
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
         font-size: 0.875rem;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .hist-tools {
         margin: 1rem 0 0.5rem;
@@ -715,7 +715,7 @@ const DAY = 86_400_000;
         align-items: center;
         gap: 0.5rem;
         font-size: 0.875rem;
-        color: #334155;
+        color: var(--tx-334155);
         cursor: pointer;
       }
       .timeline {
@@ -738,7 +738,7 @@ const DAY = 86_400_000;
         top: 2rem;
         bottom: 0;
         width: 2px;
-        background: #eef1f7;
+        background: var(--bg-eef1f7);
       }
       .tl {
         flex: none;
@@ -752,24 +752,24 @@ const DAY = 86_400_000;
         font-size: 0.8125rem;
       }
       .tl--ok {
-        background: #dcfce7;
-        color: #15803d;
+        background: var(--bg-dcfce7);
+        color: var(--tx-15803d);
       }
       .tl--info {
-        background: #e0e7ff;
-        color: #4338ca;
+        background: var(--bg-e0e7ff);
+        color: var(--tx-4338ca);
       }
       .tl--warn {
-        background: #fef3c7;
-        color: #b45309;
+        background: var(--bg-fef3c7);
+        color: var(--tx-b45309);
       }
       .tl--bad {
-        background: #fee2e2;
-        color: #b91c1c;
+        background: var(--bg-fee2e2);
+        color: var(--tx-b91c1c);
       }
       .tl--muted {
-        background: #f1f5f9;
-        color: #64748b;
+        background: var(--bg-f1f5f9);
+        color: var(--tx-64748b);
       }
       .tl__body {
         min-width: 0;
@@ -782,34 +782,34 @@ const DAY = 86_400_000;
         gap: 0.25rem 0.75rem;
       }
       .tl__head strong {
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .tl__head time {
         font-size: 0.75rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .tl__change {
         margin: 0.25rem 0 0;
         font-size: 0.8125rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .tl__change i {
         margin: 0 0.25rem;
         font-size: 0.6875rem;
       }
       .tl__change b {
-        color: #334155;
+        color: var(--tx-334155);
       }
       .tl__reason {
         margin: 0.25rem 0 0;
         font-size: 0.875rem;
         font-style: italic;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .tl__by {
         margin: 0.25rem 0 0;
         font-size: 0.75rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .tl__by i {
         margin-right: 0.25rem;
@@ -830,23 +830,23 @@ const DAY = 86_400_000;
       .field > label {
         font-size: 0.8125rem;
         font-weight: 700;
-        color: #334155;
+        color: var(--tx-334155);
       }
       label small {
         font-weight: 500;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .field input:not([type='radio']):not([type='checkbox']),
       .field textarea,
       .field select {
         width: 100%;
         padding: 0.625rem 0.8rem;
-        border: 1.5px solid #e2e8f0;
+        border: 1.5px solid var(--bd-e2e8f0);
         border-radius: 12px;
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
         font: inherit;
         font-size: 1rem;
-        color: #0f172a;
+        color: var(--tx-0f172a);
         outline: none;
         resize: vertical;
       }
@@ -854,34 +854,34 @@ const DAY = 86_400_000;
       .field textarea:focus,
       .field select:focus {
         border-color: var(--p-primary-500);
-        background: #fff;
+        background: var(--bg-ffffff);
         box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.14);
       }
       .field.has-error textarea {
-        border-color: #f0a3a3;
-        background: #fffafa;
+        border-color: var(--bd-f0a3a3);
+        background: var(--bg-fffafa);
       }
       .err {
         margin: 0;
         font-size: 0.8125rem;
-        color: #b42318;
+        color: var(--tx-b42318);
       }
       .fine {
         margin: 0;
         font-size: 0.8125rem;
         line-height: 1.5;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .fine.warn {
         padding: 0.625rem 0.75rem;
         border-radius: 10px;
-        background: #fef2f2;
-        color: #991b1b;
+        background: var(--bg-fef2f2);
+        color: var(--tx-991b1b);
       }
       .from {
         margin: 0;
         font-size: 0.9375rem;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .pair {
         display: grid;
@@ -900,13 +900,13 @@ const DAY = 86_400_000;
       .chip {
         min-width: 2.75rem;
         padding: 0.45rem 0.75rem;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--bd-e2e8f0);
         border-radius: 999px;
-        background: #fff;
+        background: var(--bg-ffffff);
         font: inherit;
         font-size: 0.875rem;
         font-weight: 600;
-        color: #64748b;
+        color: var(--tx-64748b);
         cursor: pointer;
       }
       .chip.is-on {
@@ -924,7 +924,7 @@ const DAY = 86_400_000;
         gap: 0.75rem;
         align-items: flex-start;
         padding: 0.75rem;
-        border: 1.5px solid #e2e8f0;
+        border: 1.5px solid var(--bd-e2e8f0);
         border-radius: 12px;
         cursor: pointer;
       }
@@ -935,7 +935,7 @@ const DAY = 86_400_000;
       }
       .radio small {
         font-size: 0.8125rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .preview {
         padding: 0.75rem 0.875rem;
@@ -947,16 +947,16 @@ const DAY = 86_400_000;
         line-height: 1.5;
       }
       .preview--up {
-        background: #f0fdf4;
-        color: #166534;
+        background: var(--bg-f0fdf4);
+        color: var(--tx-166534);
       }
       .preview--down {
-        background: #fffbeb;
-        color: #92400e;
+        background: var(--bg-fffbeb);
+        color: var(--tx-92400e);
       }
       .preview--same {
-        background: #f8fafc;
-        color: #475569;
+        background: var(--bg-f8fafc);
+        color: var(--tx-475569);
       }
       .pf-btn--danger {
         border-color: #dc2626;

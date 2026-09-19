@@ -40,7 +40,8 @@
             "styles": [
               "node_modules/primeicons/primeicons.css",
               "node_modules/primeflex/primeflex.css",
-              "src/styles.scss"
+              "src/styles.scss",
+              "src/theme-dark.scss"
             ]
           },
           "configurations": {
@@ -101,7 +102,8 @@
               }
             ],
             "styles": [
-              "src/styles.scss"
+              "src/styles.scss",
+              "src/theme-dark.scss"
             ]
           }
         }

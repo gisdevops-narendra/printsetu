@@ -428,6 +428,10 @@ model PrintSettings {
   // Shopkeeper-controlled (off by default): confirmed customer orders are sent
   // straight to the printer instead of waiting for the shopkeeper's PRINT tap.
   autoAcceptOrders       Boolean  @default(false) @map("auto_accept_orders")
+  // Shopkeeper-controlled "Online / Offline" switch (on by default): when off,
+  // customers who scan the QR see the shop as temporarily unavailable, e.g.
+  // during a lunch break or a printer fault. Independent of the subscription.
+  acceptingOrders        Boolean  @default(true) @map("accepting_orders")
   // In-portal alert preferences: { newOrderSound, desktopAlerts, failureAlerts }
   notificationPrefs      Json?    @map("notification_prefs")
   updatedAt              DateTime @updatedAt @map("updated_at")

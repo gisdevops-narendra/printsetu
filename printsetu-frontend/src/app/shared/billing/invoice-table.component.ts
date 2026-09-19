@@ -88,7 +88,7 @@ import { PAYMENT_METHODS, money } from './billing.util';
         align-items: center;
         gap: 0.5rem;
         padding: 2rem 1rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
         text-align: center;
       }
       .empty i {
@@ -105,27 +105,27 @@ import { PAYMENT_METHODS, money } from './billing.util';
         font-weight: 700;
         letter-spacing: 0.05em;
         text-transform: uppercase;
-        color: #94a3b8;
-        border-bottom: 2px solid #eef1f7;
+        color: var(--tx-94a3b8);
+        border-bottom: 2px solid var(--bd-eef1f7);
       }
       .inv td {
         padding: 0.875rem 0.75rem;
         vertical-align: top;
-        border-bottom: 1px solid #eef1f7;
+        border-bottom: 1px solid var(--bd-eef1f7);
         font-size: 0.9rem;
-        color: #334155;
+        color: var(--tx-334155);
       }
       .inv td > strong,
       .inv td > span {
         display: block;
       }
       .inv td strong {
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .inv td strong em {
         font-style: normal;
         font-weight: 500;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .num {
         text-align: right !important;
@@ -134,13 +134,13 @@ import { PAYMENT_METHODS, money } from './billing.util';
       .sub {
         margin-top: 0.125rem;
         font-size: 0.75rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .sub.refund {
-        color: #4338ca;
+        color: var(--tx-4338ca);
       }
       .sub.bad {
-        color: #b91c1c;
+        color: var(--tx-b91c1c);
         max-width: 14rem;
       }
       .mono {
@@ -171,13 +171,13 @@ import { PAYMENT_METHODS, money } from './billing.util';
         justify-content: center;
         gap: 0.375rem;
         min-height: 2.25rem;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--bd-e2e8f0);
         border-radius: 10px;
-        background: #fff;
+        background: var(--bg-ffffff);
         font: inherit;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #334155;
+        color: var(--tx-334155);
         cursor: pointer;
       }
       .ic {
@@ -189,7 +189,7 @@ import { PAYMENT_METHODS, money } from './billing.util';
       .ic:hover,
       .txt:hover {
         border-color: var(--p-primary-300);
-        color: var(--p-primary-700);
+        color: var(--accent-text-700);
         background: var(--p-primary-50);
       }
 
@@ -213,7 +213,7 @@ import { PAYMENT_METHODS, money } from './billing.util';
         }
         .inv tr {
           padding: 0.375rem 1rem 0.75rem;
-          border: 1px solid #e6eaf2;
+          border: 1px solid var(--bd-e6eaf2);
           border-radius: 16px;
         }
         .inv td {
@@ -223,14 +223,14 @@ import { PAYMENT_METHODS, money } from './billing.util';
           gap: 1rem;
           padding: 0.5rem 0;
           text-align: right;
-          border-bottom: 1px solid #f3f5fa;
+          border-bottom: 1px solid var(--bd-f3f5fa);
         }
         .inv td::before {
           content: attr(data-label);
           flex: none;
           font-size: 0.75rem;
           font-weight: 600;
-          color: #94a3b8;
+          color: var(--tx-94a3b8);
           text-align: left;
         }
         .inv td > strong,

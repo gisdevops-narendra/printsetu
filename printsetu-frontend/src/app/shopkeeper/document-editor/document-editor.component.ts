@@ -292,11 +292,11 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         flex-direction: column;
         flex: 1 1 auto;
         min-height: 0;
-        --ink: #0f172a;
-        --muted: #64748b;
-        --line: #e2e8f0;
-        --surface: #ffffff;
-        --soft: #f8fafc;
+        --ink: var(--tx-0f172a);
+        --muted: var(--tx-64748b);
+        --line: var(--bd-e2e8f0);
+        --surface: var(--bg-ffffff);
+        --soft: var(--bg-f8fafc);
       }
       .editor-page {
         display: flex;
@@ -316,7 +316,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
       }
       .state-box__icon {
         font-size: 2rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
 
       /* ---------- Header ---------- */
@@ -333,7 +333,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         border-radius: 10px;
         border: 1px solid var(--line);
         background: var(--surface);
-        color: #475569;
+        color: var(--tx-475569);
         cursor: pointer;
         display: inline-flex;
         align-items: center;
@@ -342,7 +342,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
       }
       .back-btn:hover {
         border-color: var(--p-primary-300);
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
         background: var(--p-primary-50);
       }
       .editor-header__title {
@@ -369,7 +369,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         padding: 0.125rem 0.5rem;
         border-radius: 999px;
         background: var(--p-primary-50);
-        color: var(--p-primary-700);
+        color: var(--accent-text-700);
       }
       .editor-subtitle {
         margin: 0.125rem 0 0 0;
@@ -399,12 +399,12 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         border: none;
         background: none;
         border-radius: 8px;
-        color: #475569;
+        color: var(--tx-475569);
         cursor: pointer;
       }
       .pager__btn:hover:not(:disabled) {
         background: var(--soft);
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
       }
       .pager__btn:disabled {
         opacity: 0.35;
@@ -415,7 +415,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         text-align: center;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #334155;
+        color: var(--tx-334155);
         font-variant-numeric: tabular-nums;
       }
 
@@ -522,7 +522,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
           border: 1px solid var(--line);
           border-radius: 10px;
           background: var(--surface);
-          color: #334155;
+          color: var(--tx-334155);
           font-size: 0.8125rem;
           font-weight: 600;
           cursor: pointer;
@@ -667,13 +667,13 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        background: #e0e7ff;
-        color: #4f46e5;
+        background: var(--bg-e0e7ff);
+        color: var(--tx-4f46e5);
         font-size: 1rem;
       }
       .doc-card__icon.is-pdf {
-        background: #fee2e2;
-        color: #dc2626;
+        background: var(--bg-fee2e2);
+        color: var(--tx-dc2626);
       }
       .doc-card__text {
         flex: 1 1 auto;
@@ -699,7 +699,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         gap: 0.25rem;
       }
       .edited-tag {
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
         font-weight: 600;
         display: inline-flex;
         align-items: center;
@@ -728,7 +728,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
       .icon-btn {
         border: none;
         background: none;
-        color: #64748b;
+        color: var(--tx-64748b);
         cursor: pointer;
         width: 1.5rem;
         height: 1.5rem;
@@ -744,16 +744,16 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         font-size: 0.8125rem;
       }
       .icon-btn:hover:not(:disabled) {
-        background: #eef2ff;
-        color: var(--p-primary-600);
+        background: var(--bg-eef2ff);
+        color: var(--accent-text-600);
       }
       .icon-btn:disabled {
         opacity: 0.3;
         cursor: default;
       }
       .icon-btn--danger:hover:not(:disabled) {
-        background: #fee2e2;
-        color: #dc2626;
+        background: var(--bg-fee2e2);
+        color: var(--tx-dc2626);
       }
 
       /* ---------- Workspace ---------- */
@@ -798,7 +798,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
       }
       .segmented {
         display: inline-flex;
-        background: #eef1f6;
+        background: var(--bg-eef1f6);
         border-radius: 10px;
         padding: 0.1875rem;
       }
@@ -834,7 +834,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         min-width: 3.25rem;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #334155;
+        color: var(--tx-334155);
         cursor: pointer;
         font-variant-numeric: tabular-nums;
       }
@@ -846,8 +846,8 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         overflow: auto;
         border: 1px solid var(--line);
         border-radius: 14px;
-        background-color: #eef1f6;
-        background-image: radial-gradient(#cfd6e2 1px, transparent 1px);
+        background-color: var(--bg-eef1f6);
+        background-image: radial-gradient(var(--dot-grid) 1px, transparent 1px);
         background-size: 18px 18px;
         container-type: size;
         user-select: none;
@@ -864,7 +864,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         position: relative;
         transform-origin: center center;
         box-shadow: 0 6px 24px rgba(15, 23, 42, 0.18);
-        background: #fff;
+        background: var(--bg-ffffff);
         line-height: 0;
       }
       .preview__zoomed canvas {
@@ -881,7 +881,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
       .paper-frame {
         aspect-ratio: var(--ar, 0.707);
         width: min(calc(100cqw - 2rem), calc((100cqh - 2rem) * var(--ar, 0.707)));
-        background: #fff;
+        background: var(--bg-ffffff);
         box-shadow: 0 6px 24px rgba(15, 23, 42, 0.18);
         display: flex;
         align-items: center;

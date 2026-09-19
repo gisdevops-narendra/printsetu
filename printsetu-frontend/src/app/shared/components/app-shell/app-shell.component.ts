@@ -1,8 +1,8 @@
-import { Component, EventEmitter, HostListener, Input, Output, inject, signal } from '@angular/core';
+import { Component, HostListener, Input, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { ButtonModule } from 'primeng/button';
 import { filter } from 'rxjs';
+import { ShellStateService } from '../../../core/services/shell-state.service';
 
 export interface ShellNavItem {
   label: string;
@@ -15,22 +15,24 @@ export interface ShellNavItem {
  *
  * - Desktop (>= 1200px): full 240px sidebar.
  * - Tablet (768-1199px): icon-only rail, so pages keep the width they need.
- * - Mobile (< 768px): the sidebar becomes an off-canvas drawer opened from a
- *   hamburger in the top bar, closed by the scrim, Escape or navigating.
+ * - Mobile (< 768px): the sidebar becomes an off-canvas drawer opened from the
+ *   header's hamburger, closed by the scrim, Escape or navigating.
  *
- * The routed page is projected into <main class="app-shell-content"> (styled
- * in styles.scss), which is fluid: it uses the whole width that is left.
+ * The page header is supplied by each portal (see AdminHeaderComponent /
+ * ShopHeaderComponent) and projected into the [shellHeader] slot; the routed
+ * page goes into <main class="app-shell-content"> (styled in styles.scss),
+ * which is fluid: it uses the whole width that is left.
  */
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, ButtonModule],
+  imports: [CommonModule, RouterLink, RouterLinkActive],
   template: `
-    <div class="shell" [class.drawer-open]="drawerOpen()">
+    <div class="shell" [class.drawer-open]="state.drawerOpen()">
       <aside class="sidebar" id="app-sidebar" [attr.aria-hidden]="null">
         <div class="brand">
+          <span class="brand__logo" aria-hidden="true"><i class="pi pi-print"></i></span>
           <span class="brand__full">PrintSetu</span>
-          <span class="brand__mark" aria-hidden="true">PS</span>
         </div>
         <nav class="nav">
           @for (item of navItems; track item.route) {
@@ -41,18 +43,10 @@ export interface ShellNavItem {
           }
         </nav>
       </aside>
-      <div class="scrim" (click)="drawerOpen.set(false)"></div>
+      <div class="scrim" (click)="state.close()"></div>
 
       <div class="main">
-        <header class="topbar">
-          <button type="button" class="menu-btn" (click)="drawerOpen.set(!drawerOpen())" aria-label="Toggle navigation" aria-controls="app-sidebar" [attr.aria-expanded]="drawerOpen()">
-            <i class="pi" [ngClass]="drawerOpen() ? 'pi-times' : 'pi-bars'"></i>
-          </button>
-          <span class="topbar__title">{{ title }}</span>
-          <span class="spacer"></span>
-          <span class="topbar__email" [title]="email">{{ email }}</span>
-          <p-button class="logout" label="Logout" icon="pi pi-sign-out" size="small" severity="secondary" [text]="true" (onClick)="logout.emit()" />
-        </header>
+        <ng-content select="[shellHeader]" />
         <main class="app-shell-content">
           <ng-content />
         </main>
@@ -78,22 +72,35 @@ export interface ShellNavItem {
         flex: 0 0 auto;
         background: #0f172a;
         color: #e2e8f0;
-        padding: 1.5rem 1rem;
+        padding: 1.25rem 1rem 1.5rem;
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
         overflow-y: auto;
+        border-right: 1px solid rgba(148, 163, 184, 0.12);
         transition: width 0.18s ease, transform 0.22s ease;
       }
       .brand {
-        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        font-size: 1.2rem;
         font-weight: 700;
         color: white;
         padding: 0 0.5rem;
         white-space: nowrap;
       }
-      .brand__mark {
-        display: none;
+      .brand__logo {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.1rem;
+        height: 2.1rem;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--p-primary-500), var(--p-primary-700));
+        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+        font-size: 1rem;
       }
       .nav {
         display: flex;
@@ -124,54 +131,13 @@ export interface ShellNavItem {
         color: white;
       }
 
-      /* ---------- Main column / top bar ---------- */
+      /* ---------- Main column ---------- */
       .main {
         flex: 1 1 auto;
         display: flex;
         flex-direction: column;
         min-width: 0;
         min-height: 0;
-      }
-      .topbar {
-        height: 64px;
-        flex: 0 0 auto;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0 clamp(1rem, 2vw, 2rem);
-        background: white;
-        border-bottom: 1px solid #e2e8f0;
-      }
-      .topbar__title {
-        color: #64748b;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        min-width: 0;
-      }
-      .spacer {
-        flex: 1 1 auto;
-      }
-      .topbar__email {
-        font-size: 0.875rem;
-        color: #1e293b;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        min-width: 0;
-      }
-      .menu-btn {
-        display: none;
-        width: 2.5rem;
-        height: 2.5rem;
-        flex: 0 0 auto;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        background: #fff;
-        color: #334155;
-        cursor: pointer;
-        align-items: center;
-        justify-content: center;
       }
       .scrim {
         display: none;
@@ -185,16 +151,12 @@ export interface ShellNavItem {
           align-items: stretch;
         }
         .brand {
-          text-align: center;
+          justify-content: center;
           padding: 0;
         }
         .brand__full,
         .nav-link__label {
           display: none;
-        }
-        .brand__mark {
-          display: block;
-          font-size: 1.1rem;
         }
         .nav-link {
           justify-content: center;
@@ -236,50 +198,26 @@ export interface ShellNavItem {
           opacity: 1;
           visibility: visible;
         }
-        .menu-btn {
-          display: inline-flex;
-        }
-        .topbar {
-          height: 56px;
-        }
-        .topbar__email {
-          display: none;
-        }
-        .logout ::ng-deep .p-button-label {
-          display: none;
-        }
-      }
-      /* Short screens: a slimmer top bar leaves more room for the page. */
-      @media (max-height: 520px) {
-        .topbar {
-          height: 44px;
-        }
-      }
-      @media (max-width: 1023px) and (min-width: 768px) {
-        .topbar__email {
-          max-width: 14rem;
-        }
       }
     `,
   ],
 })
-export class AppShellComponent {
-  @Input() title = '';
-  @Input() email = '';
+export class AppShellComponent implements OnDestroy {
   @Input({ required: true }) navItems: ShellNavItem[] = [];
-  @Output() logout = new EventEmitter<void>();
 
-  drawerOpen = signal(false);
-
-  constructor() {
+  readonly state = inject(ShellStateService);
+  private readonly navSub = inject(Router)
     // Navigating from the drawer should close it.
-    inject(Router)
-      .events.pipe(filter((e) => e instanceof NavigationEnd))
-      .subscribe(() => this.drawerOpen.set(false));
-  }
+    .events.pipe(filter((e) => e instanceof NavigationEnd))
+    .subscribe(() => this.state.close());
 
   @HostListener('document:keydown.escape')
   closeDrawer(): void {
-    this.drawerOpen.set(false);
+    this.state.close();
+  }
+
+  ngOnDestroy(): void {
+    this.navSub.unsubscribe();
+    this.state.close();
   }
 }

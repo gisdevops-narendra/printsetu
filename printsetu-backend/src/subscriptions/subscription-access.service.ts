@@ -143,6 +143,11 @@ export class SubscriptionAccessService {
     if (!access.acceptsOrders) {
       return { available: false, message: 'This shop is temporarily unavailable. Please try again later.' };
     }
+    // The shopkeeper's own Online / Offline switch (a lunch break, a printer fault, ...).
+    const settings = await this.prisma.printSettings.findUnique({ where: { shopId }, select: { acceptingOrders: true } });
+    if (settings && !settings.acceptingOrders) {
+      return { available: false, message: 'This shop has paused new orders for now. Please try again in a little while.' };
+    }
     if (sub) {
       const limit = await this.limitReached(shopId, sub.plan);
       if (limit) return { available: false, message: limit.customerMessage };

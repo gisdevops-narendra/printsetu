@@ -183,7 +183,7 @@ import { CHANNEL_META, STATE_META, downloadBlob, limit, money, printBlob, yearly
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .hero {
         display: grid;
@@ -271,9 +271,9 @@ import { CHANNEL_META, STATE_META, downloadBlob, limit, money, printBlob, yearly
         gap: 0.75rem 1.5rem;
         margin-top: 1rem;
         padding: 1rem 1.25rem;
-        border: 1px solid #fde68a;
+        border: 1px solid var(--bd-fde68a);
         border-radius: 16px;
-        background: #fffbeb;
+        background: var(--bg-fffbeb);
       }
       @media (max-width: 640px) {
         .due {
@@ -288,23 +288,24 @@ import { CHANNEL_META, STATE_META, downloadBlob, limit, money, printBlob, yearly
       .due strong {
         font-size: 1.75rem;
         line-height: 1.15;
-        color: #78350f;
+        color: var(--tx-78350f);
       }
       .due__sub {
         font-size: 0.8125rem;
-        color: #92400e;
+        color: var(--tx-92400e);
       }
       .due p {
         margin: 0;
         font-size: 0.875rem;
         line-height: 1.55;
-        color: #92400e;
+        color: var(--tx-92400e);
       }
       .grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: clamp(0.75rem, 1.6vw, 1.25rem);
-        margin-top: 1rem;
+        /* PrimeFlex ships a global .grid with negative side margins; this is a different grid. */
+        margin: 1rem 0 0;
         align-items: start;
       }
       @media (max-width: 900px) {
@@ -326,15 +327,15 @@ import { CHANNEL_META, STATE_META, downloadBlob, limit, money, printBlob, yearly
         gap: 0.75rem;
         margin-bottom: 0.375rem;
         font-size: 0.875rem;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .usage__row strong {
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .track {
         height: 8px;
         border-radius: 999px;
-        background: #eef1f7;
+        background: var(--bg-eef1f7);
         overflow: hidden;
       }
       .track span {
@@ -354,14 +355,14 @@ import { CHANNEL_META, STATE_META, downloadBlob, limit, money, printBlob, yearly
         padding: 0;
         list-style: none;
         font-size: 0.875rem;
-        color: #334155;
+        color: var(--tx-334155);
       }
       .feat i {
         margin-right: 0.375rem;
-        color: #6366f1;
+        color: var(--tx-6366f1);
       }
       .feat li.off {
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .feat li.off i {
         color: #cbd5e1;
@@ -370,7 +371,7 @@ import { CHANNEL_META, STATE_META, downloadBlob, limit, money, printBlob, yearly
         margin: 0.875rem 0 0;
         font-size: 0.8125rem;
         line-height: 1.5;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .pref {
         display: flex;
@@ -378,7 +379,7 @@ import { CHANNEL_META, STATE_META, downloadBlob, limit, money, printBlob, yearly
         justify-content: space-between;
         gap: 1rem;
         padding: 0.875rem 0;
-        border-bottom: 1px solid #eef1f7;
+        border-bottom: 1px solid var(--bd-eef1f7);
       }
       .pref:last-child {
         border-bottom: none;
@@ -388,13 +389,13 @@ import { CHANNEL_META, STATE_META, downloadBlob, limit, money, printBlob, yearly
         align-items: flex-start;
       }
       .pref strong {
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .pref p {
         margin: 0.125rem 0 0;
         font-size: 0.8125rem;
         line-height: 1.5;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .pref--col .fine {
         margin: 0;
@@ -409,19 +410,19 @@ import { CHANNEL_META, STATE_META, downloadBlob, limit, money, printBlob, yearly
         align-items: center;
         gap: 0.375rem;
         padding: 0.4rem 0.75rem;
-        border: 1.5px solid #e2e8f0;
+        border: 1.5px solid var(--bd-e2e8f0);
         border-radius: 999px;
-        background: #fff;
+        background: var(--bg-ffffff);
         font: inherit;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #64748b;
+        color: var(--tx-64748b);
         cursor: pointer;
       }
       .chan.is-on {
         border-color: var(--p-primary-500);
         background: var(--p-primary-50);
-        color: var(--p-primary-700);
+        color: var(--accent-text-700);
       }
       .chan:disabled {
         cursor: default;
@@ -430,8 +431,8 @@ import { CHANNEL_META, STATE_META, downloadBlob, limit, money, printBlob, yearly
         flex-wrap: wrap;
       }
       .danger {
-        color: #b91c1c;
-        border-color: #fecaca;
+        color: var(--tx-b91c1c);
+        border-color: var(--bd-fecaca);
       }
     `,
   ],

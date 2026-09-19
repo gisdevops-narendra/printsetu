@@ -22,5 +22,47 @@ export const printsetuTheme = definePreset(Aura, {
       900: '#312e81',
       950: '#1e1b4b',
     },
+    // The app's own dark surfaces (styles.scss) are slate/navy; Aura's default dark surface is neutral zinc.
+    colorScheme: {
+      dark: {
+        surface: {
+          0: '#ffffff',
+          50: '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b',
+          600: '#475569',
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a',
+          950: '#020617',
+        },
+      },
+    },
+  },
+  components: {
+    // Filled primary buttons keep the app's solid indigo + white text in dark mode too.
+    // (Aura's dark default is a pale indigo with dark text, which clashed with the custom buttons.)
+    button: {
+      colorScheme: {
+        dark: {
+          root: {
+            primary: {
+              background: '{primary.600}',
+              hoverBackground: '{primary.500}',
+              activeBackground: '{primary.500}',
+              borderColor: '{primary.600}',
+              hoverBorderColor: '{primary.500}',
+              activeBorderColor: '{primary.500}',
+              color: '#ffffff',
+              hoverColor: '#ffffff',
+              activeColor: '#ffffff',
+            },
+          },
+        },
+      },
+    },
   },
 });

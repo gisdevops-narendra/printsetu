@@ -237,7 +237,7 @@ const BLANK: Form = {
         align-items: center;
         gap: 0.5rem;
         font-size: 0.875rem;
-        color: #475569;
+        color: var(--tx-475569);
         cursor: pointer;
       }
       .cards {
@@ -250,13 +250,13 @@ const BLANK: Form = {
         flex-direction: column;
         min-width: 0;
         padding: clamp(1rem, 2.2vw, 1.5rem);
-        background: #fff;
-        border: 1px solid #e6eaf2;
+        background: var(--bg-ffffff);
+        border: 1px solid var(--bd-e6eaf2);
         border-radius: 20px;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
       }
       .plan.is-retired {
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
         border-style: dashed;
       }
       .plan__head {
@@ -269,7 +269,7 @@ const BLANK: Form = {
         margin: 0;
         font-size: 1.25rem;
         letter-spacing: -0.02em;
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .count {
         display: inline-flex;
@@ -277,16 +277,16 @@ const BLANK: Form = {
         gap: 0.375rem;
         padding: 0.25rem 0.625rem;
         border-radius: 999px;
-        background: #f1f5f9;
+        background: var(--bg-f1f5f9);
         font-size: 0.8125rem;
         font-weight: 700;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .plan__desc {
         margin: 0.375rem 0 0;
         font-size: 0.875rem;
         line-height: 1.5;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .price {
         display: flex;
@@ -298,10 +298,10 @@ const BLANK: Form = {
         font-size: 2rem;
         line-height: 1;
         letter-spacing: -0.03em;
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .price span {
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .saving {
         display: flex;
@@ -311,7 +311,7 @@ const BLANK: Form = {
         min-height: 1.75rem;
         margin: 0.375rem 0 0;
         font-size: 0.8125rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .badge {
         display: inline-block;
@@ -321,16 +321,16 @@ const BLANK: Form = {
         font-weight: 700;
       }
       .badge--ok {
-        background: #dcfce7;
-        color: #15803d;
+        background: var(--bg-dcfce7);
+        color: var(--tx-15803d);
       }
       .badge--info {
-        background: #e0e7ff;
-        color: #4338ca;
+        background: var(--bg-e0e7ff);
+        color: var(--tx-4338ca);
       }
       .badge--muted {
-        background: #e2e8f0;
-        color: #475569;
+        background: var(--bg-e2e8f0);
+        color: var(--tx-475569);
       }
       .features {
         display: flex;
@@ -338,7 +338,7 @@ const BLANK: Form = {
         gap: 0.5rem;
         margin: 1rem 0 1.25rem;
         padding: 1rem 0 0;
-        border-top: 1px solid #eef1f7;
+        border-top: 1px solid var(--bd-eef1f7);
         list-style: none;
         flex: 1;
       }
@@ -347,15 +347,15 @@ const BLANK: Form = {
         align-items: flex-start;
         gap: 0.625rem;
         font-size: 0.9rem;
-        color: #334155;
+        color: var(--tx-334155);
       }
       .features li i {
         margin-top: 0.2rem;
         font-size: 0.8rem;
-        color: #6366f1;
+        color: var(--tx-6366f1);
       }
       .features li.off {
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .features li.off i {
         color: #cbd5e1;
@@ -368,7 +368,7 @@ const BLANK: Form = {
         flex: 1;
       }
       .danger {
-        color: #b91c1c;
+        color: var(--tx-b91c1c);
       }
       .rules {
         margin-top: clamp(0.75rem, 1.6vw, 1.25rem);
@@ -376,7 +376,7 @@ const BLANK: Form = {
       .sub {
         margin: 0.25rem 0 0;
         font-size: 0.8125rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .rules__grid {
         display: grid;
@@ -397,12 +397,12 @@ const BLANK: Form = {
         border-radius: 12px;
       }
       .rule__icon--up {
-        background: #dcfce7;
-        color: #15803d;
+        background: var(--bg-dcfce7);
+        color: var(--tx-15803d);
       }
       .rule__icon--down {
-        background: #fef3c7;
-        color: #b45309;
+        background: var(--bg-fef3c7);
+        color: var(--tx-b45309);
       }
       .rule__body {
         display: flex;
@@ -415,7 +415,7 @@ const BLANK: Form = {
         margin: 0;
         font-size: 0.8125rem;
         line-height: 1.5;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .rule__body .pf-seg {
         max-width: 100%;
@@ -442,50 +442,50 @@ const BLANK: Form = {
       fieldset legend {
         font-size: 0.8125rem;
         font-weight: 700;
-        color: #334155;
+        color: var(--tx-334155);
       }
       label small,
       legend small {
         font-weight: 500;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .field input,
       .field textarea {
         width: 100%;
         padding: 0.65rem 0.8rem;
-        border: 1.5px solid #e2e8f0;
+        border: 1.5px solid var(--bd-e2e8f0);
         border-radius: 12px;
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
         font: inherit;
         font-size: 1rem;
-        color: #0f172a;
+        color: var(--tx-0f172a);
         outline: none;
         resize: vertical;
       }
       .field input:focus,
       .field textarea:focus {
         border-color: var(--p-primary-500);
-        background: #fff;
+        background: var(--bg-ffffff);
         box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.14);
       }
       .field.has-error input {
-        border-color: #f0a3a3;
-        background: #fffafa;
+        border-color: var(--bd-f0a3a3);
+        background: var(--bg-fffafa);
       }
       .err {
         font-size: 0.75rem;
-        color: #b42318;
+        color: var(--tx-b42318);
       }
       .hint {
         margin: 0;
         font-size: 0.75rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .hint--ok {
         margin-top: 0.5rem;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #15803d;
+        color: var(--tx-15803d);
       }
       fieldset {
         margin: 0;
@@ -517,7 +517,7 @@ const BLANK: Form = {
       .toggle label {
         font-size: 0.9375rem;
         font-weight: 600;
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
     `,
   ],

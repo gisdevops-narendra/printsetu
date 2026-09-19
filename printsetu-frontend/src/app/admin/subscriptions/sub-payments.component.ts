@@ -72,9 +72,9 @@ const PAGE = 20;
         gap: 0.875rem;
         margin-bottom: 1rem;
         padding: 0.875rem 1rem;
-        border: 1px solid #e0e7ff;
+        border: 1px solid var(--bd-e0e7ff);
         border-radius: 16px;
-        background: #f5f7ff;
+        background: var(--bg-f5f7ff);
       }
       .gateway__icon {
         flex: none;
@@ -84,17 +84,17 @@ const PAGE = 20;
         width: 2.25rem;
         height: 2.25rem;
         border-radius: 12px;
-        background: #e0e7ff;
-        color: #4338ca;
+        background: var(--bg-e0e7ff);
+        color: var(--tx-4338ca);
       }
       .gateway strong {
-        color: #312e81;
+        color: var(--tx-312e81);
       }
       .gateway p {
         margin: 0.125rem 0 0;
         font-size: 0.8125rem;
         line-height: 1.5;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .filters {
         display: flex;
@@ -112,22 +112,22 @@ const PAGE = 20;
         left: 0.875rem;
         top: 50%;
         transform: translateY(-50%);
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
         pointer-events: none;
       }
       .search input {
         width: 100%;
         padding: 0.625rem 0.875rem 0.625rem 2.5rem;
-        border: 1.5px solid #e2e8f0;
+        border: 1.5px solid var(--bd-e2e8f0);
         border-radius: 12px;
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
         font: inherit;
         font-size: 0.9375rem;
         outline: none;
       }
       .search input:focus {
         border-color: var(--p-primary-500);
-        background: #fff;
+        background: var(--bg-ffffff);
       }
       .chips {
         display: flex;
@@ -139,13 +139,13 @@ const PAGE = 20;
       .chip {
         flex: none;
         padding: 0.4rem 0.875rem;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--bd-e2e8f0);
         border-radius: 999px;
-        background: #fff;
+        background: var(--bg-ffffff);
         font: inherit;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #64748b;
+        color: var(--tx-64748b);
         cursor: pointer;
       }
       .chip.is-on {
@@ -160,7 +160,7 @@ const PAGE = 20;
         gap: 0.75rem;
         margin-top: 1rem;
         font-size: 0.8125rem;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
     `,
   ],

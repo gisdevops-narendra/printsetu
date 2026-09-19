@@ -82,7 +82,7 @@ interface Column {
       .summary {
         margin: 0.25rem 0 0;
         font-size: 0.9375rem;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .scroll {
         overflow-x: auto;
@@ -99,13 +99,13 @@ interface Column {
       .matrix td {
         padding: 0.875rem 0.75rem;
         text-align: center;
-        border-bottom: 1px solid #eef1f7;
+        border-bottom: 1px solid var(--bd-eef1f7);
       }
       .matrix thead th {
         vertical-align: bottom;
         font-weight: 600;
-        color: #334155;
-        border-bottom: 2px solid #e6eaf2;
+        color: var(--tx-334155);
+        border-bottom: 2px solid var(--bd-e6eaf2);
       }
       .matrix thead th:first-child,
       .matrix tbody th {
@@ -119,7 +119,7 @@ interface Column {
       }
       .col-title .pi-circle-fill {
         font-size: 0.5rem;
-        color: #334155;
+        color: var(--tx-334155);
       }
       .col-title .pi-palette {
         font-size: 0.8125rem;
@@ -130,33 +130,33 @@ interface Column {
         margin-top: 0.125rem;
         font-size: 0.6875rem;
         font-weight: 500;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .matrix tbody th {
         font-size: 0.9375rem;
         font-weight: 700;
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .matrix tbody tr:last-child th,
       .matrix tbody tr:last-child td {
         border-bottom: none;
       }
       .matrix tbody tr:hover {
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
       }
       .price {
         display: inline-block;
         padding: 0.25rem 0.75rem;
         border-radius: 999px;
-        background: #f1f5f9;
+        background: var(--bg-f1f5f9);
         font-size: 0.9375rem;
         font-weight: 700;
-        color: #0f172a;
+        color: var(--tx-0f172a);
         font-variant-numeric: tabular-nums;
       }
       .price.is-min {
-        background: #dcfce7;
-        color: #15803d;
+        background: var(--bg-dcfce7);
+        color: var(--tx-15803d);
       }
       .none {
         color: #cbd5e1;
@@ -167,7 +167,7 @@ interface Column {
         margin: 1rem 0 0;
         font-size: 0.8125rem;
         line-height: 1.5;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .note i {
         margin-top: 0.15rem;
@@ -203,7 +203,7 @@ interface Column {
         }
         .matrix tbody tr {
           padding: 0.25rem 1rem 0.5rem;
-          border: 1px solid #e6eaf2;
+          border: 1px solid var(--bd-e6eaf2);
           border-radius: 16px;
         }
         .matrix tbody tr:hover {
@@ -212,7 +212,7 @@ interface Column {
         .matrix tbody th {
           padding: 0.75rem 0;
           font-size: 1.0625rem;
-          border-bottom: 1px solid #eef1f7;
+          border-bottom: 1px solid var(--bd-eef1f7);
         }
         .matrix td,
         .matrix tbody tr:last-child td {
@@ -222,7 +222,7 @@ interface Column {
           gap: 0.75rem;
           padding: 0.625rem 0;
           text-align: right;
-          border-bottom: 1px solid #f3f5fa;
+          border-bottom: 1px solid var(--bd-f3f5fa);
         }
         .matrix td:last-child,
         .matrix tbody tr:last-child td:last-child {
@@ -233,7 +233,7 @@ interface Column {
           font-size: 0.875rem;
           font-weight: 500;
           text-align: left;
-          color: #64748b;
+          color: var(--tx-64748b);
         }
       }
     `,

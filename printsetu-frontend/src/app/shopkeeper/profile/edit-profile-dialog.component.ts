@@ -99,7 +99,7 @@ const DESCRIPTION_MAX = 600;
         margin: 0;
         font-size: 0.875rem;
         line-height: 1.5;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       .field {
         display: flex;
@@ -110,18 +110,18 @@ const DESCRIPTION_MAX = 600;
       .field label {
         font-size: 0.8125rem;
         font-weight: 700;
-        color: #334155;
+        color: var(--tx-334155);
       }
       .field input,
       .field textarea {
         width: 100%;
         padding: 0.75rem 0.875rem;
-        border: 1.5px solid #e2e8f0;
+        border: 1.5px solid var(--bd-e2e8f0);
         border-radius: 12px;
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
         font: inherit;
         font-size: 1rem;
-        color: #0f172a;
+        color: var(--tx-0f172a);
         resize: vertical;
         outline: none;
         transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
@@ -129,25 +129,25 @@ const DESCRIPTION_MAX = 600;
       .field input:focus,
       .field textarea:focus {
         border-color: var(--p-primary-500);
-        background: #fff;
+        background: var(--bg-ffffff);
         box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.14);
       }
       .field.has-error input,
       .field.has-error textarea {
-        border-color: #f0a3a3;
-        background: #fffafa;
+        border-color: var(--bd-f0a3a3);
+        background: var(--bg-fffafa);
       }
       .err {
         font-size: 0.75rem;
-        color: #b42318;
+        color: var(--tx-b42318);
       }
       .count {
         align-self: flex-end;
         font-size: 0.75rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .count.is-near {
-        color: #d97706;
+        color: var(--tx-d97706);
       }
       .pair {
         display: grid;
@@ -165,7 +165,7 @@ const DESCRIPTION_MAX = 600;
         margin-bottom: 0.5rem;
         font-size: 0.8125rem;
         font-weight: 700;
-        color: #334155;
+        color: var(--tx-334155);
       }
       .hours__tools {
         display: flex;
@@ -180,7 +180,7 @@ const DESCRIPTION_MAX = 600;
         font: inherit;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
         cursor: pointer;
       }
       .link:hover {
@@ -192,19 +192,19 @@ const DESCRIPTION_MAX = 600;
         align-items: center;
         gap: 0.5rem 0.875rem;
         padding: 0.5rem 0;
-        border-bottom: 1px solid #eef1f7;
+        border-bottom: 1px solid var(--bd-eef1f7);
       }
       .hrow__day {
         font-size: 0.9375rem;
         font-weight: 600;
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .hrow.is-closed .hrow__day {
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .hrow__closed {
         font-size: 0.875rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .hrow__times {
         display: flex;
@@ -214,34 +214,42 @@ const DESCRIPTION_MAX = 600;
       }
       .hrow__times span {
         font-size: 0.8125rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .hrow__times input {
         flex: 1 1 0;
         min-width: 0;
         max-width: 8.5rem;
         padding: 0.5rem 0.625rem;
-        border: 1.5px solid #e2e8f0;
+        border: 1.5px solid var(--bd-e2e8f0);
         border-radius: 10px;
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
         font: inherit;
         font-size: 0.9375rem;
         outline: none;
       }
       .hrow__times input:focus {
         border-color: var(--p-primary-500);
-        background: #fff;
+        background: var(--bg-ffffff);
       }
       .hrow.has-error .hrow__times input {
-        border-color: #f0a3a3;
+        border-color: var(--bd-f0a3a3);
       }
       .hrow__err {
         grid-column: 1 / -1;
       }
       @media (max-width: 480px) {
+        /* Day + switch on one line, the two time fields below at full width (they were clipped to "09:"). */
         .hrow {
-          grid-template-columns: 5.25rem auto minmax(0, 1fr);
+          grid-template-columns: minmax(0, 1fr) auto;
           gap: 0.375rem 0.625rem;
+        }
+        .hrow__times,
+        .hrow__closed {
+          grid-column: 1 / -1;
+        }
+        .hrow__times input {
+          max-width: none;
         }
       }
     `,

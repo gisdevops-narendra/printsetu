@@ -69,7 +69,7 @@ interface Bar extends BarDatum {
         left: 0;
         right: 0;
         height: 0;
-        border-top: 1px dashed #e6eaf2;
+        border-top: 1px dashed var(--bd-e6eaf2);
       }
       .tick span {
         position: absolute;
@@ -78,7 +78,7 @@ interface Bar extends BarDatum {
         width: 2.25rem;
         text-align: right;
         font-size: 0.6875rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
         font-variant-numeric: tabular-nums;
       }
       .tick:first-child {
@@ -110,7 +110,7 @@ interface Bar extends BarDatum {
         transform-origin: bottom;
       }
       .bar.is-zero .bar__fill {
-        background: #e6eaf2;
+        background: var(--bg-e6eaf2);
         opacity: 1;
       }
       .bar.is-last .bar__fill {
@@ -176,7 +176,7 @@ interface Bar extends BarDatum {
         white-space: nowrap;
       }
       .axis span.is-shown {
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       @media (max-width: 520px) {
         .chart {

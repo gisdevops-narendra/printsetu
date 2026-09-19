@@ -1,10 +1,11 @@
-import { Component, OnDestroy, OnInit, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, effect, inject } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { OrderAlertsService } from '../../core/services/order-alerts.service';
 import { SubscriptionStatusService } from '../../core/services/subscription-status.service';
 import { AppShellComponent, ShellNavItem } from '../../shared/components/app-shell/app-shell.component';
 import { SubscriptionBannerComponent } from '../../shared/billing/subscription-banner.component';
+import { ShopHeaderComponent } from './shop-header.component';
 
 const BILLING: ShellNavItem = { label: 'Billing', icon: 'pi pi-credit-card', route: '/shop/billing' };
 
@@ -25,9 +26,10 @@ const LOCKED_NAV: ShellNavItem[] = [BILLING];
 @Component({
   selector: 'app-shopkeeper-layout',
   standalone: true,
-  imports: [RouterOutlet, AppShellComponent, SubscriptionBannerComponent],
+  imports: [RouterOutlet, AppShellComponent, SubscriptionBannerComponent, ShopHeaderComponent],
   template: `
-    <app-shell title="Shop Portal" [email]="auth.user()?.email ?? ''" [navItems]="navItems" (logout)="auth.logout()">
+    <app-shell [navItems]="navItems">
+      <app-shop-header shellHeader [navItems]="navItems" />
       <app-subscription-banner />
       <router-outlet />
     </app-shell>
@@ -49,8 +51,9 @@ const LOCKED_NAV: ShellNavItem[] = [BILLING];
   ],
 })
 export class ShopkeeperLayoutComponent implements OnInit, OnDestroy {
+  private readonly theme = inject(ThemeService);
+
   constructor(
-    public readonly auth: AuthService,
     private readonly alerts: OrderAlertsService,
     private readonly status: SubscriptionStatusService,
     private readonly router: Router,
@@ -82,11 +85,13 @@ export class ShopkeeperLayoutComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.status.start();
     document.body.classList.add('shell-locked');
+    this.theme.attach();
   }
 
   ngOnDestroy(): void {
     this.alerts.stop();
     this.status.stop();
     document.body.classList.remove('shell-locked');
+    this.theme.detach();
   }
 }

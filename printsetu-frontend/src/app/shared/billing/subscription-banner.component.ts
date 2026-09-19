@@ -69,19 +69,19 @@ import { money } from './billing.util';
         text-underline-offset: 3px;
       }
       .banner--info {
-        background: #eff6ff;
-        border-color: #bfdbfe;
-        color: #1e40af;
+        background: var(--bg-eff6ff);
+        border-color: var(--bd-bfdbfe);
+        color: var(--tx-1e40af);
       }
       .banner--warn {
-        background: #fffbeb;
-        border-color: #fde68a;
-        color: #92400e;
+        background: var(--bg-fffbeb);
+        border-color: var(--bd-fde68a);
+        color: var(--tx-92400e);
       }
       .banner--error {
-        background: #fef2f2;
-        border-color: #fecaca;
-        color: #991b1b;
+        background: var(--bg-fef2f2);
+        border-color: var(--bd-fecaca);
+        color: var(--tx-991b1b);
       }
       @media (max-width: 560px) {
         .banner {

@@ -25,7 +25,7 @@ import { QrData, QrPanelComponent } from '../../shared/components/qr-panel/qr-pa
       <app-qr-panel [qr]="q" [shopName]="shopName()" />
     } @else {
       <div class="surface-card-flat p-5 text-center">
-        <i class="pi pi-exclamation-circle" style="font-size: 1.75rem; color: #dc2626"></i>
+        <i class="pi pi-exclamation-circle" style="font-size: 1.75rem; color: var(--tx-dc2626)"></i>
         <p class="mt-3 mb-3">We couldn't load your QR code.</p>
         <p-button label="Try again" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="load()" />
       </div>

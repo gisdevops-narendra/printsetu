@@ -61,7 +61,7 @@ import { money } from '../../shared/billing/billing.util';
         margin-bottom: 1.25rem;
         padding: 0.875rem;
         border-radius: 14px;
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
       }
       .sum div {
         display: flex;
@@ -71,11 +71,11 @@ import { money } from '../../shared/billing/billing.util';
       }
       .sum span {
         font-size: 0.75rem;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .sum strong {
         font-size: 0.9375rem;
-        color: #0f172a;
+        color: var(--tx-0f172a);
         overflow-wrap: anywhere;
       }
       .field {
@@ -87,19 +87,19 @@ import { money } from '../../shared/billing/billing.util';
       .field label {
         font-size: 0.8125rem;
         font-weight: 700;
-        color: #334155;
+        color: var(--tx-334155);
       }
       label small {
         font-weight: 500;
-        color: #94a3b8;
+        color: var(--tx-94a3b8);
       }
       .field input,
       .field textarea {
         width: 100%;
         padding: 0.65rem 0.8rem;
-        border: 1.5px solid #e2e8f0;
+        border: 1.5px solid var(--bd-e2e8f0);
         border-radius: 12px;
-        background: #f8fafc;
+        background: var(--bg-f8fafc);
         font: inherit;
         font-size: 1rem;
         outline: none;
@@ -108,13 +108,13 @@ import { money } from '../../shared/billing/billing.util';
       .field input:focus,
       .field textarea:focus {
         border-color: var(--p-primary-500);
-        background: #fff;
+        background: var(--bg-ffffff);
         box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.14);
       }
       .has-error input,
       .has-error textarea {
-        border-color: #f0a3a3;
-        background: #fffafa;
+        border-color: var(--bd-f0a3a3);
+        background: var(--bg-fffafa);
       }
       .amt {
         display: flex;
@@ -129,18 +129,18 @@ import { money } from '../../shared/billing/billing.util';
         font: inherit;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: var(--p-primary-600);
+        color: var(--accent-text-600);
         cursor: pointer;
       }
       .err {
         font-size: 0.75rem;
-        color: #b42318;
+        color: var(--tx-b42318);
       }
       .fine {
         margin: 0;
         font-size: 0.8125rem;
         line-height: 1.5;
-        color: #64748b;
+        color: var(--tx-64748b);
       }
       @media (max-width: 420px) {
         .sum {

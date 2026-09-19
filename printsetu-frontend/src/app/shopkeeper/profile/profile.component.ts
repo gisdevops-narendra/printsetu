@@ -1,4 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { ScrollActiveTabDirective } from '../../shared/directives/scroll-active-tab.directive';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -33,7 +34,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 @Component({
   selector: 'app-shop-profile',
   standalone: true,
-  imports: [
+  imports: [ScrollActiveTabDirective, 
     CommonModule,
     RouterLink,
     ProfileOverviewComponent,
@@ -108,7 +109,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
         <input #bannerInput type="file" accept="image/png,image/jpeg,image/webp" hidden (change)="onImage('banner', $event)" />
 
         <!-- ================= Tabs ================= -->
-        <nav class="tabs" role="tablist" aria-label="Shop profile sections">
+        <nav class="tabs" appScrollActiveTab role="tablist" aria-label="Shop profile sections">
           @for (t of tabs; track t.key) {
             <button type="button" role="tab" class="tab" [class.is-on]="tab() === t.key" [attr.aria-selected]="tab() === t.key" (click)="select(t.key)">
               <i class="pi" [ngClass]="t.icon"></i><span>{{ t.label }}</span>
@@ -145,8 +146,8 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
       /* ---------- Hero ---------- */
       .hero {
         overflow: hidden;
-        background: #fff;
-        border: 1px solid #e6eaf2;
+        background: var(--bg-ffffff);
+        border: 1px solid var(--bd-e6eaf2);
         border-radius: 22px;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
       }
@@ -237,7 +238,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
         width: 1.125rem;
         height: 1.125rem;
         border: 2.5px solid rgba(255, 255, 255, 0.4);
-        border-top-color: #fff;
+        border-top-color: var(--bd-ffffff);
         border-radius: 50%;
         animation: spin 0.7s linear infinite;
       }
@@ -262,7 +263,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
         width: clamp(5rem, 9vw, 6.5rem);
         height: clamp(5rem, 9vw, 6.5rem);
         margin-top: calc(clamp(5rem, 9vw, 6.5rem) / -2);
-        border: 4px solid #fff;
+        border: 4px solid var(--bd-ffffff);
         border-radius: 24px;
         background: linear-gradient(135deg, var(--p-primary-500), var(--p-primary-700));
         box-shadow: 0 10px 24px rgba(30, 27, 75, 0.22);
@@ -276,7 +277,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
         width: 100%;
         height: 100%;
         object-fit: cover;
-        background: #fff;
+        background: var(--bg-ffffff);
       }
       .avatar__edit {
         position: absolute;
@@ -288,7 +289,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
         justify-content: center;
         width: 1.875rem;
         height: 1.875rem;
-        border: 2px solid #fff;
+        border: 2px solid var(--bd-ffffff);
         border-radius: 50%;
         background: #0f172a;
         font-size: 0.75rem;
@@ -308,7 +309,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
         line-height: 1.2;
         font-weight: 800;
         letter-spacing: -0.03em;
-        color: #0f172a;
+        color: var(--tx-0f172a);
         overflow-wrap: anywhere;
       }
       .meta {
@@ -323,33 +324,33 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
         gap: 0.375rem;
         padding: 0.25rem 0.75rem;
         border-radius: 999px;
-        background: #f1f5f9;
+        background: var(--bg-f1f5f9);
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .chip i {
         font-size: 0.75rem;
       }
       .chip--code {
         background: var(--p-primary-50);
-        color: var(--p-primary-700);
+        color: var(--accent-text-700);
       }
       .chip--ok {
-        background: #dcfce7;
-        color: #15803d;
+        background: var(--bg-dcfce7);
+        color: var(--tx-15803d);
       }
       .chip--bad {
-        background: #fee2e2;
-        color: #b91c1c;
+        background: var(--bg-fee2e2);
+        color: var(--tx-b91c1c);
       }
       .chip--muted {
-        background: #fef3c7;
-        color: #92400e;
+        background: var(--bg-fef3c7);
+        color: var(--tx-92400e);
       }
       .chip--plain {
-        background: #f1f5f9;
-        color: #64748b;
+        background: var(--bg-f1f5f9);
+        color: var(--tx-64748b);
       }
       .dot {
         width: 0.4rem;
@@ -362,25 +363,25 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
         max-width: 68ch;
         font-size: 0.9375rem;
         line-height: 1.6;
-        color: #475569;
+        color: var(--tx-475569);
       }
       .desc--add {
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
         padding: 0.375rem 0.875rem;
-        border: 1.5px dashed #cbd3e6;
+        border: 1.5px dashed var(--bd-cbd3e6);
         border-radius: 999px;
         background: none;
         font: inherit;
         font-size: 0.875rem;
         font-weight: 600;
-        color: #64748b;
+        color: var(--tx-64748b);
         cursor: pointer;
       }
       .desc--add:hover {
         border-color: var(--p-primary-300);
-        color: var(--p-primary-700);
+        color: var(--accent-text-700);
       }
       .hero__actions {
         display: flex;
@@ -414,7 +415,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
         gap: 0.375rem;
         overflow-x: auto;
         padding: 0.375rem;
-        background: #eef1f7;
+        background: var(--bg-eef1f7);
         border-radius: 16px;
         scrollbar-width: none;
       }
@@ -432,7 +433,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
         font: inherit;
         font-size: 0.875rem;
         font-weight: 600;
-        color: #64748b;
+        color: var(--tx-64748b);
         white-space: nowrap;
         cursor: pointer;
         transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
@@ -441,11 +442,11 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
         font-size: 0.9375rem;
       }
       .tab:hover:not(.is-on) {
-        color: #0f172a;
+        color: var(--tx-0f172a);
       }
       .tab.is-on {
-        background: #fff;
-        color: var(--p-primary-700);
+        background: var(--bg-ffffff);
+        color: var(--accent-text-700);
         box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
       }
       .panel {

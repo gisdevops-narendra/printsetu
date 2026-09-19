@@ -22,6 +22,9 @@ export class UpdateShopSettingsDto {
   /** Send confirmed customer orders straight to the printer. Off by default. */
   @IsOptional() @IsBoolean() autoAcceptOrders?: boolean;
 
+  /** The shop's Online / Offline switch: false pauses new customer orders. */
+  @IsOptional() @IsBoolean() acceptingOrders?: boolean;
+
   @IsOptional()
   @ValidateNested()
   @Type(() => NotificationPrefsDto)

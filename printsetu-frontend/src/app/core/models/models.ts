@@ -274,6 +274,8 @@ export interface NotificationPrefs {
 
 export interface ShopSettingsInfo {
   autoAcceptOrders: boolean;
+  /** The header's Online / Offline switch: false pauses new customer orders. */
+  acceptingOrders: boolean;
   defaultPrinterId: string | null;
   notificationPrefs: NotificationPrefs;
   /** Admin-managed; shown for information only. */
