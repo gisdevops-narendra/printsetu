@@ -44,6 +44,11 @@ export class AgentConnectionRegistry {
     this.logger.log(`Agent disconnected for printer ${printerId}`);
   }
 
+  /** Force-closes a live socket (e.g. the printer was just removed/unlinked). Triggers the gateway's own handleDisconnect, which unregisters it. */
+  disconnect(printerId: string): void {
+    this.sockets.get(printerId)?.disconnect(true);
+  }
+
   isConnected(printerId: string): boolean {
     return this.sockets.has(printerId);
   }

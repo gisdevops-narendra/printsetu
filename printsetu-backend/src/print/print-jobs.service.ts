@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { DocumentStatus, Prisma, PrintJobStatus } from '@prisma/client';
+import { DocumentStatus, Prisma, PrinterStatus, PrintJobStatus } from '@prisma/client';
 import { v4 as uuid } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrintJobsRepository } from './print-jobs.repository';
@@ -347,9 +347,15 @@ export class PrintJobsService {
     const job = await this.prisma.printJob.findUnique({ where: { id: jobId } });
     if (!job || job.shopId !== shopId) throw new AppNotFoundException('Print job not found.');
 
-    const printer = job.printerId
+    // A job carrying printerId from an earlier attempt might point at a
+    // printer removed/unlinked since — don't silently reuse it.
+    const previousAttemptPrinter = job.printerId
       ? await this.prisma.printer.findUnique({ where: { id: job.printerId } })
-      : await this.resolveShopPrinter(shopId);
+      : null;
+    const printer =
+      previousAttemptPrinter && previousAttemptPrinter.status !== PrinterStatus.REMOVED
+        ? previousAttemptPrinter
+        : await this.resolveShopPrinter(shopId);
 
     if (!printer) {
       throw new PrintAgentOfflineException('No printer is registered for this shop yet.');
@@ -389,9 +395,12 @@ export class PrintJobsService {
     const settings = await this.prisma.printSettings.findUnique({ where: { shopId } });
     if (settings?.defaultPrinterId) {
       const printer = await this.prisma.printer.findUnique({ where: { id: settings.defaultPrinterId } });
-      if (printer) return printer;
+      if (printer && printer.status !== PrinterStatus.REMOVED) return printer;
     }
-    return this.prisma.printer.findFirst({ where: { shopId }, orderBy: { createdAt: 'asc' } });
+    return this.prisma.printer.findFirst({
+      where: { shopId, status: { not: PrinterStatus.REMOVED } },
+      orderBy: { createdAt: 'asc' },
+    });
   }
 
   /** Called by the BullMQ processor to actually push the job to a connected agent. */

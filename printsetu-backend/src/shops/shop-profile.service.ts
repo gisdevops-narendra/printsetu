@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Prisma, PrintJobStatus } from '@prisma/client';
+import { Prisma, PrinterStatus, PrintJobStatus } from '@prisma/client';
 import sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_SERVICE, IStorageService } from '../storage/storage.interface';
@@ -197,7 +197,9 @@ export class ShopProfileService {
     }
     if (dto.defaultPrinterId !== undefined) {
       const printer = await this.prisma.printer.findUnique({ where: { id: dto.defaultPrinterId } });
-      if (!printer || printer.shopId !== shopId) throw new AppNotFoundException('Printer not found for this shop.');
+      if (!printer || printer.shopId !== shopId || printer.status === PrinterStatus.REMOVED) {
+        throw new AppNotFoundException('Printer not found for this shop.');
+      }
       data.defaultPrinterId = dto.defaultPrinterId;
     }
     if (Object.keys(data).length > 0) {

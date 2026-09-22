@@ -2,7 +2,7 @@ import { Component, HostListener, OnDestroy, OnInit, computed, signal } from '@a
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { PrinterRow } from '../../core/models/models';
 import { copyText, downloadUrl, timeAgo } from '../../shared/utils/browser.util';
@@ -194,6 +194,9 @@ interface Faq {
                     <span class="pill"><span class="pill__dot"></span>{{ statusLabel(p.status) }}</span>
                     <span class="printer__seen">{{ p.lastHeartbeatAt ? 'Seen ' + ago(p.lastHeartbeatAt) : 'Never connected' }}</span>
                   </div>
+                  <button type="button" class="printer__remove" (click)="confirmRemove(p)" [attr.aria-label]="'Remove ' + p.printerName">
+                    <i class="pi pi-trash"></i>
+                  </button>
                 </li>
               }
             </ul>
@@ -716,6 +719,24 @@ interface Faq {
         color: var(--muted);
         white-space: nowrap;
       }
+      .printer__remove {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--tx-94a3b8);
+        cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease;
+      }
+      .printer__remove:hover {
+        background: var(--bg-fee2e2);
+        color: var(--bad);
+      }
       @media (max-width: 480px) {
         .printer {
           flex-wrap: wrap;
@@ -726,6 +747,10 @@ interface Faq {
           justify-content: space-between;
           flex-basis: 100%;
           padding-left: 3.375rem;
+        }
+        .printer__remove {
+          order: -1;
+          margin-left: auto;
         }
       }
       .empty {
@@ -913,6 +938,7 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
   constructor(
     private readonly shopkeeperService: ShopkeeperService,
     private readonly messageService: MessageService,
+    private readonly confirmationService: ConfirmationService,
   ) {}
 
   ngOnInit(): void {
@@ -1030,5 +1056,22 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
 
   statusLabel(status: PrinterRow['status']): string {
     return status === 'ONLINE' ? 'Online' : status === 'OFFLINE' ? 'Offline' : 'Not connected yet';
+  }
+
+  confirmRemove(printer: PrinterRow): void {
+    this.confirmationService.confirm({
+      header: 'Remove printer',
+      message: `Remove "${printer.printerName}"? Its Print Agent stops being able to receive jobs immediately. You can always install and register a new one.`,
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonProps: { severity: 'danger', label: 'Remove' },
+      accept: () => {
+        this.shopkeeperService.removePrinter(printer.id).subscribe({
+          next: () => {
+            this.messageService.add({ severity: 'success', summary: 'Printer removed' });
+            this.refresh();
+          },
+        });
+      },
+    });
   }
 }

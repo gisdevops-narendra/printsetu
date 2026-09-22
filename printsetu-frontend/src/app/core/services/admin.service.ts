@@ -73,14 +73,6 @@ export class AdminService {
       params: shopId ? { shopId } : {},
     });
   }
-  registerPrinter(dto: { shopId: string; printerName: string; driverName?: string }) {
-    return this.http.post<{
-      printerId: string;
-      agentId: string;
-      agentSecret: string;
-      agentCredential: string;
-    }>(`${BASE}/agent/register`, dto);
-  }
   setDefaultPrinter(shopId: string, printerId: string) {
     return this.http.patch(`${BASE}/admin/printers/shops/${shopId}/default`, { printerId });
   }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Res } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { PrintersService } from './printers.service';
 import { AgentPackageService } from './agent-package.service';
@@ -56,5 +56,13 @@ export class ShopPrintersController {
       'Content-Length': zip.length,
     });
     res.send(zip);
+  }
+
+  /** Self-serve unlink of one of this shop's own printers/agents (e.g. a replaced or decommissioned PC). */
+  @Delete(':id')
+  async remove(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    if (!user.shopId) throw new ShopAccessDeniedException('No shop assigned to this account.');
+    await this.printersService.remove(id, user.shopId);
+    return { removed: true };
   }
 }

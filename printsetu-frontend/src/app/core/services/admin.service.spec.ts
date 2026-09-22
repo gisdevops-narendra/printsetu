@@ -107,15 +107,6 @@ describe('AdminService (thin HTTP wrapper over SRS §17 admin endpoints)', () =>
     req.flush({ dataUrl: '', url: '', code: 'def' });
   });
 
-  it('registerPrinter() POSTs to the agent register endpoint', () => {
-    const dto = { shopId: 'shop-1', printerName: 'HP LaserJet' };
-    service.registerPrinter(dto).subscribe();
-    const req = httpMock.expectOne(`${BASE}/agent/register`);
-    expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual(dto);
-    req.flush({ printerId: 'p1', agentId: 'a1', agentSecret: 's1', agentCredential: 'a1.s1' });
-  });
-
   it('summary() GETs the dashboard summary', () => {
     service.summary().subscribe();
     const req = httpMock.expectOne(`${BASE}/admin/reports/summary`);

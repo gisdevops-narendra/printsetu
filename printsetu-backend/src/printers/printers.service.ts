@@ -64,17 +64,24 @@ export class PrintersService {
     });
   }
 
+  /** Removed (unlinked) printers stay in the DB for PrintJob history but are never shown as live/selectable. */
   async listForShop(shopId: string) {
-    return this.prisma.printer.findMany({ where: { shopId }, orderBy: { createdAt: 'asc' } });
+    return this.prisma.printer.findMany({
+      where: { shopId, status: { not: PrinterStatus.REMOVED } },
+      orderBy: { createdAt: 'asc' },
+    });
   }
 
   async listAll() {
-    return this.prisma.printer.findMany({ orderBy: { createdAt: 'desc' } });
+    return this.prisma.printer.findMany({
+      where: { status: { not: PrinterStatus.REMOVED } },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async setDefaultForShop(shopId: string, printerId: string) {
     const printer = await this.prisma.printer.findUnique({ where: { id: printerId } });
-    if (!printer || printer.shopId !== shopId) {
+    if (!printer || printer.shopId !== shopId || printer.status === PrinterStatus.REMOVED) {
       throw new AppNotFoundException('Printer not found for this shop.');
     }
     return this.prisma.printSettings.upsert({
@@ -82,6 +89,32 @@ export class PrintersService {
       update: { defaultPrinterId: printerId },
       create: { shopId, defaultPrinterId: printerId },
     });
+  }
+
+  /**
+   * Unlinks/disconnects a printer: kicks any live agent socket, blocks that
+   * agent credential from authenticating again (verifyAgentCredential
+   * checks status), clears it as the shop's default if it was one, and
+   * marks it REMOVED — a soft delete, since PrintJob.printerId has a real
+   * FK to this row and historical jobs must keep resolving. `shopId`, when
+   * given, scopes this to a shopkeeper removing only their own printer.
+   */
+  async remove(printerId: string, shopId?: string): Promise<void> {
+    const printer = await this.prisma.printer.findUnique({ where: { id: printerId } });
+    if (!printer || (shopId && printer.shopId !== shopId)) {
+      throw new AppNotFoundException('Printer not found for this shop.');
+    }
+    if (printer.status === PrinterStatus.REMOVED) return;
+
+    this.connections.disconnect(printerId);
+
+    await this.prisma.$transaction([
+      this.prisma.printer.update({ where: { id: printerId }, data: { status: PrinterStatus.REMOVED } }),
+      this.prisma.printSettings.updateMany({
+        where: { shopId: printer.shopId, defaultPrinterId: printerId },
+        data: { defaultPrinterId: null },
+      }),
+    ]);
   }
 
   /** SRS §13.3 "Agent stopped" -> heartbeat goes stale -> visible OFFLINE status. */

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, ShopSubscription, SubscriptionPlan, SubscriptionStatus } from '@prisma/client';
+import { Prisma, PrinterStatus, ShopSubscription, SubscriptionPlan, SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   PlanLimitReachedException,
@@ -185,7 +185,7 @@ export class SubscriptionAccessService {
   async assertPrinterQuota(shopId: string): Promise<void> {
     const sub = await this.load(shopId);
     if (!sub || sub.plan.maxPrinters === null) return;
-    const count = await this.prisma.printer.count({ where: { shopId } });
+    const count = await this.prisma.printer.count({ where: { shopId, status: { not: PrinterStatus.REMOVED } } });
     if (count >= sub.plan.maxPrinters) {
       throw new PlanLimitReachedException(
         `Your ${sub.plan.name} plan allows ${sub.plan.maxPrinters} print agent ${sub.plan.maxPrinters === 1 ? 'device' : 'devices'}. Ask your administrator to upgrade the plan to add more.`,
@@ -200,7 +200,7 @@ export class SubscriptionAccessService {
     const [printsThisMonth, tokensToday, printers] = await Promise.all([
       this.prisma.printJob.count({ where: { ...notCancelled, createdAt: { gte: startOfMonth() } } }),
       this.prisma.printJob.count({ where: { ...notCancelled, createdAt: { gte: startOfToday() } } }),
-      this.prisma.printer.count({ where: { shopId } }),
+      this.prisma.printer.count({ where: { shopId, status: { not: PrinterStatus.REMOVED } } }),
     ]);
     return { printsThisMonth, tokensToday, printers };
   }

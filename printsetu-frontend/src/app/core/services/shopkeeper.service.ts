@@ -221,4 +221,8 @@ export class ShopkeeperService {
   downloadAgentPackage() {
     return this.http.post(`${BASE}/shop/printers/agent-package`, {}, { responseType: 'blob' });
   }
+
+  removePrinter(printerId: string) {
+    return this.http.delete<{ removed: true }>(`${BASE}/shop/printers/${printerId}`);
+  }
 }

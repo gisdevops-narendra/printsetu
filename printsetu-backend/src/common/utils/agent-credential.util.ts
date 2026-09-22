@@ -11,6 +11,6 @@ export async function verifyAgentCredential(
   const [agentId, secret] = raw.split('.');
   if (!agentId || !secret) return null;
   const printer = await prisma.printer.findUnique({ where: { agentId } });
-  if (!printer || !verifySecret(secret, printer.agentKeyHash)) return null;
+  if (!printer || printer.status === 'REMOVED' || !verifySecret(secret, printer.agentKeyHash)) return null;
   return printer;
 }
