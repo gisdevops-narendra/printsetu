@@ -17,3 +17,8 @@ __pycache__/
 # Editor/OS
 .DS_Store
 Thumbs.db
+
+# Production secrets (copied from *.env.production.example — never commit
+# the filled-in file)
+.env.production
+*/.env.production

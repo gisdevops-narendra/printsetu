@@ -1,0 +1,111 @@
+# Production overlay — merged on top of docker-compose.yml, never applied
+# alone. It adds the app services (backend, frontend, document-analysis,
+# nginx) that dev runs natively via `npm start`, and tightens the infra
+# services from docker-compose.yml so NONE of them publish ports to the
+# public interface — Nginx is the only thing reachable from the
+# internet. MinIO's API is no longer published either; Nginx reverse
+# proxies presigned document URLs to it internally — see
+# infra/nginx/nginx.conf's "/printsetu-documents/" location and
+# infra/README.md for why.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# See infra/README.md for the full production deployment guide.
+
+services:
+  backend:
+    build:
+      context: ./printsetu-backend
+      dockerfile: Dockerfile
+    container_name: printsetu-backend
+    restart: unless-stopped
+    env_file:
+      - ./printsetu-backend/.env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      document-analysis:
+        condition: service_started
+    expose:
+      - "3000"
+    volumes:
+      # Optional: mount a pre-built Print Agent bundle (built separately
+      # via `npm run build:exe && npm run package` in
+      # printsetu-print-agent/) so the "Download Print Agent" feature
+      # works. Pair with PRINT_AGENT_BUNDLE_DIR=/app/agent-bundle in
+      # .env.production. Comment out if you don't need this yet.
+      - ./printsetu-print-agent/release/bundle:/app/agent-bundle:ro
+
+  document-analysis:
+    build:
+      context: ./printsetu-doc-analysis
+      dockerfile: Dockerfile
+    container_name: printsetu-document-analysis
+    restart: unless-stopped
+    expose:
+      - "8000"
+
+  frontend:
+    build:
+      context: ./printsetu-frontend
+      dockerfile: Dockerfile
+    container_name: printsetu-frontend
+    restart: unless-stopped
+    expose:
+      - "80"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: printsetu-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Mount TLS certs here once HTTPS is enabled, e.g.:
+      # - ./infra/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
+      minio:
+        condition: service_healthy
+
+  # ---- Infra services from docker-compose.yml, hardened for prod ----
+  # Nginx is the only thing meant to be reachable from outside this host.
+  # Postgres/Redis/Keycloak stay bound to loopback so they're still
+  # reachable from the host itself (e.g. over an SSH tunnel) for
+  # admin/debugging, but not from the public internet. MinIO's API gets
+  # no host port at all (not even loopback) — it's reached only over the
+  # Docker network, by Nginx (for browser-facing presigned URLs — see
+  # infra/nginx/nginx.conf) and by the backend (for its own S3 calls).
+  # NOTE: `ports:` lists merge ADDITIVELY across compose files (Compose
+  # does not replace a list field on override by default), so plain
+  # `ports:` here would layer a 127.0.0.1 binding ON TOP OF the base
+  # file's still-active 0.0.0.0 binding for the same port — two listeners
+  # fighting over one port, not a real loopback restriction. `!override`
+  # forces a full replacement instead.
+  postgres:
+    ports: !override
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
+
+  redis:
+    ports: !override
+      - "127.0.0.1:${REDIS_PORT:-56379}:6379"
+
+  keycloak:
+    ports: !override
+      - "127.0.0.1:${KEYCLOAK_PORT:-58080}:8080"
+
+  minio:
+    ports: !override
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-59001}:9001"
