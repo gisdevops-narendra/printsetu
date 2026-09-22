@@ -39,6 +39,12 @@ Nginx proxy MinIO?" below.
 
 ## Build and run
 
+This is the **first-time** setup. For every deploy after that, use
+`./deploy.sh` from the repo root on the server instead — it does steps
+3-6 below itself (plus checks that catch the common failure modes: a
+stale `.env.production`, a container that crash-loops instead of
+starting, `main` not actually having the commits you think it does).
+
 ```bash
 # 1. Create the production env file (once) and fill in real secrets/domain
 cp printsetu-backend/.env.production.example printsetu-backend/.env.production
@@ -57,15 +63,14 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 #    that match keycloak/printsetu-realm.json's demo accounts. Without
 #    this step, login succeeds (Keycloak has no idea about the app's own
 #    DB) but every API call 401s, because KeycloakAuthGuard can't find a
-#    matching `users` row for the token's subject. The prod image prunes
-#    ts-node/the prisma CLI to stay lean, so install them into a
-#    throwaway container rather than the long-running one:
-docker run --rm \
-  --network printsetu_default \
-  --env-file printsetu-backend/.env.production \
-  --entrypoint sh \
-  printsetu-backend \
-  -c "npm install --no-save prisma@^5.20.0 ts-node@^10.9.2 typescript@^5.6.2 && npx prisma migrate deploy && npx prisma db seed"
+#    matching `users` row for the token's subject. prisma/ts-node/typescript
+#    are regular dependencies (not devDependencies) specifically so they
+#    survive the prod image's `npm prune --omit=dev` and this can run
+#    straight against the long-running `backend` container — no
+#    throwaway container needed. `db seed` is idempotent (safe to re-run
+#    on every deploy; see prisma/seed.ts).
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T backend npx prisma db seed
 
 # 5. Watch logs / check status
 docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f
