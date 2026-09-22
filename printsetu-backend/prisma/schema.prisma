@@ -85,6 +85,12 @@ enum PrinterStatus {
   ONLINE
   OFFLINE
   UNKNOWN
+  // Soft-deleted: admin/shopkeeper removed the printer/agent link. Kept as
+  // a status (not a row delete) because PrintJob.printerId has a real FK
+  // to this table and historical jobs must keep pointing at it; REMOVED
+  // printers are excluded from every listing, quota count and routing
+  // decision (see PrintersService.remove / agent-credential.util.ts).
+  REMOVED
 }
 
 enum NotificationChannel {
@@ -219,6 +225,15 @@ model User {
   // to match the SRS's literal DB Design table and is never written to or
   // read for auth decisions by the application.
   passwordHash   String?    @map("password_hash")
+  // Deliberate, scoped exception to the "Keycloak-only credentials" rule
+  // above, requested by the product owner: admins need to view a shop
+  // user's *current* password. Encrypted at rest (CredentialCipherService)
+  // and holds a value only while it is still the one Keycloak has on
+  // file — set on temp-password issuance, cleared the moment the user
+  // changes it (mustChangePassword false). Never used for auth decisions;
+  // Keycloak remains the sole authority there.
+  currentPasswordEnc String?  @map("current_password_enc")
+  mustChangePassword Boolean  @default(false) @map("must_change_password")
   keycloakUserId String?    @unique @map("keycloak_user_id")
   status         UserStatus @default(ACTIVE)
   lastLoginAt    DateTime?  @map("last_login_at")

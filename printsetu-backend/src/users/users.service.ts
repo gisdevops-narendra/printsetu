@@ -53,4 +53,20 @@ export class UsersService {
       shopId: user.shopId,
     };
   }
+
+  /** Used only by AuthService to resolve a login's email to a Keycloak id and its pending-password-change flag. */
+  async findAuthProfileByEmail(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, keycloakUserId: true, mustChangePassword: true, status: true },
+    });
+  }
+
+  /** Called once a temporary password has actually been replaced — drops our admin-visible copy of it too. */
+  async clearPendingPasswordChange(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { mustChangePassword: false, currentPasswordEnc: null },
+    });
+  }
 }

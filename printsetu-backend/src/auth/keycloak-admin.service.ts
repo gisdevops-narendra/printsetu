@@ -80,11 +80,7 @@ export class KeycloakAdminService {
       keycloakUserId = location.substring(location.lastIndexOf('/') + 1);
     }
 
-    await axios.put(
-      `${kc.adminApiBaseUrl}/users/${keycloakUserId}/reset-password`,
-      { type: 'password', value: params.temporaryPassword, temporary: true },
-      { headers },
-    );
+    await this.setPassword(keycloakUserId, params.temporaryPassword, true);
 
     const roleResponse = await axios.get(`${kc.adminApiBaseUrl}/roles/${params.role}`, { headers });
     await axios.post(
@@ -94,6 +90,24 @@ export class KeycloakAdminService {
     );
 
     return keycloakUserId;
+  }
+
+  /**
+   * Sets a user's password. `temporary: true` also arms Keycloak's
+   * UPDATE_PASSWORD required action (a login attempt then succeeds
+   * authentication-wise but is refused a token until the password is
+   * changed); `temporary: false` clears that required action again, which
+   * is what lets a fresh, self-chosen password log in normally right after
+   * AuthService.changeTemporaryPassword calls this.
+   */
+  async setPassword(keycloakUserId: string, password: string, temporary: boolean): Promise<void> {
+    const kc = this.config.get('keycloak', { infer: true });
+    const headers = await this.authHeaders();
+    await axios.put(
+      `${kc.adminApiBaseUrl}/users/${keycloakUserId}/reset-password`,
+      { type: 'password', value: password, temporary },
+      { headers },
+    );
   }
 
   async disableUser(keycloakUserId: string): Promise<void> {

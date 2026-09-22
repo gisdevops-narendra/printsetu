@@ -12,6 +12,20 @@ export interface SessionUser {
   role: RoleName;
 }
 
+interface TokenPair {
+  accessToken: string;
+  refreshToken: string;
+}
+
+type LoginApiResponse = TokenPair | { requiresPasswordChange: true };
+
+/** Thrown by login() when the account still has a temporary password; caught by LoginComponent to switch to the change-password step. */
+export class PasswordChangeRequiredError extends Error {
+  constructor() {
+    super('This account has a temporary password and must set a new one before signing in.');
+  }
+}
+
 const ACCESS_TOKEN_KEY = 'printsetu.accessToken';
 const REFRESH_TOKEN_KEY = 'printsetu.refreshToken';
 
@@ -59,11 +73,25 @@ export class AuthService {
 
   async login(username: string, password: string): Promise<SessionUser> {
     const response = await firstValueFrom(
-      this.http.post<{ accessToken: string; refreshToken: string }>(`${environment.apiBaseUrl}/auth/login`, {
+      this.http.post<LoginApiResponse>(`${environment.apiBaseUrl}/auth/login`, { username, password }),
+    );
+    if ('requiresPasswordChange' in response) throw new PasswordChangeRequiredError();
+    return this.applyTokens(response);
+  }
+
+  /** Completes the forced first-login flow (see AuthController.changeTemporaryPassword) and signs the user straight in. */
+  async changeTemporaryPassword(username: string, currentPassword: string, newPassword: string): Promise<SessionUser> {
+    const response = await firstValueFrom(
+      this.http.post<TokenPair>(`${environment.apiBaseUrl}/auth/change-temporary-password`, {
         username,
-        password,
+        currentPassword,
+        newPassword,
       }),
     );
+    return this.applyTokens(response);
+  }
+
+  private applyTokens(response: TokenPair): SessionUser {
     sessionStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
     sessionStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
     const claims = decodeJwt(response.accessToken);

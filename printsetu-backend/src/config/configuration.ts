@@ -31,6 +31,7 @@ export interface AppConfig {
     maxUploadSizeBytes: number;
     rateLimitTtlSeconds: number;
     rateLimitMax: number;
+    credentialEncryptionKey: string;
   };
   retention: { defaultMinutes: number };
   docAnalysis: { url: string };
@@ -80,6 +81,7 @@ export default (): AppConfig => {
       maxUploadSizeBytes: parseInt(process.env.MAX_UPLOAD_SIZE_BYTES || '26214400', 10),
       rateLimitTtlSeconds: parseInt(process.env.RATE_LIMIT_TTL_SECONDS || '60', 10),
       rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '60', 10),
+      credentialEncryptionKey: process.env.CREDENTIAL_ENCRYPTION_KEY as string,
     },
     retention: {
       defaultMinutes: parseInt(process.env.DEFAULT_RETENTION_MINUTES || '30', 10),

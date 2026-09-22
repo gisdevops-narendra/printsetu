@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule';
 import configuration, { AppConfig } from './config/configuration';
+import { CryptoModule } from './common/crypto/crypto.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuditModule } from './audit/audit.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -42,6 +43,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
         },
       }),
     }),
+    CryptoModule,
     PrismaModule,
     AuditModule,
     NotificationsModule,

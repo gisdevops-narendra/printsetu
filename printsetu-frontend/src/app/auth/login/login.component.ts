@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
+import { AuthService, PasswordChangeRequiredError } from '../../core/auth/auth.service';
 import { environment } from '../../../environments/environment';
 
 interface DemoAccount {
@@ -80,118 +80,194 @@ interface DemoAccount {
       <!-- ================= Form ================= -->
       <main class="panel">
         <div class="sheet">
-          <header class="sheet__head">
-            <h1 class="sheet__title">Welcome back</h1>
-            <p class="sheet__sub">Sign in to manage your print queue.</p>
-          </header>
+          @if (mode() === 'login') {
+            <header class="sheet__head">
+              <h1 class="sheet__title">Welcome back</h1>
+              <p class="sheet__sub">Sign in to manage your print queue.</p>
+            </header>
 
-          <form (ngSubmit)="submit()" novalidate class="form" [class.is-busy]="loading()">
-            <!-- Email -->
-            <div class="field" [class.has-error]="showUsernameError()">
-              <label class="field__label" for="username">Email or username</label>
-              <div class="control">
-                <i class="pi pi-user control__icon" aria-hidden="true"></i>
-                <input
-                  #usernameInput
-                  id="username"
-                  name="username"
-                  type="text"
-                  class="control__input"
-                  placeholder="you@shop.com"
-                  autocomplete="username"
-                  autocapitalize="none"
-                  autocorrect="off"
-                  spellcheck="false"
-                  autofocus
-                  [(ngModel)]="username"
-                  (blur)="usernameTouched.set(true)"
-                  (ngModelChange)="clearError()"
-                  [attr.aria-invalid]="showUsernameError()"
-                  [attr.aria-describedby]="showUsernameError() ? 'username-error' : null"
-                />
+            <form (ngSubmit)="submit()" novalidate class="form" [class.is-busy]="loading()">
+              <!-- Email -->
+              <div class="field" [class.has-error]="showUsernameError()">
+                <label class="field__label" for="username">Email or username</label>
+                <div class="control">
+                  <i class="pi pi-user control__icon" aria-hidden="true"></i>
+                  <input
+                    #usernameInput
+                    id="username"
+                    name="username"
+                    type="text"
+                    class="control__input"
+                    placeholder="you@shop.com"
+                    autocomplete="username"
+                    autocapitalize="none"
+                    autocorrect="off"
+                    spellcheck="false"
+                    autofocus
+                    [(ngModel)]="username"
+                    (blur)="usernameTouched.set(true)"
+                    (ngModelChange)="clearError()"
+                    [attr.aria-invalid]="showUsernameError()"
+                    [attr.aria-describedby]="showUsernameError() ? 'username-error' : null"
+                  />
+                </div>
+                @if (showUsernameError()) {
+                  <p class="field__error" id="username-error"><i class="pi pi-info-circle"></i> Enter your email or username.</p>
+                }
               </div>
-              @if (showUsernameError()) {
-                <p class="field__error" id="username-error"><i class="pi pi-info-circle"></i> Enter your email or username.</p>
-              }
-            </div>
 
-            <!-- Password -->
-            <div class="field" [class.has-error]="showPasswordError()">
-              <div class="field__row">
-                <label class="field__label" for="password">Password</label>
-                <button type="button" class="link" (click)="helpOpen.set(!helpOpen())" [attr.aria-expanded]="helpOpen()">Forgot password?</button>
+              <!-- Password -->
+              <div class="field" [class.has-error]="showPasswordError()">
+                <div class="field__row">
+                  <label class="field__label" for="password">Password</label>
+                  <button type="button" class="link" (click)="helpOpen.set(!helpOpen())" [attr.aria-expanded]="helpOpen()">Forgot password?</button>
+                </div>
+                <div class="control">
+                  <i class="pi pi-lock control__icon" aria-hidden="true"></i>
+                  <input
+                    #passwordInput
+                    id="password"
+                    name="password"
+                    class="control__input control__input--pw"
+                    placeholder="Your password"
+                    autocomplete="current-password"
+                    [type]="showPassword() ? 'text' : 'password'"
+                    [(ngModel)]="password"
+                    (blur)="passwordTouched.set(true)"
+                    (ngModelChange)="clearError()"
+                    (keyup)="checkCaps($event)"
+                    (keydown)="checkCaps($event)"
+                    [attr.aria-invalid]="showPasswordError()"
+                    [attr.aria-describedby]="showPasswordError() ? 'password-error' : null"
+                  />
+                  <button type="button" class="control__toggle" (click)="showPassword.set(!showPassword())" [attr.aria-pressed]="showPassword()" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+                    <i class="pi" [ngClass]="showPassword() ? 'pi-eye-slash' : 'pi-eye'"></i>
+                  </button>
+                </div>
+                @if (showPasswordError()) {
+                  <p class="field__error" id="password-error"><i class="pi pi-info-circle"></i> Enter your password.</p>
+                } @else if (capsOn()) {
+                  <p class="field__hint"><i class="pi pi-exclamation-triangle"></i> Caps Lock is on</p>
+                }
+                @if (helpOpen()) {
+                  <p class="help" role="note">
+                    <i class="pi pi-info-circle"></i>
+                    Passwords are managed by your administrator. Ask them to reset yours, then sign in with the new one.
+                  </p>
+                }
               </div>
-              <div class="control">
-                <i class="pi pi-lock control__icon" aria-hidden="true"></i>
-                <input
-                  #passwordInput
-                  id="password"
-                  name="password"
-                  class="control__input control__input--pw"
-                  placeholder="Your password"
-                  autocomplete="current-password"
-                  [type]="showPassword() ? 'text' : 'password'"
-                  [(ngModel)]="password"
-                  (blur)="passwordTouched.set(true)"
-                  (ngModelChange)="clearError()"
-                  (keyup)="checkCaps($event)"
-                  (keydown)="checkCaps($event)"
-                  [attr.aria-invalid]="showPasswordError()"
-                  [attr.aria-describedby]="showPasswordError() ? 'password-error' : null"
-                />
-                <button type="button" class="control__toggle" (click)="showPassword.set(!showPassword())" [attr.aria-pressed]="showPassword()" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
-                  <i class="pi" [ngClass]="showPassword() ? 'pi-eye-slash' : 'pi-eye'"></i>
-                </button>
-              </div>
-              @if (showPasswordError()) {
-                <p class="field__error" id="password-error"><i class="pi pi-info-circle"></i> Enter your password.</p>
-              } @else if (capsOn()) {
-                <p class="field__hint"><i class="pi pi-exclamation-triangle"></i> Caps Lock is on</p>
-              }
-              @if (helpOpen()) {
-                <p class="help" role="note">
-                  <i class="pi pi-info-circle"></i>
-                  Passwords are managed by your administrator. Ask them to reset yours, then sign in with the new one.
-                </p>
-              }
-            </div>
 
-            <!-- Inline error (re-created on every failure so it animates again) -->
-            @for (e of errors(); track e.id) {
-              <div class="alert" role="alert">
-                <i class="pi pi-exclamation-circle"></i>
-                <span>{{ e.text }}</span>
+              <!-- Inline error (re-created on every failure so it animates again) -->
+              @for (e of errors(); track e.id) {
+                <div class="alert" role="alert">
+                  <i class="pi pi-exclamation-circle"></i>
+                  <span>{{ e.text }}</span>
+                </div>
+              }
+
+              <button type="submit" class="submit" [disabled]="loading()">
+                @if (loading()) {
+                  <span class="spinner" aria-hidden="true"></span>
+                  <span>Signing in…</span>
+                } @else {
+                  <span>Sign in</span>
+                  <i class="pi pi-arrow-right"></i>
+                }
+              </button>
+            </form>
+
+            @if (demoAccounts.length) {
+              <div class="demo">
+                <p class="demo__label"><span>Demo accounts</span></p>
+                <div class="demo__row">
+                  @for (d of demoAccounts; track d.label) {
+                    <button type="button" class="chip" (click)="useDemo(d)">
+                      <i class="pi" [ngClass]="d.icon"></i> {{ d.label }}
+                    </button>
+                  }
+                </div>
               </div>
             }
 
-            <button type="submit" class="submit" [disabled]="loading()">
-              @if (loading()) {
-                <span class="spinner" aria-hidden="true"></span>
-                <span>Signing in…</span>
-              } @else {
-                <span>Sign in</span>
-                <i class="pi pi-arrow-right"></i>
-              }
-            </button>
-          </form>
+            <p class="secure">
+              <i class="pi pi-lock"></i>
+              {{ secureConnection ? 'Encrypted connection' : 'Private session' }} &middot; signed out when you close this tab
+            </p>
+          } @else {
+            <header class="sheet__head">
+              <h1 class="sheet__title">Set a new password</h1>
+              <p class="sheet__sub">This account still has the temporary password your administrator issued. Choose a new one to continue.</p>
+            </header>
 
-          @if (demoAccounts.length) {
-            <div class="demo">
-              <p class="demo__label"><span>Demo accounts</span></p>
-              <div class="demo__row">
-                @for (d of demoAccounts; track d.label) {
-                  <button type="button" class="chip" (click)="useDemo(d)">
-                    <i class="pi" [ngClass]="d.icon"></i> {{ d.label }}
+            <form (ngSubmit)="submitPasswordChange()" novalidate class="form" [class.is-busy]="loading()">
+              <div class="field" [class.has-error]="showNewPasswordError()">
+                <label class="field__label" for="newPassword">New password</label>
+                <div class="control">
+                  <i class="pi pi-lock control__icon" aria-hidden="true"></i>
+                  <input
+                    #newPasswordInput
+                    id="newPassword"
+                    name="newPassword"
+                    class="control__input control__input--pw"
+                    placeholder="At least 8 characters"
+                    autocomplete="new-password"
+                    [type]="showPassword() ? 'text' : 'password'"
+                    [(ngModel)]="newPassword"
+                    (blur)="newPasswordTouched.set(true)"
+                    (ngModelChange)="clearError()"
+                    [attr.aria-invalid]="showNewPasswordError()"
+                  />
+                  <button type="button" class="control__toggle" (click)="showPassword.set(!showPassword())" [attr.aria-pressed]="showPassword()" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+                    <i class="pi" [ngClass]="showPassword() ? 'pi-eye-slash' : 'pi-eye'"></i>
                   </button>
+                </div>
+                @if (showNewPasswordError()) {
+                  <p class="field__error"><i class="pi pi-info-circle"></i> {{ newPasswordErrorText() }}</p>
                 }
               </div>
-            </div>
-          }
 
-          <p class="secure">
-            <i class="pi pi-lock"></i>
-            {{ secureConnection ? 'Encrypted connection' : 'Private session' }} &middot; signed out when you close this tab
-          </p>
+              <div class="field" [class.has-error]="showConfirmPasswordError()">
+                <label class="field__label" for="confirmPassword">Confirm new password</label>
+                <div class="control">
+                  <i class="pi pi-lock control__icon" aria-hidden="true"></i>
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    class="control__input"
+                    placeholder="Type it again"
+                    autocomplete="new-password"
+                    [type]="showPassword() ? 'text' : 'password'"
+                    [(ngModel)]="confirmPassword"
+                    (blur)="confirmPasswordTouched.set(true)"
+                    (ngModelChange)="clearError()"
+                    [attr.aria-invalid]="showConfirmPasswordError()"
+                  />
+                </div>
+                @if (showConfirmPasswordError()) {
+                  <p class="field__error"><i class="pi pi-info-circle"></i> Passwords don't match.</p>
+                }
+              </div>
+
+              @for (e of errors(); track e.id) {
+                <div class="alert" role="alert">
+                  <i class="pi pi-exclamation-circle"></i>
+                  <span>{{ e.text }}</span>
+                </div>
+              }
+
+              <button type="submit" class="submit" [disabled]="loading()">
+                @if (loading()) {
+                  <span class="spinner" aria-hidden="true"></span>
+                  <span>Setting password…</span>
+                } @else {
+                  <span>Set password and sign in</span>
+                  <i class="pi pi-arrow-right"></i>
+                }
+              </button>
+
+              <button type="button" class="link" (click)="cancelPasswordChange()">&larr; Back to sign in</button>
+            </form>
+          }
         </div>
       </main>
     </div>
@@ -1014,6 +1090,7 @@ interface DemoAccount {
 export class LoginComponent {
   @ViewChild('usernameInput') usernameInput?: ElementRef<HTMLInputElement>;
   @ViewChild('passwordInput') passwordInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('newPasswordInput') newPasswordInput?: ElementRef<HTMLInputElement>;
 
   username = '';
   password = '';
@@ -1027,6 +1104,18 @@ export class LoginComponent {
   submitted = signal(false);
   errors = signal<{ id: number; text: string }[]>([]);
   private errorSeq = 0;
+
+  /**
+   * 'changePassword' = a temporary/admin-issued password was accepted by
+   * Keycloak but still needs replacing before a session can start (see
+   * AuthService.login / PasswordChangeRequiredError). `password` above is
+   * reused as the verified current (temporary) password for that step.
+   */
+  mode = signal<'login' | 'changePassword'>('login');
+  newPassword = '';
+  confirmPassword = '';
+  newPasswordTouched = signal(false);
+  confirmPasswordTouched = signal(false);
 
   readonly secureConnection = typeof location !== 'undefined' && location.protocol === 'https:';
 
@@ -1094,6 +1183,15 @@ export class LoginComponent {
       const user = await this.auth.login(this.username.trim(), this.password);
       this.router.navigate([user.role === 'ADMIN' ? '/admin' : '/shop']);
     } catch (err) {
+      if (err instanceof PasswordChangeRequiredError) {
+        // Credentials were correct — keep them (password becomes the
+        // verified "current password" for the change-password step) and
+        // switch screens instead of showing an error.
+        this.mode.set('changePassword');
+        this.submitted.set(false);
+        setTimeout(() => this.newPasswordInput?.nativeElement.focus());
+        return;
+      }
       this.errors.set([{ id: ++this.errorSeq, text: this.describe(err) }]);
       this.password = '';
       this.passwordTouched.set(false);
@@ -1104,12 +1202,66 @@ export class LoginComponent {
     }
   }
 
+  showNewPasswordError(): boolean {
+    return !!this.newPasswordErrorText() && (this.newPasswordTouched() || this.submitted());
+  }
+
+  newPasswordErrorText(): string {
+    if (!this.newPassword) return 'Enter a new password.';
+    if (this.newPassword.length < 8) return 'Password must be at least 8 characters.';
+    if (this.newPassword === this.password) return 'Choose a password different from the temporary one.';
+    return '';
+  }
+
+  showConfirmPasswordError(): boolean {
+    return (
+      !!this.confirmPassword &&
+      this.confirmPassword !== this.newPassword &&
+      (this.confirmPasswordTouched() || this.submitted())
+    );
+  }
+
+  async submitPasswordChange(): Promise<void> {
+    if (this.loading()) return;
+    this.submitted.set(true);
+    if (this.newPasswordErrorText()) {
+      this.newPasswordInput?.nativeElement.focus();
+      return;
+    }
+    if (this.confirmPassword !== this.newPassword) {
+      return;
+    }
+
+    this.loading.set(true);
+    this.clearError();
+    try {
+      const user = await this.auth.changeTemporaryPassword(this.username.trim(), this.password, this.newPassword);
+      this.router.navigate([user.role === 'ADMIN' ? '/admin' : '/shop']);
+    } catch (err) {
+      this.errors.set([{ id: ++this.errorSeq, text: this.describe(err) }]);
+      this.submitted.set(false);
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  cancelPasswordChange(): void {
+    this.mode.set('login');
+    this.password = '';
+    this.newPassword = '';
+    this.confirmPassword = '';
+    this.submitted.set(false);
+    this.clearError();
+    setTimeout(() => this.passwordInput?.nativeElement.focus());
+  }
+
   /** Human, specific-enough messages; never leaks which of the two fields was wrong. */
   private describe(err: unknown): string {
     if (err instanceof HttpErrorResponse) {
       if (err.status === 0) return "We can't reach the server. Check your internet connection and try again.";
       if (err.status === 429) return 'Too many sign-in attempts. Please wait a minute and try again.';
       if (err.status >= 500) return 'Something went wrong on our side. Please try again in a moment.';
+      if (err.status === 400) return err.error?.message || 'That password is not valid. Please try a different one.';
       return "That email or password doesn't match. Please check and try again.";
     }
     if (err instanceof Error) return err.message;

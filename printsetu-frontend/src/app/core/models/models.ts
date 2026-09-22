@@ -187,6 +187,10 @@ export interface UserRow {
   role: { name: RoleName };
   shop?: Shop | null;
   shopId?: string | null;
+  /** True until the user replaces their (admin-issued) temporary password. */
+  mustChangePassword: boolean;
+  /** Only populated while mustChangePassword is true — the password itself is forgotten once the user changes it. */
+  currentPassword: string | null;
 }
 
 export type NotificationEventType =

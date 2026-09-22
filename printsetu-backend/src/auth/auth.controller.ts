@@ -1,7 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { LoginDto, RefreshDto } from './dto/login.dto';
+import { ChangeTemporaryPasswordDto, LoginDto, RefreshDto } from './dto/login.dto';
 import { Public } from '../common/decorators/public.decorator';
 
 @Controller('auth')
@@ -20,5 +20,13 @@ export class AuthController {
   @Post('refresh')
   refresh(@Body() dto: RefreshDto) {
     return this.authService.refresh(dto.refreshToken);
+  }
+
+  /** Completes a forced first-login password change (see AuthService.changeTemporaryPassword) and signs the user in. */
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('change-temporary-password')
+  changeTemporaryPassword(@Body() dto: ChangeTemporaryPasswordDto) {
+    return this.authService.changeTemporaryPassword(dto.username, dto.currentPassword, dto.newPassword);
   }
 }

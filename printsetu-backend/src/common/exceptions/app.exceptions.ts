@@ -27,6 +27,12 @@ export class UnauthenticatedException extends AppException {
   }
 }
 
+export class WeakPasswordException extends AppException {
+  constructor(message = 'Password does not meet the minimum requirements.') {
+    super('WEAK_PASSWORD', message, HttpStatus.BAD_REQUEST);
+  }
+}
+
 export class ShopAccessDeniedException extends AppException {
   constructor(message = 'You do not have access to this shop resource.') {
     super('SHOP_ACCESS_DENIED', message, HttpStatus.FORBIDDEN);
