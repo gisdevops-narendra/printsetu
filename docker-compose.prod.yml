@@ -103,6 +103,8 @@ services:
       - "127.0.0.1:${REDIS_PORT:-56379}:6379"
 
   keycloak:
+    tmpfs:
+      - /tmp:size=128m
     ports: !override
       - "127.0.0.1:${KEYCLOAK_PORT:-58080}:8080"
 
