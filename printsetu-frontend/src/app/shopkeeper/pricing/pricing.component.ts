@@ -40,15 +40,15 @@ import { PricingRate } from '../../core/models/models';
       <div class="rate-form">
         <div class="rate-form__field">
           <label class="text-sm">Paper size</label>
-          <p-select [options]="paperSizes" [(ngModel)]="form.paperSize" [disabled]="!!editingId()" styleClass="w-full" />
+          <p-select [options]="paperSizes" [(ngModel)]="form.paperSize" [disabled]="!!editingId()" styleClass="w-full" appendTo="body" />
         </div>
         <div class="rate-form__field">
           <label class="text-sm">Color mode</label>
-          <p-select [options]="colorModes" [(ngModel)]="form.colorMode" [disabled]="!!editingId()" styleClass="w-full" />
+          <p-select [options]="colorModes" [(ngModel)]="form.colorMode" [disabled]="!!editingId()" styleClass="w-full" appendTo="body" />
         </div>
         <div class="rate-form__field">
           <label class="text-sm">Side mode</label>
-          <p-select [options]="sideModes" [(ngModel)]="form.sideMode" [disabled]="!!editingId()" styleClass="w-full" />
+          <p-select [options]="sideModes" [(ngModel)]="form.sideMode" [disabled]="!!editingId()" styleClass="w-full" appendTo="body" />
         </div>
         <div class="rate-form__field">
           <label class="text-sm">Price per page (₹)</label>
