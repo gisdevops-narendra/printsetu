@@ -22,3 +22,6 @@ Thumbs.db
 # the filled-in file)
 .env.production
 */.env.production
+
+# Local production environment
+.env
