@@ -53,7 +53,21 @@ $EDITOR .env
 # 3. Build and start everything
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
-# 4. Watch logs / check status
+# 4. Apply database migrations, then seed the demo Role/Shop/User rows
+#    that match keycloak/printsetu-realm.json's demo accounts. Without
+#    this step, login succeeds (Keycloak has no idea about the app's own
+#    DB) but every API call 401s, because KeycloakAuthGuard can't find a
+#    matching `users` row for the token's subject. The prod image prunes
+#    ts-node/the prisma CLI to stay lean, so install them into a
+#    throwaway container rather than the long-running one:
+docker run --rm \
+  --network printsetu_default \
+  --env-file printsetu-backend/.env.production \
+  --entrypoint sh \
+  printsetu-backend \
+  -c "npm install --no-save prisma@^5.20.0 ts-node@^10.9.2 typescript@^5.6.2 && npx prisma migrate deploy && npx prisma db seed"
+
+# 5. Watch logs / check status
 docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f
 docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
 ```
