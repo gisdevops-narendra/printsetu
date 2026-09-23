@@ -108,7 +108,12 @@ docker run --rm \
   -v "$APP_DIR/printsetu-print-agent:/app" \
   -w /app \
   node:20 \
-  sh -c "npm ci --no-audit --no-fund && npm run build:exe:all && npm run package"
+  sh -c "npm ci --no-audit --no-fund && npm run build:exe:all && npm run package \
+    && rm -rf node_modules release/PrintSetuAgent.exe release/printsetu-agent-linux"
+# ^ This host's root disk is small (see infra/README.md "Disk budget"):
+# only the assembled bundles are served, so drop the ~150 MB+ of
+# node_modules and the duplicate raw binaries before the Docker builds
+# in step 5 need that space.
 [ -f printsetu-print-agent/release/bundle/PrintSetuAgent.exe ] \
   || fail "Print Agent build reported success but release/bundle/PrintSetuAgent.exe is still missing."
 [ -f printsetu-print-agent/release/bundle-linux/printsetu-agent ] \
