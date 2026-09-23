@@ -16,7 +16,7 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/home/ubuntu/printsetu}"
 COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
 ENV_FILE="printsetu-backend/.env.production"
-TOTAL_STEPS=8
+TOTAL_STEPS=9
 
 cd "$APP_DIR"
 
@@ -74,12 +74,37 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-step 4 "Building and restarting services"
+step 4 "Building Print Agent installer bundle"
+# ---------------------------------------------------------------------------
+# The backend's "Download Print Agent" endpoint (agent-package.service.ts)
+# serves printsetu-print-agent/release/bundle/PrintSetuAgent.exe straight
+# off disk via the volume mount in docker-compose.prod.yml — it 404s with
+# "installer has not been built on this server yet" if that file is
+# missing. Nothing else in this pipeline builds it, so do it here, every
+# deploy, gated on PRINT_AGENT_BUNDLE_DIR (opt-in — see
+# .env.production.example) so servers that don't use the feature don't
+# need it. Built inside a throwaway Node container rather than requiring
+# Node/npm on the host, since this server only has Docker installed.
+if grep -qE '^PRINT_AGENT_BUNDLE_DIR=' "$ENV_FILE"; then
+  docker run --rm \
+    -v "$APP_DIR/printsetu-print-agent:/app" \
+    -w /app \
+    node:20 \
+    sh -c "npm ci --no-audit --no-fund && npm run build:exe && npm run package"
+  [ -f printsetu-print-agent/release/bundle/PrintSetuAgent.exe ] \
+    || fail "Print Agent build reported success but release/bundle/PrintSetuAgent.exe is still missing."
+  echo "OK — printsetu-print-agent/release/bundle/PrintSetuAgent.exe built."
+else
+  echo "PRINT_AGENT_BUNDLE_DIR not set in $ENV_FILE — skipping Print Agent bundle build (the 'Download Print Agent' feature will 404 until it's configured; see infra/README.md)."
+fi
+
+# ---------------------------------------------------------------------------
+step 5 "Building and restarting services"
 # ---------------------------------------------------------------------------
 $COMPOSE up -d --build
 
 # ---------------------------------------------------------------------------
-step 5 "Waiting for the backend to come up"
+step 6 "Waiting for the backend to come up"
 # ---------------------------------------------------------------------------
 # `up -d` returns success even if a container immediately crash-loops
 # (e.g. a bad env var, or a migration that failed on a previous attempt).
@@ -98,7 +123,7 @@ done
 echo "Backend container is running."
 
 # ---------------------------------------------------------------------------
-step 6 "Running database migrations + demo seed"
+step 7 "Running database migrations + demo seed"
 # ---------------------------------------------------------------------------
 # prisma/ts-node/typescript are regular (not dev) dependencies specifically
 # so they're present in this pruned production image — see
@@ -109,7 +134,7 @@ $COMPOSE exec -T backend npx prisma migrate deploy
 $COMPOSE exec -T backend npx prisma db seed
 
 # ---------------------------------------------------------------------------
-step 7 "Checking service status"
+step 8 "Checking service status"
 # ---------------------------------------------------------------------------
 $COMPOSE ps
 if $COMPOSE ps | grep -qiE "restarting|exit"; then
@@ -118,7 +143,7 @@ if $COMPOSE ps | grep -qiE "restarting|exit"; then
 fi
 
 # ---------------------------------------------------------------------------
-step 8 "Verifying the application responds"
+step 9 "Verifying the application responds"
 # ---------------------------------------------------------------------------
 curl -fsS -o /dev/null http://127.0.0.1/ || fail "frontend (http://127.0.0.1/) is not responding."
 echo "Frontend: OK"
