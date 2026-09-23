@@ -90,16 +90,14 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
           <td data-label="Received">{{ job.createdAt | date: 'short' }}</td>
           <td class="text-right">
             <div class="flex flex-wrap gap-2 justify-content-end align-items-center row-gap-2">
-              @if (previewEnabled()) {
-                <p-button
-                  icon="pi pi-eye"
-                  size="small"
-                  severity="secondary"
-                  [outlined]="true"
-                  (onClick)="openEditor(job)"
-                  pTooltip="View / edit documents"
-                />
-              }
+              <p-button
+                icon="pi pi-eye"
+                size="small"
+                severity="secondary"
+                [outlined]="true"
+                (onClick)="openEditor(job)"
+                pTooltip="View / edit documents"
+              />
               @if (readOnly()) {
                 <span class="text-xs paused" title="Your subscription needs attention, so new print requests are paused."><i class="pi pi-pause-circle"></i> Paused</span>
               } @else if (job.status === 'PRINT_ELIGIBLE' || job.status === 'AGENT_OFFLINE' || job.status === 'PRINT_FAILED') {
@@ -132,7 +130,6 @@ export class QueueComponent implements OnInit {
     })),
   );
   loading = signal(true);
-  previewEnabled = signal(false);
   /** Past due / expired / cancelled shops can look at orders but not print them. */
   readOnly = () => this.subscriptionStatus.readOnly();
 
@@ -146,9 +143,6 @@ export class QueueComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
-    this.shopkeeperService.profile().subscribe((res) => {
-      this.previewEnabled.set(!!res.settings?.documentPreviewEnabled);
-    });
   }
 
   /** Dedicated full-page workspace to review/reorder/edit every document in this job before printing. */

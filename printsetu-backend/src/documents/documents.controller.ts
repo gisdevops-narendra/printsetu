@@ -19,8 +19,6 @@ import { StatusTokenGuard } from '../common/guards/status-token.guard';
 import { StatusToken } from '../common/decorators/status-token.decorator';
 import { StatusTokenClaims } from '../common/types/request-context';
 
-const HARD_UPLOAD_CEILING_BYTES = parseInt(process.env.MAX_UPLOAD_SIZE_BYTES || '26214400', 10);
-
 @Controller('documents')
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
@@ -35,10 +33,8 @@ export class DocumentsController {
   @Throttle({ default: { limit: 15, ttl: 60_000 } })
   @Post()
   @UseInterceptors(
-    FileInterceptor('file', {
-      storage: memoryStorage(),
-      limits: { fileSize: HARD_UPLOAD_CEILING_BYTES },
-    }),
+    // No upload size limit: shops accept files of any size.
+    FileInterceptor('file', { storage: memoryStorage() }),
   )
   async upload(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
     const body = req.body as Record<string, unknown>;

@@ -59,8 +59,20 @@ const DAY_MS = 86_400_000;
 export const daysToMs = (days: number) => days * DAY_MS;
 export const addDays = (date: Date, days: number) => new Date(date.getTime() + daysToMs(days));
 
-/** Adds whole months, clamping the day (31 Jan + 1 month = 28/29 Feb). */
+/** Days in a billing month, for comparing a daily price with monthly/yearly ones. */
+export const DAYS_PER_MONTH = 30;
+
+/** "day" / "month" / "year", for invoice descriptions and messages. */
+export const cycleUnit = (cycle: BillingCycle) =>
+  cycle === 'DAILY' ? 'day' : cycle === 'YEARLY' ? 'year' : 'month';
+
+/** "daily" / "monthly" / "yearly". */
+export const cycleAdjective = (cycle: BillingCycle) =>
+  cycle === 'DAILY' ? 'daily' : cycle === 'YEARLY' ? 'yearly' : 'monthly';
+
+/** Adds one billing cycle: a day, or whole months clamping the day (31 Jan + 1 month = 28/29 Feb). */
 export function addCycle(date: Date, cycle: BillingCycle): Date {
+  if (cycle === 'DAILY') return addDays(date, 1);
   const months = cycle === 'YEARLY' ? 12 : 1;
   const d = new Date(date.getTime());
   const day = d.getUTCDate();

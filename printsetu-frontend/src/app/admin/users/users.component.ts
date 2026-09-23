@@ -3,15 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
-import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
-import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
 import { AdminService } from '../../core/services/admin.service';
-import { Shop, UserRow } from '../../core/models/models';
+import { UserRow } from '../../core/models/models';
 import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 
 @Component({
@@ -22,11 +20,9 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     FormsModule,
     TableModule,
     ButtonModule,
-    DialogModule,
     InputTextModule,
     IconFieldModule,
     InputIconModule,
-    SelectModule,
     TagModule,
     EllipsisDirective,
   ],
@@ -34,14 +30,13 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     <div class="page-header">
       <div>
         <h1 class="page-title">Users</h1>
-        <p class="page-subtitle m-0">Shop user accounts. There is one admin for the whole platform; every user created here is a shop user. Credentials are managed by Keycloak.</p>
+        <p class="page-subtitle m-0">Shop user accounts. Each is created when a shop registers from the sign-in page; there is one admin for the whole platform. Credentials are managed by Keycloak.</p>
       </div>
       <div class="page-actions">
         <p-iconfield>
           <p-inputicon styleClass="pi pi-search" />
           <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
         </p-iconfield>
-        <p-button label="New Shop User" icon="pi pi-plus" (onClick)="openCreate()" />
       </div>
     </div>
 
@@ -98,7 +93,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
                 }
               </div>
             } @else {
-              <span class="text-color-secondary">Changed by user</span>
+              <span class="text-color-secondary">Set by user</span>
             }
           </td>
           <td data-label="Role">{{ user.role.name }}</td>
@@ -128,30 +123,6 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
       </ng-template>
     </p-table>
 
-    <p-dialog header="New Shop User" [(visible)]="createVisible" [modal]="true" [style]="{ width: '460px' }">
-      <div class="flex flex-column gap-3">
-        <div class="flex flex-column gap-2">
-          <label>Full name</label>
-          <input pInputText [(ngModel)]="form.name" />
-        </div>
-        <div class="flex flex-column gap-2">
-          <label>Email</label>
-          <input pInputText [(ngModel)]="form.email" />
-        </div>
-        <div class="flex flex-column gap-2">
-          <label>Mobile</label>
-          <input pInputText [(ngModel)]="form.mobile" />
-        </div>
-        <div class="flex flex-column gap-2">
-          <label>Shop</label>
-          <p-select [options]="shops()" optionLabel="name" optionValue="id" [(ngModel)]="form.shopId" placeholder="Select a shop" appendTo="body" />
-        </div>
-      </div>
-      <ng-template pTemplate="footer">
-        <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="createVisible = false" />
-        <p-button label="Create" (onClick)="submitCreate()" [loading]="saving()" />
-      </ng-template>
-    </p-dialog>
   `,
   styles: [
     `
@@ -213,28 +184,16 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 })
 export class UsersComponent implements OnInit {
   users = signal<UserRow[]>([]);
-  shops = signal<Shop[]>([]);
   loading = signal(true);
-  saving = signal(false);
-  createVisible = false;
   private revealedIds = signal<ReadonlySet<string>>(new Set());
-
-  form: { name: string; email: string; mobile: string; shopId: string } = {
-    name: '',
-    email: '',
-    mobile: '',
-    shopId: '',
-  };
 
   constructor(
     private readonly adminService: AdminService,
     private readonly confirmationService: ConfirmationService,
-    private readonly messageService: MessageService,
   ) {}
 
   ngOnInit(): void {
     this.load();
-    this.adminService.listShops().subscribe((res) => this.shops.set(res.items));
   }
 
   load(): void {
@@ -242,33 +201,6 @@ export class UsersComponent implements OnInit {
     this.adminService.listUsers().subscribe((users) => {
       this.users.set(users);
       this.loading.set(false);
-    });
-  }
-
-  openCreate(): void {
-    this.form = { name: '', email: '', mobile: '', shopId: '' };
-    this.createVisible = true;
-  }
-
-  submitCreate(): void {
-    if (!this.form.name.trim() || !this.form.email.trim() || !this.form.shopId) {
-      this.messageService.add({ severity: 'warn', summary: 'Name, email and shop are required' });
-      return;
-    }
-    this.saving.set(true);
-    this.adminService.createUser(this.form).subscribe({
-      next: (user) => {
-        this.saving.set(false);
-        this.createVisible = false;
-        this.messageService.add({
-          severity: 'success',
-          summary: 'User created',
-          detail: `Temporary password: ${user.temporaryPassword} (share this securely; they'll be asked to change it on first login)`,
-          life: 15000,
-        });
-        this.load();
-      },
-      error: () => this.saving.set(false),
     });
   }
 

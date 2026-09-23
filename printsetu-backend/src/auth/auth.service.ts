@@ -93,7 +93,12 @@ export class AuthService {
     await this.keycloakAdmin.setPassword(profile.keycloakUserId, newPassword, false);
     await this.usersService.clearPendingPasswordChange(profile.id);
 
-    const { data } = await this.passwordGrant(username, newPassword);
+    return this.signIn(username, newPassword);
+  }
+
+  /** Signs in with credentials known to be valid (e.g. right after registration). */
+  async signIn(username: string, password: string): Promise<TokenResponse> {
+    const { data } = await this.passwordGrant(username, password);
     return this.toTokenResponse(data);
   }
 
@@ -116,6 +121,28 @@ export class AuthService {
     }
   }
 
+  /**
+   * Sign-out: revokes the (offline) refresh token so the session really ends
+   * in Keycloak, not just in the browser. Best effort — the client forgets
+   * its tokens either way.
+   */
+  async logout(refreshToken: string): Promise<void> {
+    const kc = this.config.get('keycloak', { infer: true });
+    try {
+      await axios.post(
+        kc.revokeUrl,
+        new URLSearchParams({
+          client_id: kc.frontendClientId,
+          token: refreshToken,
+          token_type_hint: 'refresh_token',
+        }),
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+      );
+    } catch (error) {
+      this.logger.warn(`Token revocation failed: ${(error as Error).message}`);
+    }
+  }
+
   private passwordGrant(username: string, password: string) {
     const kc = this.config.get('keycloak', { infer: true });
     return axios.post(
@@ -125,7 +152,9 @@ export class AuthService {
         client_id: kc.frontendClientId,
         username,
         password,
-        scope: 'openid',
+        // offline_access: the refresh token outlives Keycloak's SSO session,
+        // so users stay signed in until they sign out themselves.
+        scope: 'openid offline_access',
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
     );

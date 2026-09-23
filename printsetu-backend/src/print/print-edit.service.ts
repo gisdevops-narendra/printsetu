@@ -6,7 +6,6 @@ import { STORAGE_SERVICE, IStorageService } from '../storage/storage.interface';
 import {
   AppNotFoundException,
   InvalidPrintOptionException,
-  ShopAccessDeniedException,
 } from '../common/exceptions/app.exceptions';
 import { EditItemDto } from './dto/print.dto';
 import { Prisma, PrintJobStatus } from '@prisma/client';
@@ -174,12 +173,6 @@ export class PrintEditService {
     });
     if (!item || item.printJobId !== jobId || item.printJob.shopId !== shopId) {
       throw new AppNotFoundException('Print job item not found.');
-    }
-    const settings = await this.prisma.printSettings.findUnique({ where: { shopId } });
-    if (!settings?.documentPreviewEnabled) {
-      throw new ShopAccessDeniedException(
-        'Document preview is not enabled for your shop. Ask your admin to turn it on.',
-      );
     }
     const key = original ? item.document.s3Key : (item.renderedS3Key ?? item.document.s3Key);
     const url = await this.storage.getSignedDownloadUrl(key, 120);

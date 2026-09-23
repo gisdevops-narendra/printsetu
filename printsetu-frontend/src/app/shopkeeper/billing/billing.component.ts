@@ -8,7 +8,7 @@ import { SubscriptionStatusService } from '../../core/services/subscription-stat
 import { BillingChannel, InvoiceRecord, ShopBillingOverview } from '../../core/models/billing.models';
 import { BillingPillComponent } from '../../shared/billing/billing-pill.component';
 import { InvoiceTableComponent } from '../../shared/billing/invoice-table.component';
-import { CHANNEL_META, STATE_META, downloadBlob, limit, money, printBlob, yearlySaving } from '../../shared/billing/billing.util';
+import { CHANNEL_META, STATE_META, cyclePrice, cycleUnit, downloadBlob, limit, money, printBlob, yearlySaving } from '../../shared/billing/billing.util';
 
 /** The shop owner's plan, usage, invoices and notification preferences. Never locked, even when the shop is suspended. */
 @Component({
@@ -57,7 +57,7 @@ import { CHANNEL_META, STATE_META, downloadBlob, limit, money, printBlob, yearly
               <app-billing-pill [state]="o.subscription.status" />
             </div>
             <h2>{{ o.plan.name }}</h2>
-            <p class="price"><strong>{{ money(o.subscription.cycle === 'YEARLY' ? o.plan.yearlyPrice : o.plan.monthlyPrice, o.plan.currency) }}</strong> / {{ o.subscription.cycle === 'YEARLY' ? 'year' : 'month' }}
+            <p class="price"><strong>{{ money(cyclePrice(o.plan, o.subscription.cycle), o.plan.currency) }}</strong> / {{ cycleUnit(o.subscription.cycle) }}
               @if (o.subscription.cycle === 'YEARLY' && saving(o); as s) { <span class="save">{{ s }}</span> }
             </p>
             <p class="hint">{{ hint(o) }}</p>
@@ -439,6 +439,8 @@ import { CHANNEL_META, STATE_META, downloadBlob, limit, money, printBlob, yearly
 })
 export class ShopBillingComponent implements OnInit {
   readonly money = money;
+  readonly cyclePrice = cyclePrice;
+  readonly cycleUnit = cycleUnit;
   readonly limit = limit;
   readonly channelMeta = CHANNEL_META;
 

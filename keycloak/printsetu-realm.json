@@ -5,6 +5,8 @@
   "registrationAllowed": false,
   "accessTokenLifespan": 900,
   "ssoSessionIdleTimeout": 1800,
+  "offlineSessionIdleTimeout": 315360000,
+  "offlineSessionMaxLifespanEnabled": false,
   "roles": {
     "realm": [
       { "name": "ADMIN", "description": "PrintSetu platform administrator" },

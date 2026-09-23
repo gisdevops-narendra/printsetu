@@ -3,7 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { BillingService } from '../../core/services/billing.service';
 import { RevenueDashboard } from '../../core/models/billing.models';
 import { BarDatum, BarChartComponent } from '../../shared/components/bar-chart/bar-chart.component';
-import { STATE_META, money } from '../../shared/billing/billing.util';
+import { STATE_META, cycleLabel, money } from '../../shared/billing/billing.util';
 
 const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPENDED', 'CANCELLED', 'EXPIRED'] as const;
 
@@ -34,8 +34,9 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
           <span class="kpi__icon kpi__icon--info"><i class="pi pi-verified"></i></span>
           <p class="kpi__label">Active subscriptions</p>
           <strong class="kpi__value">{{ d.activeSubscriptions.total }}</strong>
-          <span class="kpi__sub">{{ d.activeSubscriptions.monthly }} monthly &middot; {{ d.activeSubscriptions.yearly }} yearly</span>
+          <span class="kpi__sub">{{ d.activeSubscriptions.daily }} daily &middot; {{ d.activeSubscriptions.monthly }} monthly &middot; {{ d.activeSubscriptions.yearly }} yearly</span>
           <div class="split" aria-hidden="true">
+            <span class="split__d" [style.flex-grow]="d.activeSubscriptions.daily"></span>
             <span class="split__m" [style.flex-grow]="d.activeSubscriptions.monthly"></span>
             <span class="split__y" [style.flex-grow]="d.activeSubscriptions.yearly"></span>
           </div>
@@ -71,7 +72,7 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
                   <li>
                     <div class="list__main">
                       <strong>{{ r.shopName }}</strong>
-                      <span>{{ r.plan }} &middot; {{ r.cycle === 'YEARLY' ? 'yearly' : 'monthly' }}@if (r.isTrial) { &middot; trial ends } @else if (!r.autoRenew) { &middot; won't auto-renew }</span>
+                      <span>{{ r.plan }} &middot; {{ cycleLabel(r.cycle).toLowerCase() }}@if (r.isTrial) { &middot; trial ends } @else if (!r.autoRenew) { &middot; won't auto-renew }</span>
                     </div>
                     <div class="list__side"><strong>{{ money(r.amount) }}</strong><span>{{ r.date | date: 'd MMM' }}</span></div>
                   </li>
@@ -123,7 +124,7 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
           </section>
         </div>
       </div>
-      <p class="foot">MRR counts shops that are paying (Active and Payment pending); trials are not counted. Yearly plans count as one twelfth of the yearly price.</p>
+      <p class="foot">MRR counts shops that are paying (Active and Payment pending); trials are not counted. Yearly plans count as one twelfth of the yearly price; daily plans as 30 days.</p>
     }
   `,
   styles: [
@@ -228,6 +229,10 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
         border-radius: 999px;
         overflow: hidden;
         background: var(--bg-f1f5f9);
+      }
+      .split__d {
+        flex: 1 1 0;
+        background: #f59e0b;
       }
       .split__m {
         flex: 1 1 0;
@@ -381,6 +386,7 @@ export class SubOverviewComponent implements OnInit {
   d = signal<RevenueDashboard | null>(null);
 
   readonly money = (v: number) => money(v);
+  readonly cycleLabel = cycleLabel;
   readonly fmt = (n: number) => money(n);
 
   constructor(private readonly billing: BillingService) {}

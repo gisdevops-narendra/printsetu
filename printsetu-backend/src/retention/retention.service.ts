@@ -1,20 +1,16 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { DocumentStatus, PrintJobStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_SERVICE, IStorageService } from '../storage/storage.interface';
 import { PrintJobsRepository } from '../print/print-jobs.repository';
-import { AppConfig } from '../config/configuration';
-import { SystemSettingsService } from '../system-settings/system-settings.service';
-import { DEFAULT_RETENTION_MINUTES_KEY } from '../system-settings/system-settings.constants';
 
 /**
  * SRS §9 Document Lifecycle "Cleanup" row: a scheduled job deletes eligible
  * S3 objects and marks metadata as deleted — it never deletes solely
  * because a print command was *attempted*, only after RETENTION_PENDING
- * (i.e. a confirmed PRINTED job). Default window is 30 minutes (SRS §9
- * recommends 15–60, configurable — see print_settings.retention_minutes).
+ * (i.e. a confirmed PRINTED job). There is no retention window: a job's
+ * documents are deleted on the first sweep after it completes.
  */
 @Injectable()
 export class RetentionService {
@@ -24,36 +20,17 @@ export class RetentionService {
     private readonly prisma: PrismaService,
     @Inject(STORAGE_SERVICE) private readonly storage: IStorageService,
     private readonly printJobsRepo: PrintJobsRepository,
-    private readonly config: ConfigService<AppConfig, true>,
-    private readonly systemSettings: SystemSettingsService,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_10_SECONDS)
   async sweep() {
     const candidates = await this.prisma.printJob.findMany({
       where: { status: PrintJobStatus.RETENTION_PENDING },
-      include: {
-        items: { include: { document: true } },
-        shop: { include: { printSettings: true } },
-      },
+      include: { items: { include: { document: true } } },
     });
-
-    // SRS §6 "System settings": admin can override the platform-wide
-    // default retention window at runtime; falls back to the env-sourced
-    // value until an admin sets one (see system-settings module).
-    const envDefaultMinutes = this.config.get('retention', { infer: true }).defaultMinutes;
-    const defaultMinutes = await this.systemSettings.getOrDefault<number>(
-      DEFAULT_RETENTION_MINUTES_KEY,
-      envDefaultMinutes,
-    );
     let deletedCount = 0;
 
     for (const job of candidates) {
-      if (!job.printedAt) continue;
-      const retentionMinutes = job.shop.printSettings?.retentionMinutes ?? defaultMinutes;
-      const eligibleAt = new Date(job.printedAt.getTime() + retentionMinutes * 60_000);
-      if (eligibleAt.getTime() > Date.now()) continue;
-
       const pendingDocuments = job.items
         .map((item) => item.document)
         .filter((document) => document.status !== DocumentStatus.DELETED);
@@ -80,7 +57,7 @@ export class RetentionService {
         jobId: job.id,
         from: PrintJobStatus.RETENTION_PENDING,
         to: PrintJobStatus.DELETED,
-        message: `Retention window (${retentionMinutes}m) elapsed.`,
+        message: 'Print job completed; documents deleted.',
       });
       deletedCount += 1;
     }

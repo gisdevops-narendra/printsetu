@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PDFDocument, PDFFont, PDFPage, StandardFonts, degrees, rgb } from 'pdf-lib';
 import { Invoice, Refund, Shop } from '@prisma/client';
+import { cycleAdjective } from './subscription.constants';
 
 type InvoiceWithRelations = Invoice & { shop: Shop; refunds: Refund[] };
 
@@ -88,7 +89,7 @@ export class InvoicePdfService {
     text('PERIOD', 330, y, 8, bold, MUTED);
     right('AMOUNT', R - 10, y, 8, bold, MUTED);
     y -= 28;
-    text(`${invoice.planName} plan (${invoice.cycle === 'YEARLY' ? 'yearly' : 'monthly'})`, L + 10, y, 11, bold);
+    text(`${invoice.planName} plan (${cycleAdjective(invoice.cycle)})`, L + 10, y, 11, bold);
     text(`${date(invoice.periodStart)} - ${date(invoice.periodEnd)}`, 330, y, 10);
     right(money(invoice.amount.toString()), R - 10, y, 11, bold);
     y -= 15;

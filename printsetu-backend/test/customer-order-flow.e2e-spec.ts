@@ -2,7 +2,7 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { createTestApp, closeTestApp } from './support/app';
 import { getAccessToken } from './support/keycloak';
-import { makeTestPasswordPermanent } from './support/keycloak-admin';
+import { registerShop } from './support/register';
 import { buildMinimalPdf } from './support/fixtures';
 
 /**
@@ -12,8 +12,8 @@ import { buildMinimalPdf } from './support/fixtures';
  * service) — nothing here is mocked, including the async
  * document-analysis worker added for the Upload/Processing pipeline.
  *
- * This suite provisions its OWN throwaway shop/QR/pricing via the admin
- * and shop APIs rather than depending on the shared seeded demo shop
+ * This suite provisions its OWN throwaway shop/QR/pricing via the public
+ * registration and shop APIs rather than depending on the shared seeded demo shop
  * (SHOP-DEMO001) — that fixture is also the one a human operator explores
  * the running dev app with, and any real admin action against it (e.g.
  * regenerating its QR code from the Admin UI) would otherwise make this
@@ -30,30 +30,12 @@ describe('Customer order flow (e2e)', () => {
     app = await createTestApp();
     server = app.getHttpServer();
 
-    const adminToken = await getAccessToken('admin.demo@printsetu.local', 'Admin@12345');
+    const adminToken = await getAccessToken('admin', 'admin');
 
-    const shopRes = await request(server)
-      .post('/api/admin/shops')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({
-        name: 'E2E Order-Flow Test Shop',
-        ownerName: 'Test Owner',
-        mobile: '9222222222',
-        email: `e2e-orderflow-${Date.now()}@printsetu.local`,
-        address: '3rd Floor, Test Road',
-        city: 'Vadodara',
-      })
-      .expect(201);
-    const shopId = shopRes.body.id;
-
-    const shopkeeperEmail = `e2e-orderflow-shopkeeper-${Date.now()}@printsetu.local`;
-    const userRes = await request(server)
-      .post('/api/admin/users')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ name: 'E2E Shopkeeper', email: shopkeeperEmail, role: 'SHOPKEEPER', shopId })
-      .expect(201);
-    await makeTestPasswordPermanent(userRes.body.keycloakUserId, userRes.body.temporaryPassword);
-    const shopkeeperToken = await getAccessToken(shopkeeperEmail, userRes.body.temporaryPassword);
+    const { shopId, accessToken: shopkeeperToken } = await registerShop(server, 'orderflow', {
+      shopName: 'E2E Order-Flow Test Shop',
+      city: 'Vadodara',
+    });
 
     await request(server)
       .post('/api/shop/pricing')

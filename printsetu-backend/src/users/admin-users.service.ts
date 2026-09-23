@@ -1,11 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { KeycloakAdminService } from '../auth/keycloak-admin.service';
 import { CredentialCipherService } from '../common/crypto/credential-cipher.service';
 import { AppNotFoundException } from '../common/exceptions/app.exceptions';
-import { CreateUserDto } from './dto/admin-user.dto';
-import { RoleName, UserStatus } from '@prisma/client';
+import { UserStatus } from '@prisma/client';
 
 @Injectable()
 export class AdminUsersService {
@@ -31,42 +29,6 @@ export class AdminUsersService {
       ...user,
       currentPassword: currentPasswordEnc ? this.credentialCipher.decrypt(currentPasswordEnc) : null,
     }));
-  }
-
-  /**
-   * Creates both the Keycloak login and the local role/shop-scoped record.
-   * Always a SHOPKEEPER: the platform has exactly one ADMIN account, seeded
-   * directly in Keycloak, so there is no path here to mint another one.
-   */
-  async create(dto: CreateUserDto) {
-    const role = await this.prisma.role.findUnique({ where: { name: RoleName.SHOPKEEPER } });
-    if (!role) throw new AppNotFoundException('Role SHOPKEEPER is not seeded.');
-
-    const temporaryPassword = randomBytes(9).toString('base64url');
-    const keycloakUserId = await this.keycloakAdmin.provisionUser({
-      email: dto.email,
-      firstName: dto.name.split(' ')[0] || dto.name,
-      lastName: dto.name.split(' ').slice(1).join(' ') || '-',
-      role: RoleName.SHOPKEEPER,
-      temporaryPassword,
-    });
-
-    const user = await this.prisma.user.create({
-      data: {
-        shopId: dto.shopId,
-        roleId: role.id,
-        name: dto.name,
-        email: dto.email,
-        mobile: dto.mobile,
-        keycloakUserId,
-        status: UserStatus.ACTIVE,
-        mustChangePassword: true,
-        currentPasswordEnc: this.credentialCipher.encrypt(temporaryPassword),
-      },
-    });
-
-    const { currentPasswordEnc, passwordHash, ...userWithoutSecrets } = user;
-    return { ...userWithoutSecrets, temporaryPassword };
   }
 
   async setStatus(id: string, status: UserStatus) {

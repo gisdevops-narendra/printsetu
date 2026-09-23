@@ -2,18 +2,23 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { createTestApp, closeTestApp } from './support/app';
 import { getAccessToken } from './support/keycloak';
+import { makeTestPasswordTemporary } from './support/keycloak-admin';
+import { registerShop } from './support/register';
+import { PrismaService } from '../src/prisma/prisma.service';
+import { CredentialCipherService } from '../src/common/crypto/credential-cipher.service';
 
 /**
- * Exercises the forced first-login password-change flow end to end
+ * New accounts register with their own password, but accounts an admin
+ * created earlier may still hold a temporary one. Exercises the forced
+ * first-login password-change flow that still serves them, end to end
  * (AuthService.login / AuthService.changeTemporaryPassword) and the
  * admin-visible "current password" that backs it (AdminUsersService.list),
  * against the real dev Keycloak instance — not a stubbed guard.
  */
-describe('Temporary password: creation, admin visibility, and forced change (e2e)', () => {
+describe('Legacy temporary password: admin visibility and forced change (e2e)', () => {
   let app: INestApplication;
   let server: any;
   let adminToken: string;
-  let shopId: string;
 
   beforeAll(async () => {
     app = await createTestApp();
@@ -21,41 +26,29 @@ describe('Temporary password: creation, admin visibility, and forced change (e2e
     // Keycloak login: username "admin" / "admin" (see keycloak/printsetu-realm.json),
     // which resolves to the admin.demo@printsetu.local local user row (prisma/seed.ts).
     adminToken = await getAccessToken('admin', 'admin');
-
-    const shopRes = await request(server)
-      .post('/api/admin/shops')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({
-        name: 'E2E Temp Password Test Shop',
-        ownerName: 'Test Owner',
-        mobile: '9222222222',
-        email: `e2e-temp-pw-shop-${Date.now()}@printsetu.local`,
-        address: '3rd Floor, Test Road',
-        city: 'Surat',
-      })
-      .expect(201);
-    shopId = shopRes.body.id;
   });
 
   afterAll(async () => {
     await closeTestApp(app);
   });
 
-  it('walks a freshly created user through: temp password visible to admin -> forced change at login -> gone from the admin list', async () => {
-    const email = `e2e-temp-pw-${Date.now()}@printsetu.local`;
+  it('walks a legacy temp-password user through: visible to admin -> forced change at login -> gone from the admin list', async () => {
+    // 1. A registered shopkeeper is put back into the legacy "admin-issued
+    // temporary password" state (Keycloak required action + our DB flags).
+    const { email } = await registerShop(server, 'temp-pw');
+    const temporaryPassword = 'TempPass-e2e-123';
+    const prisma = app.get(PrismaService);
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    await makeTestPasswordTemporary(user.keycloakUserId!, temporaryPassword);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        mustChangePassword: true,
+        currentPasswordEnc: app.get(CredentialCipherService).encrypt(temporaryPassword),
+      },
+    });
 
-    // 1. Admin creates the user; the response still carries the one-time toast value.
-    const createRes = await request(server)
-      .post('/api/admin/users')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ name: 'E2E Temp Password User', email, shopId })
-      .expect(201);
-    const temporaryPassword: string = createRes.body.temporaryPassword;
-    expect(temporaryPassword).toEqual(expect.any(String));
-    expect(createRes.body.currentPasswordEnc).toBeUndefined();
-    expect(createRes.body.passwordHash).toBeUndefined();
-
-    // 2. Admin's user list shows the same password back, decrypted, plus the pending-change flag.
+    // 2. Admin's user list shows the password back, decrypted, plus the pending-change flag.
     const listResBefore = await request(server)
       .get('/api/admin/users')
       .set('Authorization', `Bearer ${adminToken}`)

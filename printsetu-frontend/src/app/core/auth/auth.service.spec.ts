@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 
@@ -24,6 +25,7 @@ describe('AuthService (SRS §18 token storage/session)', () => {
   let router: jasmine.SpyObj<Router>;
 
   beforeEach(() => {
+    localStorage.clear();
     sessionStorage.clear();
     router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     TestBed.configureTestingModule({
@@ -38,16 +40,17 @@ describe('AuthService (SRS §18 token storage/session)', () => {
 
   afterEach(() => {
     httpMock.verify();
+    localStorage.clear();
     sessionStorage.clear();
   });
 
-  it('starts unauthenticated when sessionStorage is empty', () => {
+  it('starts unauthenticated when storage is empty', () => {
     const service = TestBed.inject(AuthService);
     expect(service.isAuthenticated()).toBe(false);
     expect(service.user()).toBeNull();
   });
 
-  it('restores the session from a valid, unexpired token already in sessionStorage', () => {
+  it('restores the session from a valid, unexpired token already in localStorage', () => {
     const token = makeJwt({
       sub: 'u1',
       email: 'shopkeeper.demo@printsetu.local',
@@ -56,7 +59,7 @@ describe('AuthService (SRS §18 token storage/session)', () => {
       realm_access: { roles: ['SHOPKEEPER'] },
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
-    sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
 
     const service = TestBed.inject(AuthService);
     expect(service.isAuthenticated()).toBe(true);
@@ -67,21 +70,83 @@ describe('AuthService (SRS §18 token storage/session)', () => {
     });
   });
 
-  it('discards an expired token and clears storage on construction', () => {
-    const token = makeJwt({
+  const expiredToken = () =>
+    makeJwt({
       sub: 'u1',
       email: 'x@y.com',
       preferred_username: 'x',
       realm_access: { roles: ['ADMIN'] },
       exp: Math.floor(Date.now() / 1000) - 60, // already expired
     });
-    sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
-    sessionStorage.setItem(REFRESH_TOKEN_KEY, 'refresh');
+
+  it('keeps the user signed in with an expired access token while a refresh token exists', () => {
+    localStorage.setItem(ACCESS_TOKEN_KEY, expiredToken());
+    localStorage.setItem(REFRESH_TOKEN_KEY, 'refresh');
+
+    const service = TestBed.inject(AuthService);
+    expect(service.isAuthenticated()).toBe(true);
+    expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBe('refresh');
+  });
+
+  it('discards an expired token that has no refresh token to renew it', () => {
+    localStorage.setItem(ACCESS_TOKEN_KEY, expiredToken());
 
     const service = TestBed.inject(AuthService);
     expect(service.isAuthenticated()).toBe(false);
+    expect(localStorage.getItem(ACCESS_TOKEN_KEY)).toBeNull();
+  });
+
+  it('carries over a session stored by an older build in sessionStorage', () => {
+    sessionStorage.setItem(ACCESS_TOKEN_KEY, expiredToken());
+    sessionStorage.setItem(REFRESH_TOKEN_KEY, 'refresh');
+
+    const service = TestBed.inject(AuthService);
+    expect(service.isAuthenticated()).toBe(true);
+    expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBe('refresh');
     expect(sessionStorage.getItem(ACCESS_TOKEN_KEY)).toBeNull();
-    expect(sessionStorage.getItem(REFRESH_TOKEN_KEY)).toBeNull();
+  });
+
+  it('validAccessToken() renews an expiring token before use, sharing one refresh between callers', async () => {
+    localStorage.setItem(ACCESS_TOKEN_KEY, expiredToken());
+    localStorage.setItem(REFRESH_TOKEN_KEY, 'refresh');
+    const service = TestBed.inject(AuthService);
+    const fresh = makeJwt({ sub: 'u1', email: 'x@y.com', preferred_username: 'x', realm_access: { roles: ['ADMIN'] }, exp: Math.floor(Date.now() / 1000) + 900 });
+
+    const first = firstValueFrom(service.validAccessToken());
+    const second = firstValueFrom(service.validAccessToken());
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/auth/refresh`);
+    expect(req.request.body).toEqual({ refreshToken: 'refresh' });
+    req.flush({ accessToken: fresh, refreshToken: 'refresh-2' });
+
+    expect(await first).toBe(fresh);
+    expect(await second).toBe(fresh);
+    expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBe('refresh-2');
+  });
+
+  it('ends the session only when the refresh token itself is rejected', async () => {
+    localStorage.setItem(ACCESS_TOKEN_KEY, expiredToken());
+    localStorage.setItem(REFRESH_TOKEN_KEY, 'revoked');
+    const service = TestBed.inject(AuthService);
+
+    const attempt = firstValueFrom(service.refreshAccessToken());
+    httpMock.expectOne(`${environment.apiBaseUrl}/auth/refresh`).flush({}, { status: 401, statusText: 'Unauthorized' });
+
+    await expectAsync(attempt).toBeRejected();
+    expect(service.isAuthenticated()).toBe(false);
+    expect(router.navigate).toHaveBeenCalledWith(['/login']);
+  });
+
+  it('keeps the session when a refresh fails for a network reason', async () => {
+    localStorage.setItem(ACCESS_TOKEN_KEY, expiredToken());
+    localStorage.setItem(REFRESH_TOKEN_KEY, 'refresh');
+    const service = TestBed.inject(AuthService);
+
+    const attempt = firstValueFrom(service.refreshAccessToken());
+    httpMock.expectOne(`${environment.apiBaseUrl}/auth/refresh`).error(new ProgressEvent('offline'), { status: 0 });
+
+    await expectAsync(attempt).toBeRejected();
+    expect(service.isAuthenticated()).toBe(true);
+    expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBe('refresh');
   });
 
   it('treats a token with no ADMIN/SHOPKEEPER realm role as unauthenticated', () => {
@@ -92,7 +157,7 @@ describe('AuthService (SRS §18 token storage/session)', () => {
       realm_access: { roles: ['SOME_OTHER_ROLE'] },
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
-    sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
 
     const service = TestBed.inject(AuthService);
     expect(service.user()).toBeNull();
@@ -122,8 +187,41 @@ describe('AuthService (SRS §18 token storage/session)', () => {
     const user = await loginPromise;
     expect(user.role).toBe('ADMIN');
     expect(service.isAuthenticated()).toBe(true);
-    expect(sessionStorage.getItem(ACCESS_TOKEN_KEY)).toBe(accessToken);
-    expect(sessionStorage.getItem(REFRESH_TOKEN_KEY)).toBe('refresh-token');
+    expect(localStorage.getItem(ACCESS_TOKEN_KEY)).toBe(accessToken);
+    expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBe('refresh-token');
+  });
+
+  it('registerShop() POSTs the registration and signs the new shopkeeper in', async () => {
+    const service = TestBed.inject(AuthService);
+    const accessToken = makeJwt({
+      sub: 'u2',
+      email: 'owner@shop.com',
+      preferred_username: 'owner@shop.com',
+      name: 'Shop Owner',
+      realm_access: { roles: ['SHOPKEEPER'] },
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    const details = {
+      shopName: 'Sai Xerox',
+      ownerName: 'Shop Owner',
+      mobile: '9000000000',
+      email: 'owner@shop.com',
+      address: 'Main Road',
+      city: 'Surat',
+      password: 'StrongPass123',
+    };
+
+    const registerPromise = service.registerShop(details);
+
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/auth/register`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(details);
+    req.flush({ accessToken, refreshToken: 'refresh-token', shopId: 'shop-1' });
+
+    const user = await registerPromise;
+    expect(user.role).toBe('SHOPKEEPER');
+    expect(service.isAuthenticated()).toBe(true);
+    expect(localStorage.getItem(ACCESS_TOKEN_KEY)).toBe(accessToken);
   });
 
   it('login() rejects when the returned token carries no recognized role', async () => {
@@ -144,23 +242,26 @@ describe('AuthService (SRS §18 token storage/session)', () => {
     await expectAsync(loginPromise).toBeRejectedWithError(/no PrintSetu role/);
   });
 
-  it('logout() clears storage, resets the signal, and navigates to /login', () => {
-    sessionStorage.setItem(ACCESS_TOKEN_KEY, 'whatever');
-    sessionStorage.setItem(REFRESH_TOKEN_KEY, 'whatever');
+  it('logout() revokes the refresh token, clears storage, resets the signal, and navigates to /login', () => {
+    localStorage.setItem(ACCESS_TOKEN_KEY, expiredToken());
+    localStorage.setItem(REFRESH_TOKEN_KEY, 'refresh-to-revoke');
     const service = TestBed.inject(AuthService);
 
     service.logout();
+    const revoke = httpMock.expectOne(`${environment.apiBaseUrl}/auth/logout`);
+    expect(revoke.request.body).toEqual({ refreshToken: 'refresh-to-revoke' });
+    revoke.flush(null, { status: 204, statusText: 'No Content' });
 
-    expect(sessionStorage.getItem(ACCESS_TOKEN_KEY)).toBeNull();
-    expect(sessionStorage.getItem(REFRESH_TOKEN_KEY)).toBeNull();
+    expect(localStorage.getItem(ACCESS_TOKEN_KEY)).toBeNull();
+    expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBeNull();
     expect(service.isAuthenticated()).toBe(false);
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
   });
 
-  it('getAccessToken() returns whatever is currently in sessionStorage', () => {
+  it('getAccessToken() returns whatever is currently in localStorage', () => {
     const service = TestBed.inject(AuthService);
     expect(service.getAccessToken()).toBeNull();
-    sessionStorage.setItem(ACCESS_TOKEN_KEY, 'tok-123');
+    localStorage.setItem(ACCESS_TOKEN_KEY, 'tok-123');
     expect(service.getAccessToken()).toBe('tok-123');
   });
 });

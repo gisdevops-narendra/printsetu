@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AppNotFoundException } from '../common/exceptions/app.exceptions';
 import { BillingConflictException } from './subscription.exceptions';
 import { UpsertPlanDto } from './dto/subscription.dto';
+import { DAYS_PER_MONTH } from './subscription.constants';
 
 @Injectable()
 export class PlansService {
@@ -21,12 +22,16 @@ export class PlansService {
 
   private toData(dto: UpsertPlanDto) {
     const name = dto.name.trim();
+    if (dto.monthlyPrice > dto.dailyPrice * DAYS_PER_MONTH + 0.001) {
+      throw new BillingConflictException('The monthly price cannot be more than 30 days of the daily price.');
+    }
     if (dto.yearlyPrice > dto.monthlyPrice * 12 + 0.001) {
       throw new BillingConflictException('The yearly price cannot be more than 12 months of the monthly price.');
     }
     return {
       name,
       description: dto.description?.trim() || null,
+      dailyPrice: dto.dailyPrice,
       monthlyPrice: dto.monthlyPrice,
       yearlyPrice: dto.yearlyPrice,
       trialDays: dto.trialDays ?? 0,

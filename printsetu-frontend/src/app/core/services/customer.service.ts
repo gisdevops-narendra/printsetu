@@ -1,14 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import {
-  ConfirmJobResponse,
-  DocumentInfo,
-  PrintJobRow,
-  QuoteItemRequest,
-  QuoteResponse,
-  UploadResponse,
-} from '../models/models';
+import { ColorMode, ConfirmJobResponse, DocumentInfo, PaperSize, PrintJobRow, QuoteItemRequest, QuoteResponse, SideMode, UploadResponse } from '../models/models';
 
 const BASE = environment.apiBaseUrl;
 
@@ -27,6 +20,8 @@ export class CustomerService {
       shopCode: string;
       shopName: string;
       city: string;
+      /** Paper / colour / sides combinations the shop has a price for. */
+      pricedOptions?: { paperSize: PaperSize; colorMode: ColorMode; sideMode: SideMode }[];
       /** false when the shop is suspended, overdue or over its plan limit. */
       available: boolean;
       unavailableMessage: string | null;

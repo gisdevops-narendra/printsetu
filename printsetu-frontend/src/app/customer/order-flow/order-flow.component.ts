@@ -20,7 +20,6 @@ import {
 
 const STATUS_POLL_MS = 4000;
 const DOC_STATUS_POLL_MS = 2000;
-const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const QUOTE_DEBOUNCE_MS = 250;
 const TERMINAL_JOB_STATUSES: PrintJobStatus[] = ['PRINTED', 'RETENTION_PENDING', 'DELETED', 'PRINT_FAILED', 'CANCELLED'];
 
@@ -140,7 +139,7 @@ interface PersistedOrderSession {
                   <input class="sr-only" type="file" multiple accept=".pdf,.jpg,.jpeg,.png" (change)="onFilesChosen($event)" />
                   <span class="dropzone__icon"><i class="pi pi-cloud-upload"></i></span>
                   <span class="dropzone__title">Choose files to print</span>
-                  <span class="dropzone__hint">PDF, JPG or PNG &middot; up to 25&nbsp;MB each</span>
+                  <span class="dropzone__hint">PDF, JPG or PNG</span>
                   <span class="dropzone__cta"><i class="pi pi-plus"></i> Select files</span>
                 </label>
               } @else {
@@ -177,26 +176,14 @@ interface PersistedOrderSession {
                             </div>
                           </div>
 
-                          <div class="opts__pair">
-                            <div class="opt">
-                              <span class="opt__label">Color</span>
-                              <div class="seg" role="radiogroup" aria-label="Color">
-                                @for (c of colorModes; track c) {
-                                  <button type="button" class="seg__btn" role="radio" [attr.aria-checked]="u.options.colorMode === c" [class.is-on]="u.options.colorMode === c" (click)="setOption(u, 'colorMode', c)">
-                                    {{ c === 'BW' ? 'B&W' : 'Color' }}
-                                  </button>
-                                }
-                              </div>
-                            </div>
-                            <div class="opt">
-                              <span class="opt__label">Sides</span>
-                              <div class="seg" role="radiogroup" aria-label="Sides">
-                                @for (s of sideModes; track s) {
-                                  <button type="button" class="seg__btn" role="radio" [attr.aria-checked]="u.options.sideMode === s" [class.is-on]="u.options.sideMode === s" (click)="setOption(u, 'sideMode', s)">
-                                    {{ s === 'SIMPLEX' ? 'Single' : 'Double' }}
-                                  </button>
-                                }
-                              </div>
+                          <div class="opt">
+                            <span class="opt__label">Color</span>
+                            <div class="seg" role="radiogroup" aria-label="Color">
+                              @for (c of colorModes; track c) {
+                                <button type="button" class="seg__btn" role="radio" [attr.aria-checked]="u.options.colorMode === c" [class.is-on]="u.options.colorMode === c" (click)="setOption(u, 'colorMode', c)">
+                                  {{ c === 'BW' ? 'B&W' : 'Color' }}
+                                </button>
+                              }
                             </div>
                           </div>
 
@@ -221,6 +208,17 @@ interface PersistedOrderSession {
                               <button type="button" class="qty__btn" (click)="stepCopies(u, 1)" [disabled]="u.options.copies >= 999" aria-label="More copies">
                                 <i class="pi pi-plus"></i>
                               </button>
+                            </div>
+                          </div>
+
+                          <div class="opt">
+                            <span class="opt__label">Sides</span>
+                            <div class="seg" role="radiogroup" aria-label="Sides">
+                              @for (s of sideModes; track s) {
+                                <button type="button" class="seg__btn" role="radio" [attr.aria-checked]="u.options.sideMode === s" [class.is-on]="u.options.sideMode === s" (click)="setOption(u, 'sideMode', s)">
+                                  {{ s === 'SIMPLEX' ? 'Single' : 'Double' }}
+                                </button>
+                              }
                             </div>
                           </div>
 
@@ -790,11 +788,6 @@ interface PersistedOrderSession {
         border-top: 1px solid var(--line);
         background: #fbfcfe;
       }
-      .opts__pair {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 16px;
-      }
       .opt {
         display: flex;
         flex-direction: column;
@@ -1156,6 +1149,8 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
   paperSizes: PaperSize[] = ['A4', 'A3', 'LETTER', 'LEGAL'];
   colorModes: ColorMode[] = ['BW', 'COLOR'];
   sideModes: SideMode[] = ['SIMPLEX', 'DUPLEX'];
+  /** Option combinations the shop has a price for; null until known. */
+  private pricedOptions: { paperSize: PaperSize; colorMode: ColorMode; sideMode: SideMode }[] | null = null;
 
   quoting = signal(false);
   quote = signal<QuoteResponse | null>(null);
@@ -1213,6 +1208,7 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
     this.customerService.resolveShop(this.shopCode).subscribe({
       next: (res) => {
         this.shopName.set(res.shopName);
+        this.pricedOptions = res.pricedOptions ?? null;
         this.resolvingShop.set(false);
         if (res.available === false) {
           this.shopUnavailable.set(res.unavailableMessage ?? 'Please try again later.');
@@ -1360,10 +1356,6 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
         problems.push(`"${file.name}" isn't a PDF, JPG or PNG.`);
         return false;
       }
-      if (file.size > MAX_FILE_BYTES) {
-        problems.push(`"${file.name}" is larger than 25 MB.`);
-        return false;
-      }
       return true;
     });
 
@@ -1397,13 +1389,15 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
     this.recalculate();
   }
 
-  private defaultOptionsFor(mimeType: string): DocOptions {
-    return {
-      paperSize: 'A4',
-      colorMode: mimeType.startsWith('image/') ? 'COLOR' : 'BW',
-      sideMode: 'SIMPLEX',
-      copies: 1,
-    };
+  /** Every file starts as A4, Black & White, double-sided (single-sided when the shop doesn't price double-sided). */
+  private defaultOptionsFor(_mimeType: string): DocOptions {
+    const paperSize: PaperSize = 'A4';
+    const colorMode: ColorMode = 'BW';
+    const priced = (sideMode: SideMode) =>
+      this.pricedOptions === null ||
+      this.pricedOptions.some((o) => o.paperSize === paperSize && o.colorMode === colorMode && o.sideMode === sideMode);
+    const sideMode: SideMode = priced('DUPLEX') || !priced('SIMPLEX') ? 'DUPLEX' : 'SIMPLEX';
+    return { paperSize, colorMode, sideMode, copies: 1 };
   }
 
   private mergeSessionDocuments(docs: DocumentInfo[]): void {

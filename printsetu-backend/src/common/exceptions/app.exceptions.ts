@@ -74,3 +74,9 @@ export class DocumentProcessingConflictException extends AppException {
     super('DOCUMENT_PROCESSING_CONFLICT', message, HttpStatus.CONFLICT);
   }
 }
+
+export class EmailAlreadyRegisteredException extends AppException {
+  constructor(message = 'An account with this email already exists. Sign in instead.') {
+    super('EMAIL_ALREADY_REGISTERED', message, HttpStatus.CONFLICT);
+  }
+}

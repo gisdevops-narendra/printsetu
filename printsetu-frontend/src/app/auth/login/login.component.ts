@@ -6,6 +6,14 @@ import { Router } from '@angular/router';
 import { AuthService, PasswordChangeRequiredError } from '../../core/auth/auth.service';
 import { environment } from '../../../environments/environment';
 
+type RegField = 'shopName' | 'ownerName' | 'email' | 'mobile' | 'address' | 'city' | 'password' | 'confirm';
+
+const REG_FIELDS: RegField[] = ['shopName', 'ownerName', 'email', 'mobile', 'address', 'city', 'password', 'confirm'];
+
+function emptyRegistration(): Record<RegField, string> {
+  return { shopName: '', ownerName: '', email: '', mobile: '', address: '', city: '', password: '', confirm: '' };
+}
+
 interface DemoAccount {
   label: string;
   icon: string;
@@ -189,9 +197,138 @@ interface DemoAccount {
               </div>
             }
 
+            <p class="switch">
+              New to PrintSetu?
+              <button type="button" class="link" (click)="startRegister()">Create account / Register shop</button>
+            </p>
+
             <p class="secure">
               <i class="pi pi-lock"></i>
-              {{ secureConnection ? 'Encrypted connection' : 'Private session' }} &middot; signed out when you close this tab
+              {{ secureConnection ? 'Encrypted connection' : 'Private session' }} &middot; you stay signed in until you sign out
+            </p>
+          } @else if (mode() === 'register') {
+            <header class="sheet__head">
+              <h1 class="sheet__title">Register your shop</h1>
+              <p class="sheet__sub">Create your shop and your sign-in in one step. You'll choose your own password.</p>
+            </header>
+
+            <form (ngSubmit)="submitRegister()" novalidate class="form" [class.is-busy]="loading()">
+              <div class="field" [class.has-error]="showRegError('shopName')">
+                <label class="field__label" for="regShopName">Shop name</label>
+                <div class="control">
+                  <i class="pi pi-shop control__icon" aria-hidden="true"></i>
+                  <input #regFirstInput id="regShopName" name="regShopName" type="text" class="control__input" placeholder="e.g. Sai Xerox &amp; Prints" autocomplete="organization" [(ngModel)]="reg.shopName" (blur)="touchReg('shopName')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('shopName')" />
+                </div>
+                @if (showRegError('shopName')) {
+                  <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('shopName') }}</p>
+                }
+              </div>
+
+              <div class="field" [class.has-error]="showRegError('ownerName')">
+                <label class="field__label" for="regOwnerName">Your name</label>
+                <div class="control">
+                  <i class="pi pi-user control__icon" aria-hidden="true"></i>
+                  <input id="regOwnerName" name="regOwnerName" type="text" class="control__input" placeholder="Shop owner's full name" autocomplete="name" [(ngModel)]="reg.ownerName" (blur)="touchReg('ownerName')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('ownerName')" />
+                </div>
+                @if (showRegError('ownerName')) {
+                  <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('ownerName') }}</p>
+                }
+              </div>
+
+              <div class="field" [class.has-error]="showRegError('email')">
+                <label class="field__label" for="regEmail">Email</label>
+                <div class="control">
+                  <i class="pi pi-envelope control__icon" aria-hidden="true"></i>
+                  <input id="regEmail" name="regEmail" type="email" class="control__input" placeholder="you@shop.com" autocomplete="email" autocapitalize="none" spellcheck="false" [(ngModel)]="reg.email" (blur)="touchReg('email')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('email')" />
+                </div>
+                @if (showRegError('email')) {
+                  <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('email') }}</p>
+                } @else {
+                  <p class="field__note">You'll sign in with this email.</p>
+                }
+              </div>
+
+              <div class="field" [class.has-error]="showRegError('mobile')">
+                <label class="field__label" for="regMobile">Mobile</label>
+                <div class="control">
+                  <i class="pi pi-phone control__icon" aria-hidden="true"></i>
+                  <input id="regMobile" name="regMobile" type="tel" inputmode="tel" class="control__input" placeholder="10-digit mobile number" autocomplete="tel" [(ngModel)]="reg.mobile" (blur)="touchReg('mobile')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('mobile')" />
+                </div>
+                @if (showRegError('mobile')) {
+                  <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('mobile') }}</p>
+                }
+              </div>
+
+              <div class="field" [class.has-error]="showRegError('address')">
+                <label class="field__label" for="regAddress">Shop address</label>
+                <div class="control">
+                  <i class="pi pi-map-marker control__icon" aria-hidden="true"></i>
+                  <input id="regAddress" name="regAddress" type="text" class="control__input" placeholder="Shop no., street, area" autocomplete="street-address" [(ngModel)]="reg.address" (blur)="touchReg('address')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('address')" />
+                </div>
+                @if (showRegError('address')) {
+                  <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('address') }}</p>
+                }
+              </div>
+
+              <div class="field" [class.has-error]="showRegError('city')">
+                <label class="field__label" for="regCity">City</label>
+                <div class="control">
+                  <i class="pi pi-building control__icon" aria-hidden="true"></i>
+                  <input id="regCity" name="regCity" type="text" class="control__input" placeholder="City" autocomplete="address-level2" [(ngModel)]="reg.city" (blur)="touchReg('city')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('city')" />
+                </div>
+                @if (showRegError('city')) {
+                  <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('city') }}</p>
+                }
+              </div>
+
+              <div class="field" [class.has-error]="showRegError('password')">
+                <label class="field__label" for="regPassword">Password</label>
+                <div class="control">
+                  <i class="pi pi-lock control__icon" aria-hidden="true"></i>
+                  <input id="regPassword" name="regPassword" class="control__input control__input--pw" placeholder="At least 8 characters" autocomplete="new-password" [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="reg.password" (blur)="touchReg('password')" (ngModelChange)="clearError()" (keyup)="checkCaps($event)" (keydown)="checkCaps($event)" [attr.aria-invalid]="showRegError('password')" />
+                  <button type="button" class="control__toggle" (click)="showPassword.set(!showPassword())" [attr.aria-pressed]="showPassword()" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+                    <i class="pi" [ngClass]="showPassword() ? 'pi-eye-slash' : 'pi-eye'"></i>
+                  </button>
+                </div>
+                @if (showRegError('password')) {
+                  <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('password') }}</p>
+                } @else if (capsOn()) {
+                  <p class="field__hint"><i class="pi pi-exclamation-triangle"></i> Caps Lock is on</p>
+                }
+              </div>
+
+              <div class="field" [class.has-error]="showRegError('confirm')">
+                <label class="field__label" for="regConfirm">Confirm password</label>
+                <div class="control">
+                  <i class="pi pi-lock control__icon" aria-hidden="true"></i>
+                  <input id="regConfirm" name="regConfirm" class="control__input" placeholder="Type it again" autocomplete="new-password" [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="reg.confirm" (blur)="touchReg('confirm')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('confirm')" />
+                </div>
+                @if (showRegError('confirm')) {
+                  <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('confirm') }}</p>
+                }
+              </div>
+
+              @for (e of errors(); track e.id) {
+                <div class="alert" role="alert">
+                  <i class="pi pi-exclamation-circle"></i>
+                  <span>{{ e.text }}</span>
+                </div>
+              }
+
+              <button type="submit" class="submit" [disabled]="loading()">
+                @if (loading()) {
+                  <span class="spinner" aria-hidden="true"></span>
+                  <span>Creating your shop…</span>
+                } @else {
+                  <span>Create account</span>
+                  <i class="pi pi-arrow-right"></i>
+                }
+              </button>
+            </form>
+
+            <p class="switch">
+              Already registered?
+              <button type="button" class="link" (click)="backToLogin()">Sign in</button>
             </p>
           } @else {
             <header class="sheet__head">
@@ -733,6 +870,21 @@ interface DemoAccount {
       .chip:active {
         transform: scale(0.98);
       }
+      .switch {
+        margin: clamp(0.75rem, 2.4vh, 1.25rem) 0 0;
+        font-size: 0.875rem;
+        color: var(--muted);
+        text-align: center;
+      }
+      .switch .link {
+        font-size: 0.875rem;
+        margin-left: 0.25rem;
+      }
+      .field__note {
+        margin: 0;
+        font-size: 0.8125rem;
+        color: var(--muted);
+      }
       .secure {
         display: flex;
         align-items: center;
@@ -1091,6 +1243,7 @@ export class LoginComponent {
   @ViewChild('usernameInput') usernameInput?: ElementRef<HTMLInputElement>;
   @ViewChild('passwordInput') passwordInput?: ElementRef<HTMLInputElement>;
   @ViewChild('newPasswordInput') newPasswordInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('regFirstInput') regFirstInput?: ElementRef<HTMLInputElement>;
 
   username = '';
   password = '';
@@ -1111,11 +1264,15 @@ export class LoginComponent {
    * AuthService.login / PasswordChangeRequiredError). `password` above is
    * reused as the verified current (temporary) password for that step.
    */
-  mode = signal<'login' | 'changePassword'>('login');
+  mode = signal<'login' | 'changePassword' | 'register'>('login');
   newPassword = '';
   confirmPassword = '';
   newPasswordTouched = signal(false);
   confirmPasswordTouched = signal(false);
+
+  /** 'register' = shop self-registration: creates the shop and its owner's login, with a password they choose. */
+  reg: Record<RegField, string> = emptyRegistration();
+  regTouched = signal<ReadonlySet<RegField>>(new Set());
 
   readonly secureConnection = typeof location !== 'undefined' && location.protocol === 'https:';
 
@@ -1253,6 +1410,102 @@ export class LoginComponent {
     this.submitted.set(false);
     this.clearError();
     setTimeout(() => this.passwordInput?.nativeElement.focus());
+  }
+
+  startRegister(): void {
+    this.mode.set('register');
+    this.reg = emptyRegistration();
+    this.regTouched.set(new Set());
+    this.submitted.set(false);
+    this.clearError();
+    setTimeout(() => this.regFirstInput?.nativeElement.focus());
+  }
+
+  backToLogin(): void {
+    this.mode.set('login');
+    this.reg = emptyRegistration();
+    this.submitted.set(false);
+    this.clearError();
+    setTimeout(() => this.usernameInput?.nativeElement.focus());
+  }
+
+  touchReg(field: RegField): void {
+    this.regTouched.set(new Set([...this.regTouched(), field]));
+  }
+
+  regError(field: RegField): string {
+    const value = this.reg[field].trim();
+    switch (field) {
+      case 'shopName':
+        return value ? '' : 'Enter your shop name.';
+      case 'ownerName':
+        return value ? '' : 'Enter your name.';
+      case 'email':
+        if (!value) return 'Enter your email.';
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? '' : 'Enter a valid email address.';
+      case 'mobile':
+        if (!value) return 'Enter your mobile number.';
+        return /^\+?[\d\s-]{10,15}$/.test(value) ? '' : 'Enter a valid mobile number.';
+      case 'address':
+        return value ? '' : 'Enter your shop address.';
+      case 'city':
+        return value ? '' : 'Enter your city.';
+      case 'password':
+        if (!this.reg.password) return 'Choose a password.';
+        return this.reg.password.length >= 8 ? '' : 'Password must be at least 8 characters.';
+      case 'confirm':
+        if (!this.reg.confirm) return 'Type your password again.';
+        return this.reg.confirm === this.reg.password ? '' : "Passwords don't match.";
+    }
+  }
+
+  showRegError(field: RegField): boolean {
+    return !!this.regError(field) && (this.regTouched().has(field) || this.submitted());
+  }
+
+  async submitRegister(): Promise<void> {
+    if (this.loading()) return;
+    this.submitted.set(true);
+    const firstInvalid = REG_FIELDS.find((f) => this.regError(f));
+    if (firstInvalid) {
+      document.getElementById(`reg${firstInvalid[0].toUpperCase()}${firstInvalid.slice(1)}`)?.focus();
+      return;
+    }
+
+    this.loading.set(true);
+    this.clearError();
+    try {
+      await this.auth.registerShop({
+        shopName: this.reg.shopName.trim(),
+        ownerName: this.reg.ownerName.trim(),
+        mobile: this.reg.mobile.trim(),
+        email: this.reg.email.trim(),
+        address: this.reg.address.trim(),
+        city: this.reg.city.trim(),
+        password: this.reg.password,
+      });
+      this.router.navigate(['/shop']);
+    } catch (err) {
+      this.errors.set([{ id: ++this.errorSeq, text: this.describeRegistration(err) }]);
+      this.submitted.set(false);
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  private describeRegistration(err: unknown): string {
+    if (err instanceof HttpErrorResponse) {
+      if (err.status === 0) return "We can't reach the server. Check your internet connection and try again.";
+      if (err.status === 429) return 'Too many attempts. Please wait a minute and try again.';
+      if (err.status === 409) return err.error?.message || 'An account with this email already exists. Sign in instead.';
+      if (err.status === 400) {
+        const message = err.error?.message;
+        return (Array.isArray(message) ? message[0] : message) || 'Please check your details and try again.';
+      }
+      return 'Something went wrong on our side. Please try again in a moment.';
+    }
+    if (err instanceof Error) return err.message;
+    return "We couldn't create your account. Please try again.";
   }
 
   /** Human, specific-enough messages; never leaks which of the two fields was wrong. */

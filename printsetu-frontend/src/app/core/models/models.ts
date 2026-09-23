@@ -24,9 +24,6 @@ export interface PrintSettings {
   id: string;
   shopId: string;
   defaultPrinterId: string | null;
-  retentionMinutes: number;
-  maxFileSizeBytes: number;
-  documentPreviewEnabled: boolean;
 }
 
 export interface Shop {
@@ -295,16 +292,23 @@ export interface NotificationPrefs {
   failureAlerts: boolean;
 }
 
+export interface ShopAvailabilityInfo {
+  /** MANUAL = the switch alone; SCHEDULE = the opening hours; OVERRIDE = a manual break/extension while scheduled. */
+  source: 'MANUAL' | 'SCHEDULE' | 'OVERRIDE';
+  /** When the status flips on its own (ISO), if it will. */
+  nextChangeAt: string | null;
+  timeZone: string;
+}
+
 export interface ShopSettingsInfo {
   autoAcceptOrders: boolean;
-  /** The header's Online / Offline switch: false pauses new customer orders. */
+  /** Whether new customer orders are accepted right now (schedule and manual breaks applied). */
   acceptingOrders: boolean;
+  /** Go Online / Offline automatically on the shop's opening hours. */
+  autoSchedule: boolean;
+  availability: ShopAvailabilityInfo;
   defaultPrinterId: string | null;
   notificationPrefs: NotificationPrefs;
-  /** Admin-managed; shown for information only. */
-  retentionMinutes: number;
-  documentPreviewEnabled: boolean;
-  maxFileSizeBytes: number;
 }
 
 export interface ShopProfileResponse {

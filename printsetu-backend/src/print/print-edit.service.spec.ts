@@ -2,7 +2,6 @@ import { PrintEditService } from './print-edit.service';
 import {
   AppNotFoundException,
   InvalidPrintOptionException,
-  ShopAccessDeniedException,
 } from '../common/exceptions/app.exceptions';
 
 const sharpInstance = {
@@ -178,13 +177,6 @@ describe('PrintEditService (shop document editor — rotate/crop/brightness/cont
       prisma.printJobItem.findUnique.mockResolvedValue({ ...imageItem, renderedS3Key: 'shop-1/doc-1/edits/x.jpg' });
       await service.getItemPreviewUrl('job-1', 'shop-1', 'item-1');
       expect(storage.getSignedDownloadUrl).toHaveBeenCalledWith('shop-1/doc-1/edits/x.jpg', 120);
-    });
-
-    it('rejects when the shop has not enabled document preview', async () => {
-      prisma.printSettings.findUnique.mockResolvedValue({ documentPreviewEnabled: false });
-      await expect(service.getItemPreviewUrl('job-1', 'shop-1', 'item-1')).rejects.toThrow(
-        ShopAccessDeniedException,
-      );
     });
   });
 });

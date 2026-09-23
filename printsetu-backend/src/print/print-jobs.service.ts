@@ -481,9 +481,8 @@ export class PrintJobsService {
 
     if (to === PrintJobStatus.PRINTED) {
       await this.notifications.record(job.shopId, jobId, 'PRINT_COMPLETED');
-      // SRS §9: "Print success -> retention countdown starts" — chained
-      // immediately; RetentionService later decides *when* to actually
-      // delete based on print_settings.retention_minutes.
+      // Chained immediately; RetentionService deletes the documents on its
+      // next sweep (no retention window).
       updated = await this.repo.transition({
         jobId,
         from: PrintJobStatus.PRINTED,

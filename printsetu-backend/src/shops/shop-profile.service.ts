@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Prisma, PrinterStatus, PrintJobStatus } from '@prisma/client';
 import sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,10 +10,16 @@ import {
   InvalidPrintOptionException,
 } from '../common/exceptions/app.exceptions';
 import { UpdateShopProfileDto, UpdateShopSettingsDto } from './dto/shop-profile.dto';
+import { AppConfig } from '../config/configuration';
+import {
+  DAY_KEYS as DAYS,
+  OpeningHours,
+  effectiveAvailability,
+  hasOpenDay,
+  overrideFor,
+} from './shop-availability';
 
-const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
-type Day = (typeof DAYS)[number];
-export type OpeningHours = Record<Day, { open: boolean; from: string; to: string }>;
+export type { OpeningHours } from './shop-availability';
 
 export interface NotificationPrefs {
   newOrderSound: boolean;
@@ -63,7 +70,12 @@ export class ShopProfileService {
     private readonly prisma: PrismaService,
     @Inject(STORAGE_SERVICE) private readonly storage: IStorageService,
     private readonly audit: AuditService,
+    private readonly config: ConfigService<AppConfig, true>,
   ) {}
+
+  private get timeZone(): string {
+    return this.config.get('shopTimeZone', { infer: true });
+  }
 
   // ---------------------------------------------------------------- profile
 
@@ -72,22 +84,37 @@ export class ShopProfileService {
     if (!shop) throw new AppNotFoundException('Shop not found.');
     const settings = shop.printSettings;
     const { logoKey, bannerKey, openingHours, printSettings: _ps, ...rest } = shop;
+    const hours = this.normalizeHours(openingHours);
+    const availability = effectiveAvailability(
+      {
+        acceptingOrders: settings?.acceptingOrders ?? true,
+        autoSchedule: settings?.autoSchedule ?? false,
+        scheduleOverride: settings?.scheduleOverride ?? null,
+        scheduleOverrideUntil: settings?.scheduleOverrideUntil ?? null,
+      },
+      hours,
+      new Date(),
+      this.timeZone,
+    );
     return {
       shop: {
         ...rest,
-        openingHours: this.normalizeHours(openingHours),
+        openingHours: hours,
         logoUrl: logoKey ? await this.storage.getSignedDownloadUrl(logoKey, IMAGE_URL_TTL_SECONDS) : null,
         bannerUrl: bannerKey ? await this.storage.getSignedDownloadUrl(bannerKey, IMAGE_URL_TTL_SECONDS) : null,
       },
       settings: {
         autoAcceptOrders: settings?.autoAcceptOrders ?? false,
-        acceptingOrders: settings?.acceptingOrders ?? true,
+        // Whether new orders are being accepted right now (schedule and overrides applied).
+        acceptingOrders: availability.online,
+        autoSchedule: settings?.autoSchedule ?? false,
+        availability: {
+          source: availability.source,
+          nextChangeAt: availability.nextChangeAt?.toISOString() ?? null,
+          timeZone: this.timeZone,
+        },
         defaultPrinterId: settings?.defaultPrinterId ?? null,
         notificationPrefs: this.normalizePrefs(settings?.notificationPrefs),
-        // Admin-managed, shown for information only.
-        retentionMinutes: settings?.retentionMinutes ?? 30,
-        documentPreviewEnabled: settings?.documentPreviewEnabled ?? false,
-        maxFileSizeBytes: settings?.maxFileSizeBytes ?? 26_214_400,
       },
     };
   }
@@ -190,7 +217,9 @@ export class ShopProfileService {
   async updateSettings(shopId: string, actorUserId: string, dto: UpdateShopSettingsDto) {
     const data: Prisma.PrintSettingsUpdateInput = {};
     if (dto.autoAcceptOrders !== undefined) data.autoAcceptOrders = dto.autoAcceptOrders;
-    if (dto.acceptingOrders !== undefined) data.acceptingOrders = dto.acceptingOrders;
+    if (dto.acceptingOrders !== undefined || dto.autoSchedule !== undefined) {
+      Object.assign(data, await this.onlineChanges(shopId, dto));
+    }
     if (dto.notificationPrefs) {
       const current = await this.prisma.printSettings.findUnique({ where: { shopId } });
       data.notificationPrefs = { ...this.normalizePrefs(current?.notificationPrefs), ...dto.notificationPrefs } as unknown as Prisma.InputJsonValue;
@@ -209,7 +238,10 @@ export class ShopProfileService {
         create: {
           shopId,
           autoAcceptOrders: dto.autoAcceptOrders ?? false,
-          acceptingOrders: dto.acceptingOrders ?? true,
+          acceptingOrders: (data.acceptingOrders as boolean | undefined) ?? true,
+          autoSchedule: (data.autoSchedule as boolean | undefined) ?? false,
+          scheduleOverride: (data.scheduleOverride as boolean | null | undefined) ?? null,
+          scheduleOverrideUntil: (data.scheduleOverrideUntil as Date | null | undefined) ?? null,
           defaultPrinterId: dto.defaultPrinterId,
           notificationPrefs: (data.notificationPrefs as Prisma.InputJsonValue | undefined) ?? undefined,
         },
@@ -224,6 +256,42 @@ export class ShopProfileService {
       });
     }
     return this.getProfile(shopId);
+  }
+
+  /**
+   * The Online / Offline switch and the daily scheduler. With the schedule on,
+   * the switch sets a temporary override rather than the manual state; turning
+   * the schedule on or off keeps the shop's current status and clears any override.
+   */
+  private async onlineChanges(shopId: string, dto: UpdateShopSettingsDto): Promise<Prisma.PrintSettingsUpdateInput> {
+    const shop = await this.prisma.shop.findUnique({ where: { id: shopId }, include: { printSettings: true } });
+    if (!shop) throw new AppNotFoundException('Shop not found.');
+    const hours = this.normalizeHours(shop.openingHours);
+    const now = new Date();
+    const current = {
+      acceptingOrders: shop.printSettings?.acceptingOrders ?? true,
+      autoSchedule: shop.printSettings?.autoSchedule ?? false,
+      scheduleOverride: shop.printSettings?.scheduleOverride ?? null,
+      scheduleOverrideUntil: shop.printSettings?.scheduleOverrideUntil ?? null,
+    };
+    const autoSchedule = dto.autoSchedule ?? current.autoSchedule;
+    if (autoSchedule && !hasOpenDay(hours)) {
+      throw new InvalidPrintOptionException('Set your shop hours first: at least one day must be open.');
+    }
+
+    const data: Prisma.PrintSettingsUpdateInput = {};
+    if (dto.autoSchedule !== undefined && dto.autoSchedule !== current.autoSchedule) {
+      data.autoSchedule = dto.autoSchedule;
+      data.scheduleOverride = null;
+      data.scheduleOverrideUntil = null;
+      // Leaving the schedule: stay in whatever state the shop is in right now.
+      if (!dto.autoSchedule) data.acceptingOrders = effectiveAvailability(current, hours, now, this.timeZone).online;
+    }
+    if (dto.acceptingOrders !== undefined) {
+      if (autoSchedule) Object.assign(data, overrideFor(dto.acceptingOrders, hours as OpeningHours, now, this.timeZone));
+      else data.acceptingOrders = dto.acceptingOrders;
+    }
+    return data;
   }
 
   // ------------------------------------------------------------------ stats

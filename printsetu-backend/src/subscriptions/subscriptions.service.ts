@@ -12,10 +12,10 @@ import { AuditService } from '../audit/audit.service';
 import { AppNotFoundException } from '../common/exceptions/app.exceptions';
 import { BillingSettingsService } from './billing-settings.service';
 import { BillingNotifierService } from './billing-notifier.service';
-import { InvoicesService, priceFor } from './invoices.service';
+import { InvoicesService, monthlyEquivalent, priceFor } from './invoices.service';
 import { SubscriptionAccessService } from './subscription-access.service';
 import { BillingConflictException } from './subscription.exceptions';
-import { addCycle, addDays, daysToMs, round2 } from './subscription.constants';
+import { addCycle, addDays, cycleAdjective, cycleUnit, daysToMs, round2 } from './subscription.constants';
 import {
   AssignPlanDto,
   CancelDto,
@@ -53,8 +53,6 @@ export interface SubscriptionListFilters {
   pageSize?: number;
 }
 
-const monthlyEquivalent = (plan: SubscriptionPlan, cycle: BillingCycle) =>
-  cycle === 'YEARLY' ? Number(plan.yearlyPrice) / 12 : Number(plan.monthlyPrice);
 
 const fmtDate = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
@@ -146,7 +144,7 @@ export class SubscriptionsService {
             plan,
             cycle: dto.cycle,
             kind: 'INITIAL',
-            description: `${plan.name} plan, first ${dto.cycle === 'YEARLY' ? 'year' : 'month'}`,
+            description: `${plan.name} plan, first ${cycleUnit(dto.cycle)}`,
             periodStart: now,
             periodEnd,
             amount: price,
@@ -276,7 +274,7 @@ export class SubscriptionsService {
               kind: 'UPGRADE',
               description: sameCycle
                 ? `Prorated upgrade from ${sub.plan.name} to ${next.name} (${days} ${days === 1 ? 'day' : 'days'} remaining)`
-                : `Upgrade from ${sub.plan.name} to ${next.name}, new ${cycle === 'YEARLY' ? 'yearly' : 'monthly'} cycle, less ${round2(credit).toFixed(2)} unused credit`,
+                : `Upgrade from ${sub.plan.name} to ${next.name}, new ${cycleAdjective(cycle)} cycle, less ${round2(credit).toFixed(2)} unused credit`,
               periodStart: sameCycle ? now : now,
               periodEnd,
               amount,

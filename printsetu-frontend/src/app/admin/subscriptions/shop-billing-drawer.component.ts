@@ -17,7 +17,20 @@ import {
 } from '../../core/models/billing.models';
 import { BillingPillComponent } from '../../shared/billing/billing-pill.component';
 import { InvoiceTableComponent } from '../../shared/billing/invoice-table.component';
-import { CHANNEL_META, EVENT_META, PAYMENT_METHODS, STATE_META, downloadBlob, limit, money, printBlob } from '../../shared/billing/billing.util';
+import {
+  BILLING_CYCLES,
+  CHANNEL_META,
+  EVENT_META,
+  PAYMENT_METHODS,
+  STATE_META,
+  cycleLabel,
+  cyclePrice,
+  downloadBlob,
+  limit,
+  money,
+  monthlyEquivalent,
+  printBlob,
+} from '../../shared/billing/billing.util';
 import { RefundDialogComponent } from './refund-dialog.component';
 
 export type ActionKind =
@@ -45,8 +58,8 @@ const ACTION_META: Record<ActionKind, { title: string; cta: string; icon: string
   release: { title: 'Release manual override', cta: 'Hand back to automation', icon: 'pi-unlock' },
 };
 
-const monthlyEq = (p: SubscriptionPlan, c: BillingCycle) => (c === 'YEARLY' ? Number(p.yearlyPrice) / 12 : Number(p.monthlyPrice));
-const price = (p: SubscriptionPlan, c: BillingCycle) => Number(c === 'YEARLY' ? p.yearlyPrice : p.monthlyPrice);
+const monthlyEq = (p: SubscriptionPlan, c: BillingCycle) => monthlyEquivalent(p, c);
+const price = (p: SubscriptionPlan, c: BillingCycle) => Number(cyclePrice(p, c));
 const DAY = 86_400_000;
 
 @Component({
@@ -103,7 +116,7 @@ const DAY = 86_400_000;
           </div>
           @if (d.subscription; as s) {
             <div class="facts">
-              <div><span>Plan</span><strong>{{ s.plan.name }}</strong><em>{{ s.cycle === 'YEARLY' ? 'Yearly' : 'Monthly' }} · {{ money(s.cycle === 'YEARLY' ? s.plan.yearlyPrice : s.plan.monthlyPrice) }}</em></div>
+              <div><span>Plan</span><strong>{{ s.plan.name }}</strong><em>{{ cycleLabel(s.cycle) }} · {{ money(cyclePrice(s.plan, s.cycle)) }}</em></div>
               <div><span>Started</span><strong>{{ s.startDate | date: 'd MMM y' }}</strong></div>
               <div>
                 <span>{{ s.status === 'TRIAL' ? 'Trial ends' : 'Next billing' }}</span>
@@ -269,7 +282,7 @@ const DAY = 86_400_000;
               </div>
               <div class="field">
                 <label>Billing cycle</label>
-                <div class="pf-seg"><button type="button" [class.is-on]="f.cycle === 'MONTHLY'" (click)="f.cycle = 'MONTHLY'">Monthly</button><button type="button" [class.is-on]="f.cycle === 'YEARLY'" (click)="f.cycle = 'YEARLY'">Yearly</button></div>
+                <div class="pf-seg">@for (c of cycles; track c.value) {<button type="button" [class.is-on]="f.cycle === c.value" (click)="f.cycle = c.value">{{ c.label }}</button>}</div>
               </div>
               @if (selectedPlan()?.trialDays) {
                 <label class="chk"><input type="checkbox" name="trial" [(ngModel)]="f.startTrial" /> Start with the {{ selectedPlan()!.trialDays }}-day free trial</label>
@@ -281,7 +294,7 @@ const DAY = 86_400_000;
               <label class="chk"><input type="checkbox" name="renew" [(ngModel)]="f.autoRenew" /> Renew automatically</label>
             }
             @case ('change') {
-              <p class="from">Currently <b>{{ d()?.subscription?.plan?.name }}</b> ({{ d()?.subscription?.cycle === 'YEARLY' ? 'yearly' : 'monthly' }})</p>
+              <p class="from">Currently <b>{{ d()?.subscription?.plan?.name }}</b> ({{ d()?.subscription ? cycleLabel(d()!.subscription!.cycle).toLowerCase() : '' }})</p>
               <div class="field">
                 <label for="c-plan">New plan</label>
                 <select id="c-plan" name="cplan" [(ngModel)]="f.planId">
@@ -290,7 +303,7 @@ const DAY = 86_400_000;
               </div>
               <div class="field">
                 <label>Billing cycle</label>
-                <div class="pf-seg"><button type="button" [class.is-on]="f.cycle === 'MONTHLY'" (click)="f.cycle = 'MONTHLY'">Monthly</button><button type="button" [class.is-on]="f.cycle === 'YEARLY'" (click)="f.cycle = 'YEARLY'">Yearly</button></div>
+                <div class="pf-seg">@for (c of cycles; track c.value) {<button type="button" [class.is-on]="f.cycle === c.value" (click)="f.cycle = c.value">{{ c.label }}</button>}</div>
               </div>
               @if (changePreview(); as pv) {
                 <div class="preview" [ngClass]="'preview--' + pv.kind">
@@ -976,6 +989,9 @@ export class ShopBillingDrawerComponent {
   @Output() changed = new EventEmitter<void>();
 
   readonly money = money;
+  readonly cycles = BILLING_CYCLES;
+  readonly cycleLabel = cycleLabel;
+  readonly cyclePrice = cyclePrice;
   readonly limit = limit;
   readonly methods = PAYMENT_METHODS;
   readonly channelMeta = CHANNEL_META;

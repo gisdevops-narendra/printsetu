@@ -3,12 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { AppConfig } from '../config/configuration';
 import { RoleName } from '@prisma/client';
+import { EmailAlreadyRegisteredException } from '../common/exceptions/app.exceptions';
 
 /**
  * Thin wrapper around the Keycloak Admin REST API using the
  * `printsetu-backend-admin` service-account client (realm-management:
- * manage-users). Lets Admin Module "User and role management" (SRS §6)
- * actually provision a login, not just a local DB row — credentials
+ * manage-users). Lets shop self-registration actually provision a login,
+ * not just a local DB row — credentials
  * themselves still never touch our database (SRS §18).
  */
 @Injectable()
@@ -44,13 +45,18 @@ export class KeycloakAdminService {
     return { Authorization: `Bearer ${token}` };
   }
 
-  /** Creates the Keycloak user, sets an initial password, assigns the realm role, and returns the Keycloak user id (sub). */
-  async provisionUser(params: {
+  /**
+   * Creates the Keycloak login for a self-registered shopkeeper with the
+   * password they chose (permanent, so they can sign in straight away) and
+   * assigns the realm role. Refuses an email Keycloak already knows rather
+   * than taking over that existing account. Returns the Keycloak user id (sub).
+   */
+  async createUser(params: {
     email: string;
     firstName: string;
     lastName: string;
     role: RoleName;
-    temporaryPassword: string;
+    password: string;
   }): Promise<string> {
     const kc = this.config.get('keycloak', { infer: true });
     const headers = await this.authHeaders();
@@ -67,29 +73,36 @@ export class KeycloakAdminService {
       },
       { headers, validateStatus: (s) => s === 201 || s === 409 },
     );
+    if (createResponse.status === 409) throw new EmailAlreadyRegisteredException();
 
-    let keycloakUserId: string;
-    if (createResponse.status === 409) {
-      const existing = await axios.get(`${kc.adminApiBaseUrl}/users`, {
-        headers,
-        params: { username: params.email, exact: true },
-      });
-      keycloakUserId = existing.data[0]?.id;
-    } else {
-      const location = createResponse.headers.location as string;
-      keycloakUserId = location.substring(location.lastIndexOf('/') + 1);
+    const location = createResponse.headers.location as string;
+    const keycloakUserId = location.substring(location.lastIndexOf('/') + 1);
+
+    try {
+      await this.setPassword(keycloakUserId, params.password, false);
+      const roleResponse = await axios.get(`${kc.adminApiBaseUrl}/roles/${params.role}`, { headers });
+      await axios.post(
+        `${kc.adminApiBaseUrl}/users/${keycloakUserId}/role-mappings/realm`,
+        [{ id: roleResponse.data.id, name: roleResponse.data.name }],
+        { headers },
+      );
+    } catch (error) {
+      await this.deleteUser(keycloakUserId);
+      throw error;
     }
 
-    await this.setPassword(keycloakUserId, params.temporaryPassword, true);
-
-    const roleResponse = await axios.get(`${kc.adminApiBaseUrl}/roles/${params.role}`, { headers });
-    await axios.post(
-      `${kc.adminApiBaseUrl}/users/${keycloakUserId}/role-mappings/realm`,
-      [{ id: roleResponse.data.id, name: roleResponse.data.name }],
-      { headers },
-    );
-
     return keycloakUserId;
+  }
+
+  /** Best-effort removal, used to roll back a registration that failed part-way. */
+  async deleteUser(keycloakUserId: string): Promise<void> {
+    const kc = this.config.get('keycloak', { infer: true });
+    try {
+      const headers = await this.authHeaders();
+      await axios.delete(`${kc.adminApiBaseUrl}/users/${keycloakUserId}`, { headers });
+    } catch (error) {
+      this.logger.error(`Failed to delete Keycloak user ${keycloakUserId}: ${(error as Error).message}`);
+    }
   }
 
   /**
@@ -97,8 +110,8 @@ export class KeycloakAdminService {
    * UPDATE_PASSWORD required action (a login attempt then succeeds
    * authentication-wise but is refused a token until the password is
    * changed); `temporary: false` clears that required action again, which
-   * is what lets a fresh, self-chosen password log in normally right after
-   * AuthService.changeTemporaryPassword calls this.
+   * is what lets a fresh, self-chosen password log in normally (see
+   * AuthService.changeTemporaryPassword and createUser).
    */
   async setPassword(keycloakUserId: string, password: string, temporary: boolean): Promise<void> {
     const kc = this.config.get('keycloak', { infer: true });

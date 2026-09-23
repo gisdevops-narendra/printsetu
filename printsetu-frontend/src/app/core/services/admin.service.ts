@@ -5,7 +5,6 @@ import {
   AuditLogRow,
   PrinterRow,
   PrintJobRow,
-  PrintSettings,
   ReportSummary,
   Shop,
   UserRow,
@@ -23,32 +22,16 @@ export class AdminService {
       params: { page, pageSize },
     });
   }
-  createShop(dto: Partial<Shop>) {
-    return this.http.post<Shop>(`${BASE}/admin/shops`, dto);
-  }
   updateShop(id: string, dto: Partial<Shop>) {
     return this.http.patch<Shop>(`${BASE}/admin/shops/${id}`, dto);
   }
   setShopStatus(id: string, status: 'ACTIVE' | 'INACTIVE') {
     return this.http.patch<Shop>(`${BASE}/admin/shops/${id}/status`, { status });
   }
-  getShopSettings(shopId: string) {
-    return this.http.get<PrintSettings>(`${BASE}/admin/shops/${shopId}/settings`);
-  }
-  updateShopSettings(
-    shopId: string,
-    dto: { retentionMinutes?: number; maxFileSizeBytes?: number; documentPreviewEnabled?: boolean },
-  ) {
-    return this.http.patch<PrintSettings>(`${BASE}/admin/shops/${shopId}/settings`, dto);
-  }
 
   // ---- Users ----
   listUsers(shopId?: string) {
     return this.http.get<UserRow[]>(`${BASE}/admin/users`, { params: shopId ? { shopId } : {} });
-  }
-  /** Always creates a SHOPKEEPER: the platform has exactly one ADMIN account. */
-  createUser(dto: { name: string; email: string; mobile?: string; shopId: string }) {
-    return this.http.post<UserRow & { temporaryPassword: string }>(`${BASE}/admin/users`, dto);
   }
   setUserStatus(id: string, status: 'ACTIVE' | 'DISABLED') {
     return this.http.patch<UserRow>(`${BASE}/admin/users/${id}/status`, { status });

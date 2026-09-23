@@ -65,6 +65,20 @@ describe('errorInterceptor (SRS §17.3 { code, message } -> toast)', () => {
       .flush('server exploded', { status: 500, statusText: 'Server Error' });
   });
 
+  it('does not show an "Unauthenticated" toast for a 401 (the session is renewed or ended quietly)', (done) => {
+    spyOn(messageService, 'add');
+    http.get('/api/shop/profile').subscribe({
+      error: (err) => {
+        expect(err.status).toBe(401);
+        expect(messageService.add).not.toHaveBeenCalled();
+        done();
+      },
+    });
+    httpMock
+      .expectOne('/api/shop/profile')
+      .flush({ code: 'UNAUTHENTICATED', message: 'Missing or invalid authentication.' }, { status: 401, statusText: 'Unauthorized' });
+  });
+
   it('does not touch a successful response', (done) => {
     spyOn(messageService, 'add');
     http.get('/api/ok').subscribe(() => {

@@ -29,6 +29,16 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
  * shopkeeper must never lose sight of (badge, queue, switch) are always visible,
  * even on a phone.
  */
+/** "6:00 PM" today, "tomorrow 9:00 AM", or "Mon 9:00 AM". */
+function whenLabel(at: Date, now = new Date()): string {
+  const time = at.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }).toUpperCase();
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diffDays = Math.round((day(at) - day(now)) / 86_400_000);
+  if (diffDays <= 0) return time;
+  if (diffDays === 1) return `tomorrow ${time}`;
+  return `${at.toLocaleDateString('en-IN', { weekday: 'short' })} ${time}`;
+}
+
 @Component({
   selector: 'app-shop-header',
   standalone: true,
@@ -110,7 +120,9 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
             </a>
           }
           @if (!online()) {
-            <span class="chip chip--warn" title="Customers see your shop as unavailable. Orders already in the queue are unaffected."><i class="pi pi-pause"></i>Not accepting orders</span>
+            <span class="chip chip--warn" title="Customers see your shop as unavailable. Orders already in the queue are unaffected."><i class="pi pi-pause"></i>{{ scheduleNote() ?? 'Not accepting orders' }}</span>
+          } @else if (scheduleNote(); as note) {
+            <span class="chip chip--muted" title="Your shop goes online and offline automatically on its shop hours."><i class="pi pi-clock"></i>{{ note }}</span>
           }
         } @else {
           <span class="chip chip--muted" title="Queue status is paused while your subscription needs attention."><i class="pi pi-lock"></i>Queue paused</span>
@@ -453,8 +465,27 @@ export class ShopHeaderComponent implements OnInit, OnDestroy {
     }
   });
 
+  /** "Closes 6:00 PM", "Opens tomorrow 9:00 AM", "Break until 6:00 PM" while the daily schedule is on. */
+  readonly scheduleNote = computed<string | null>(() => {
+    const a = this.header.availability();
+    if (this.locked() || !a || a.source === 'MANUAL') return null;
+    const at = a.nextChangeAt ? whenLabel(new Date(a.nextChangeAt)) : null;
+    if (a.source === 'OVERRIDE') {
+      const kind = this.online() ? 'Open late' : 'On a break';
+      return at ? `${kind} until ${at}` : kind;
+    }
+    if (!at) return this.online() ? 'Open' : 'Closed';
+    return this.online() ? `Open · closes ${at}` : `Closed · opens ${at}`;
+  });
+
   readonly onlineHint = computed(() => {
     if (this.locked()) return 'New orders are paused because your subscription needs attention.';
+    const a = this.header.availability();
+    if (a && a.source !== 'MANUAL') {
+      return this.online()
+        ? 'Accepting new orders on your shop hours. Click to go offline for a break (e.g. lunch or a printer issue); the schedule takes over again at its next change.'
+        : 'Closed on your shop hours or on a break. Click to go online now; the schedule takes over again at its next change.';
+    }
     return this.online() ? 'Accepting new orders. Click to go offline (e.g. lunch break or printer issue).' : 'Not accepting new orders. Click to go online.';
   });
 

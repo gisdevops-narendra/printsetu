@@ -373,6 +373,8 @@ export class BillingAutomationService {
 
   private async renewalReminder(sub: SubWithPlan, settings: BillingSettings, now: Date) {
     if (settings.renewalReminderDays <= 0) return;
+    // A daily plan renews every day; only warn when it is about to stop.
+    if (sub.cycle === 'DAILY' && sub.autoRenew && !sub.cancelAtPeriodEnd) return;
     const until = sub.currentPeriodEnd.getTime() - now.getTime();
     if (until <= 0 || until > daysToMs(settings.renewalReminderDays)) return;
     const price = priceFor(sub.plan, sub.cycle);

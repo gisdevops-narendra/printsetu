@@ -23,6 +23,7 @@ import { BILLING_CHANNELS } from '../subscription.constants';
 export class UpsertPlanDto {
   @IsString() @Length(2, 60) name!: string;
   @IsOptional() @IsString() @MaxLength(400) description?: string;
+  @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @Max(1_000_000) dailyPrice!: number;
   @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @Max(10_000_000) monthlyPrice!: number;
   @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @Max(100_000_000) yearlyPrice!: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(365) trialDays?: number;

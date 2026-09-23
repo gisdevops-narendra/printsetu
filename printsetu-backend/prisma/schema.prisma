@@ -135,6 +135,7 @@ enum SubscriptionStatus {
 }
 
 enum BillingCycle {
+  DAILY
   MONTHLY
   YEARLY
 }
@@ -447,6 +448,14 @@ model PrintSettings {
   // customers who scan the QR see the shop as temporarily unavailable, e.g.
   // during a lunch break or a printer fault. Independent of the subscription.
   acceptingOrders        Boolean  @default(true) @map("accepting_orders")
+  // Shopkeeper-controlled (off by default): go Online / Offline automatically
+  // on the shop's opening hours (Shop.openingHours, in SHOP_TIME_ZONE).
+  autoSchedule           Boolean   @default(false) @map("auto_schedule")
+  // While autoSchedule is on, the header switch sets a temporary override
+  // (true = online, false = offline) that lasts until the shopkeeper flips it
+  // back or the next scheduled open/close, whichever comes first. null = none.
+  scheduleOverride       Boolean?  @map("schedule_override")
+  scheduleOverrideUntil  DateTime? @map("schedule_override_until")
   // In-portal alert preferences: { newOrderSound, desktopAlerts, failureAlerts }
   notificationPrefs      Json?    @map("notification_prefs")
   updatedAt              DateTime @updatedAt @map("updated_at")
@@ -574,6 +583,7 @@ model SubscriptionPlan {
   id                String   @id @default(uuid())
   name              String   @unique
   description       String?
+  dailyPrice        Decimal  @map("daily_price") @db.Decimal(10, 2)
   monthlyPrice      Decimal  @map("monthly_price") @db.Decimal(10, 2)
   yearlyPrice       Decimal  @map("yearly_price") @db.Decimal(10, 2)
   currency          String   @default("INR")

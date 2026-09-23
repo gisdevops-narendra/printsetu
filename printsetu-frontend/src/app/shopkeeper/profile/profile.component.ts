@@ -123,7 +123,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
             @case ('details') { <app-profile-details [shop]="d.shop" (edit)="editing.set(true)" /> }
             @case ('services') { <app-profile-services /> }
             @case ('history') { <app-profile-history /> }
-            @case ('settings') { <app-profile-settings [settings]="d.settings" (updated)="data.set($event)" /> }
+            @case ('settings') { <app-profile-settings [settings]="d.settings" [openingHours]="d.shop.openingHours" (editHours)="editing.set(true)" (updated)="data.set($event)" /> }
           }
         </div>
 

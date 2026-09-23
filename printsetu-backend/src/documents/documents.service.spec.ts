@@ -9,7 +9,6 @@ import { SubscriptionAccessService } from '../subscriptions/subscription-access.
 import { FileValidationService } from './file-validation.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { DOCUMENT_ANALYSIS_QUEUE } from './document-queue.constants';
-import { FileTooLargeException } from '../common/exceptions/app.exceptions';
 
 describe('DocumentsService.upload (SRS §9 Upload stage)', () => {
   let service: DocumentsService;
@@ -67,7 +66,7 @@ describe('DocumentsService.upload (SRS §9 Upload stage)', () => {
           useValue: {
             get: jest
               .fn()
-              .mockReturnValue({ maxUploadSizeBytes: 26214400, statusTokenSecret: 'test-secret' }),
+              .mockReturnValue({ statusTokenSecret: 'test-secret' }),
           },
         },
         { provide: getQueueToken(DOCUMENT_ANALYSIS_QUEUE), useValue: queue },
@@ -105,13 +104,5 @@ describe('DocumentsService.upload (SRS §9 Upload stage)', () => {
     expect(prisma.document.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ sessionId: 'session-1' }) }),
     );
-  });
-
-  it('never touches storage or the queue for an oversized file', async () => {
-    prisma.printSettings.findUnique.mockResolvedValue({ maxFileSizeBytes: 100 });
-
-    await expect(service.upload('shop-code', file)).rejects.toThrow(FileTooLargeException);
-    expect(storage.putObject).not.toHaveBeenCalled();
-    expect(queue.add).not.toHaveBeenCalled();
   });
 });

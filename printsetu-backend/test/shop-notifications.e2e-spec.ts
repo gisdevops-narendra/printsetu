@@ -2,7 +2,7 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { createTestApp, closeTestApp } from './support/app';
 import { getAccessToken } from './support/keycloak';
-import { makeTestPasswordPermanent } from './support/keycloak-admin';
+import { registerShop } from './support/register';
 import { buildMinimalPdf } from './support/fixtures';
 
 /**
@@ -22,37 +22,18 @@ describe('Shop notifications (e2e)', () => {
   beforeAll(async () => {
     app = await createTestApp();
     server = app.getHttpServer();
-    adminToken = await getAccessToken('admin.demo@printsetu.local', 'Admin@12345');
+    adminToken = await getAccessToken('admin', 'admin');
 
-    const shopRes = await request(server)
-      .post('/api/admin/shops')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({
-        name: 'E2E Notifications Test Shop',
-        ownerName: 'Test Owner',
-        mobile: '9444444444',
-        email: `e2e-notifications-${Date.now()}@printsetu.local`,
-        address: '5th Floor, Test Road',
-        city: 'Bhavnagar',
-      })
-      .expect(201);
-    shopId = shopRes.body.id;
+    ({ shopId, accessToken: shopkeeperToken } = await registerShop(server, 'notifications', {
+      mobile: '9444444444',
+      city: 'Bhavnagar',
+    }));
 
     const qrRes = await request(server)
       .get(`/api/admin/qr/${shopId}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
     shopCode = qrRes.body.code;
-
-    const email = `e2e-shopkeeper-notif-${Date.now()}@printsetu.local`;
-    const userRes = await request(server)
-      .post('/api/admin/users')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ name: 'E2E Shopkeeper', email, role: 'SHOPKEEPER', shopId })
-      .expect(201);
-
-    await makeTestPasswordPermanent(userRes.body.keycloakUserId, userRes.body.temporaryPassword);
-    shopkeeperToken = await getAccessToken(email, userRes.body.temporaryPassword);
   });
 
   afterAll(async () => {

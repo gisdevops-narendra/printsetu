@@ -11,7 +11,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AppNotFoundException } from '../common/exceptions/app.exceptions';
 import { BillingConflictException } from './subscription.exceptions';
-import { round2 } from './subscription.constants';
+import { DAYS_PER_MONTH, round2 } from './subscription.constants';
 
 type Db = PrismaService | Prisma.TransactionClient;
 
@@ -35,8 +35,18 @@ export interface InvoiceListFilters {
   pageSize?: number;
 }
 
-export const priceFor = (plan: Pick<SubscriptionPlan, 'monthlyPrice' | 'yearlyPrice'>, cycle: BillingCycle): number =>
-  Number(cycle === 'YEARLY' ? plan.yearlyPrice : plan.monthlyPrice);
+type PlanPrices = Pick<SubscriptionPlan, 'dailyPrice' | 'monthlyPrice' | 'yearlyPrice'>;
+
+export const priceFor = (plan: PlanPrices, cycle: BillingCycle): number =>
+  Number(cycle === 'DAILY' ? plan.dailyPrice : cycle === 'YEARLY' ? plan.yearlyPrice : plan.monthlyPrice);
+
+/** What the plan costs per month on this cycle (daily x 30, yearly / 12), for MRR and upgrade/downgrade checks. */
+export const monthlyEquivalent = (plan: PlanPrices, cycle: BillingCycle): number =>
+  cycle === 'DAILY'
+    ? Number(plan.dailyPrice) * DAYS_PER_MONTH
+    : cycle === 'YEARLY'
+      ? Number(plan.yearlyPrice) / 12
+      : Number(plan.monthlyPrice);
 
 @Injectable()
 export class InvoicesService {

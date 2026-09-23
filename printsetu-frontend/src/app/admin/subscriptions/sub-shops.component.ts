@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { BillingService } from '../../core/services/billing.service';
 import { SubscriptionListRow, SubscriptionPlan } from '../../core/models/billing.models';
 import { BillingPillComponent } from '../../shared/billing/billing-pill.component';
-import { STATE_META, money } from '../../shared/billing/billing.util';
+import { STATE_META, cycleLabel, money } from '../../shared/billing/billing.util';
 import { ShopBillingDrawerComponent } from './shop-billing-drawer.component';
 
 const PAGE = 20;
@@ -65,7 +65,7 @@ const STATUS_OPTIONS = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPE
                 <td data-label="Plan">
                   @if (r.plan) { <strong>{{ r.plan.name }}</strong><span class="sub">{{ money(r.price) }}</span> } @else { <span class="none">—</span> }
                 </td>
-                <td data-label="Cycle">{{ r.cycle ? (r.cycle === 'YEARLY' ? 'Yearly' : 'Monthly') : '—' }}</td>
+                <td data-label="Cycle">{{ r.cycle ? cycleLabel(r.cycle) : '—' }}</td>
                 <td data-label="Started">{{ r.startDate ? (r.startDate | date: 'd MMM y') : '—' }}</td>
                 <td data-label="Next billing">
                   @if (r.currentPeriodEnd) {
@@ -346,6 +346,7 @@ export class SubShopsComponent implements OnInit {
   readonly pageSize = PAGE;
   readonly statusOptions = STATUS_OPTIONS;
   readonly money = money;
+  readonly cycleLabel = cycleLabel;
 
   loading = signal(true);
   rows = signal<SubscriptionListRow[]>([]);

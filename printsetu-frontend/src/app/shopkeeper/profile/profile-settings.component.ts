@@ -6,7 +6,7 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { OrderAlertsService } from '../../core/services/order-alerts.service';
-import { NotificationPrefs, PrinterRow, ShopProfileResponse, ShopSettingsInfo } from '../../core/models/models';
+import { NotificationPrefs, OpeningHours, PrinterRow, ShopProfileResponse, ShopSettingsInfo } from '../../core/models/models';
 import { timeAgo } from '../../shared/utils/browser.util';
 
 /** How the shop takes orders, prints them and gets told about them. */
@@ -35,6 +35,36 @@ import { timeAgo } from '../../shared/utils/browser.util';
           </p>
         } @else {
           <p class="callout"><i class="pi pi-info-circle"></i><span>Manual mode: you review each order in the queue and tap Print.</span></p>
+        }
+      </section>
+
+      <!-- ---------- Online / Offline schedule ---------- -->
+      <section class="pf-card">
+        <header class="pf-card__head"><h3 class="pf-eyebrow">Online / Offline schedule</h3></header>
+        <div class="setting">
+          <span class="setting__icon"><i class="pi pi-clock"></i></span>
+          <div class="setting__text">
+            <label for="auto-schedule">Go online and offline automatically</label>
+            <p>Your shop starts taking orders when it opens and stops when it closes, every day, using your shop hours.</p>
+          </div>
+          <p-toggleswitch inputId="auto-schedule" [ngModel]="settings.autoSchedule" (ngModelChange)="onAutoSchedule($event)" [disabled]="saving()" />
+        </div>
+        @if (!hasOpenDay()) {
+          <p class="callout callout--warn">
+            <i class="pi pi-info-circle"></i>
+            <span>Set your shop hours first. <button type="button" class="linkish" (click)="editHours.emit()">Set shop hours</button></span>
+          </p>
+        } @else if (settings.autoSchedule) {
+          <p class="callout">
+            <i class="pi pi-info-circle"></i>
+            <span>
+              Following your shop hours. For an unplanned break (lunch, a printer issue) use the Online / Offline switch at the top;
+              the schedule takes over again at the next opening or closing time.
+              <button type="button" class="linkish" (click)="editHours.emit()">Edit shop hours</button>
+            </span>
+          </p>
+        } @else {
+          <p class="callout"><i class="pi pi-info-circle"></i><span>Manual mode: you switch Online / Offline yourself using the switch at the top.</span></p>
         }
       </section>
 
@@ -117,18 +147,17 @@ import { timeAgo } from '../../shared/utils/browser.util';
         <dl class="facts">
           <div>
             <dt><i class="pi pi-trash"></i> File cleanup</dt>
-            <dd>Customer files are deleted {{ settings.retentionMinutes }} minutes after printing.</dd>
+            <dd>Customer files are deleted as soon as their print job completes.</dd>
           </div>
           <div>
             <dt><i class="pi pi-upload"></i> Upload limit</dt>
-            <dd>Up to {{ maxMb() }} MB per file.</dd>
+            <dd>No file size limit.</dd>
           </div>
           <div>
             <dt><i class="pi pi-eye"></i> Document preview</dt>
-            <dd>{{ settings.documentPreviewEnabled ? 'Enabled: you can review files before printing.' : 'Off for your shop.' }}</dd>
+            <dd>Enabled: you can review files before printing.</dd>
           </div>
         </dl>
-        <p class="fine">These are managed by the PrintSetu administrator. Contact them to change them.</p>
       </section>
     </div>
     }
@@ -222,6 +251,16 @@ import { timeAgo } from '../../shared/utils/browser.util';
       }
       .callout i {
         margin-top: 0.15rem;
+      }
+      .linkish {
+        padding: 0;
+        border: none;
+        background: none;
+        font: inherit;
+        font-weight: 600;
+        color: var(--p-primary-600);
+        cursor: pointer;
+        text-decoration: underline;
       }
       .callout--warn {
         background: var(--bg-fffbeb);
@@ -378,6 +417,10 @@ import { timeAgo } from '../../shared/utils/browser.util';
 })
 export class ProfileSettingsComponent implements OnInit {
   @Input({ required: true }) settings!: ShopSettingsInfo;
+  /** The shop hours the Online / Offline schedule follows. */
+  @Input() openingHours: OpeningHours | null = null;
+  /** Opens the shop-hours editor. */
+  @Output() editHours = new EventEmitter<void>();
   /** Emits the fresh profile after every successful change so the page stays in sync. */
   @Output() updated = new EventEmitter<ShopProfileResponse>();
 
@@ -405,10 +448,6 @@ export class ProfileSettingsComponent implements OnInit {
     });
   }
 
-  maxMb(): number {
-    return Math.round(this.settings.maxFileSizeBytes / (1024 * 1024));
-  }
-
   label(status: PrinterRow['status']): string {
     return status === 'ONLINE' ? 'Online' : status === 'OFFLINE' ? 'Offline' : 'Not connected yet';
   }
@@ -432,6 +471,15 @@ export class ProfileSettingsComponent implements OnInit {
       accept: () => this.save({ autoAcceptOrders: true }, 'Auto-accept turned on'),
       reject: () => this.revertSwitches(),
     });
+  }
+
+  hasOpenDay(): boolean {
+    const hours = this.openingHours;
+    return !!hours && Object.values(hours).some((d) => d.open);
+  }
+
+  onAutoSchedule(on: boolean): void {
+    this.save({ autoSchedule: on }, on ? 'Your shop now follows its shop hours' : 'Automatic Online / Offline turned off');
   }
 
   onPref(key: keyof NotificationPrefs, value: boolean): void {

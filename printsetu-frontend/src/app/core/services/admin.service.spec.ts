@@ -29,41 +29,11 @@ describe('AdminService (thin HTTP wrapper over SRS §17 admin endpoints)', () =>
     req.flush({ items: [], total: 0 });
   });
 
-  it('createShop() POSTs the shop DTO', () => {
-    const dto = { name: 'New Shop' };
-    service.createShop(dto).subscribe();
-    const req = httpMock.expectOne(`${BASE}/admin/shops`);
-    expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual(dto);
-    req.flush({});
-  });
-
   it('setShopStatus() PATCHes the status endpoint', () => {
     service.setShopStatus('shop-1', 'INACTIVE').subscribe();
     const req = httpMock.expectOne(`${BASE}/admin/shops/shop-1/status`);
     expect(req.request.method).toBe('PATCH');
     expect(req.request.body).toEqual({ status: 'INACTIVE' });
-    req.flush({});
-  });
-
-  it('getShopSettings() GETs the per-shop print settings', () => {
-    service.getShopSettings('shop-1').subscribe();
-    const req = httpMock.expectOne(`${BASE}/admin/shops/shop-1/settings`);
-    expect(req.request.method).toBe('GET');
-    req.flush({
-      id: 's1',
-      shopId: 'shop-1',
-      defaultPrinterId: null,
-      retentionMinutes: 30,
-      maxFileSizeBytes: 26214400,
-    });
-  });
-
-  it('updateShopSettings() PATCHes only the fields given', () => {
-    service.updateShopSettings('shop-1', { retentionMinutes: 45 }).subscribe();
-    const req = httpMock.expectOne(`${BASE}/admin/shops/shop-1/settings`);
-    expect(req.request.method).toBe('PATCH');
-    expect(req.request.body).toEqual({ retentionMinutes: 45 });
     req.flush({});
   });
 
@@ -77,20 +47,6 @@ describe('AdminService (thin HTTP wrapper over SRS §17 admin endpoints)', () =>
     const reqScoped = httpMock.expectOne((r) => r.url === `${BASE}/admin/users`);
     expect(reqScoped.request.params.get('shopId')).toBe('shop-1');
     reqScoped.flush([]);
-  });
-
-  it('createUser() POSTs the user DTO', () => {
-    const dto = {
-      name: 'Shopkeeper',
-      email: 'sk@x.com',
-      role: 'SHOPKEEPER' as const,
-      shopId: 'shop-1',
-    };
-    service.createUser(dto).subscribe();
-    const req = httpMock.expectOne(`${BASE}/admin/users`);
-    expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual(dto);
-    req.flush({});
   });
 
   it('getQr() GETs the QR code for a shop', () => {

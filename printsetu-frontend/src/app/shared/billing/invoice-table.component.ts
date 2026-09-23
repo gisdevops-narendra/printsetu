@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { InvoiceRecord } from '../../core/models/billing.models';
 import { BillingPillComponent } from './billing-pill.component';
-import { PAYMENT_METHODS, money } from './billing.util';
+import { PAYMENT_METHODS, cycleLabel, money } from './billing.util';
 
 /**
  * Invoice list used by the admin Payments tab, the per-shop billing drawer and
@@ -40,7 +40,7 @@ import { PAYMENT_METHODS, money } from './billing.util';
                 <td data-label="Shop"><strong>{{ i.shop?.name }}</strong><span class="sub mono">{{ i.shop?.shopCode }}</span></td>
               }
               <td data-label="Plan">
-                <strong>{{ i.planName }} <em>{{ i.cycle === 'YEARLY' ? 'yearly' : 'monthly' }}</em></strong>
+                <strong>{{ i.planName }} <em>{{ cycleLabel(i.cycle).toLowerCase() }}</em></strong>
                 <span class="sub">{{ i.periodStart | date: 'd MMM y' }} – {{ i.periodEnd | date: 'd MMM y' }}</span>
               </td>
               <td data-label="Amount" class="num">
@@ -269,6 +269,7 @@ export class InvoiceTableComponent {
   @Output() refund = new EventEmitter<InvoiceRecord>();
 
   readonly money = money;
+  readonly cycleLabel = cycleLabel;
 
   kind(i: InvoiceRecord): string {
     return { INITIAL: 'First invoice', RENEWAL: 'Renewal', UPGRADE: 'Plan upgrade' }[i.kind] ?? i.kind;

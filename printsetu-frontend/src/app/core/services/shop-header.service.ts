@@ -1,6 +1,6 @@
 import { Injectable, Signal, computed, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { NotificationEventType, NotificationRow, PrintJobStatus, ShopProfileInfo } from '../models/models';
+import { NotificationEventType, NotificationRow, PrintJobStatus, ShopProfileInfo, ShopAvailabilityInfo } from '../models/models';
 import { ShopkeeperService } from './shopkeeper.service';
 import { OrderAlertsService } from './order-alerts.service';
 import { HeaderAlert, readSeenAt, writeSeenAt } from '../../shared/components/app-header/header.models';
@@ -44,6 +44,8 @@ export interface QueueSummary {
 export class ShopHeaderService {
   readonly shop = signal<ShopProfileInfo | null>(null);
   readonly acceptingOrders = signal(true);
+  /** How the status is being decided, and when it next changes on its own. */
+  readonly availability = signal<ShopAvailabilityInfo | null>(null);
   readonly togglingOnline = signal(false);
   readonly alerts = signal<HeaderAlert[]>([]);
   /** Epoch ms of the last time the bell was read. */
@@ -55,6 +57,8 @@ export class ShopHeaderService {
   private timer?: ReturnType<typeof setInterval>;
   private profileSub?: Subscription;
   private ticks = 0;
+  /** Re-reads the status the moment the schedule (or a break) is due to flip it. */
+  private flipTimer?: ReturnType<typeof setTimeout>;
 
   constructor(
     private readonly shopkeeper: ShopkeeperService,
@@ -72,6 +76,8 @@ export class ShopHeaderService {
     this.profileSub = this.shopkeeper.profileChanged.subscribe((res) => {
       this.shop.set(res.shop);
       this.acceptingOrders.set(res.settings.acceptingOrders ?? true);
+      this.availability.set(res.settings.availability ?? null);
+      this.scheduleFlip(res.settings.availability?.nextChangeAt ?? null);
     });
     this.ticks = 0;
     this.refresh();
@@ -85,6 +91,9 @@ export class ShopHeaderService {
   stop(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = undefined;
+    if (this.flipTimer) clearTimeout(this.flipTimer);
+    this.flipTimer = undefined;
+    this.availability.set(null);
     this.profileSub?.unsubscribe();
     this.shop.set(null);
     this.alerts.set([]);
@@ -114,6 +123,15 @@ export class ShopHeaderService {
         onError();
       },
     });
+  }
+
+  private scheduleFlip(nextChangeAt: string | null): void {
+    if (this.flipTimer) clearTimeout(this.flipTimer);
+    this.flipTimer = undefined;
+    if (!nextChangeAt) return;
+    // A couple of seconds late so the server is already past the boundary; capped to stay within setTimeout's range.
+    const delay = Math.min(new Date(nextChangeAt).getTime() - Date.now() + 2000, 6 * 3600_000);
+    this.flipTimer = setTimeout(() => this.shopkeeper.profile().subscribe({ error: () => undefined }), Math.max(delay, 1000));
   }
 
   private refresh(): void {

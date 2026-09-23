@@ -2,7 +2,7 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { createTestApp, closeTestApp } from './support/app';
 import { getAccessToken } from './support/keycloak';
-import { makeTestPasswordPermanent } from './support/keycloak-admin';
+import { registerShop } from './support/register';
 import { buildMinimalPdf } from './support/fixtures';
 
 /**
@@ -27,7 +27,7 @@ describe('Authentication & role-based authorization (e2e)', () => {
     app = await createTestApp();
     server = app.getHttpServer();
     [adminToken, shopkeeperToken] = await Promise.all([
-      getAccessToken('admin.demo@printsetu.local', 'Admin@12345'),
+      getAccessToken('admin', 'admin'),
       getAccessToken('shopkeeper.demo@printsetu.local', 'Shop@12345'),
     ]);
 
@@ -95,35 +95,13 @@ describe('Authentication & role-based authorization (e2e)', () => {
   });
 
   it("a second shop's shopkeeper cannot preview the demo shop's document (real cross-tenant isolation, SRS §5.1)", async () => {
-    // 1. Admin creates a brand new shop.
-    const shopRes = await request(server)
-      .post('/api/admin/shops')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({
-        name: 'E2E Isolation Test Shop',
-        ownerName: 'Test Owner',
-        mobile: '9111111111',
-        email: `e2e-shop-${Date.now()}@printsetu.local`,
-        address: '2nd Floor, Test Road',
-        city: 'Surat',
-      })
-      .expect(201);
-    expect(shopRes.body.shopCode).toMatch(/^SHOP-/);
+    // 1. A brand new shop registers itself (shop + shopkeeper login in one
+    // step) — exercises the real registration -> Keycloak provisioning path.
+    const { accessToken: otherShopkeeperToken } = await registerShop(server, 'isolation', {
+      mobile: '9111111111',
+    });
 
-    // 2. Admin provisions a real shopkeeper login for that new shop —
-    // exercises the actual admin-users -> Keycloak provisioning path.
-    const email = `e2e-shopkeeper-${Date.now()}@printsetu.local`;
-    const userRes = await request(server)
-      .post('/api/admin/users')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ name: 'E2E Shopkeeper', email, role: 'SHOPKEEPER', shopId: shopRes.body.id })
-      .expect(201);
-    expect(userRes.body.temporaryPassword).toEqual(expect.any(String));
-
-    await makeTestPasswordPermanent(userRes.body.keycloakUserId, userRes.body.temporaryPassword);
-    const otherShopkeeperToken = await getAccessToken(email, userRes.body.temporaryPassword);
-
-    // 3. A document is uploaded for the ORIGINAL demo shop via the real
+    // 2. A document is uploaded for the ORIGINAL demo shop via the real
     // public customer flow.
     const uploadRes = await request(server)
       .post('/api/documents')
@@ -135,7 +113,7 @@ describe('Authentication & role-based authorization (e2e)', () => {
       .expect(201);
     const documentId = uploadRes.body.documentId;
 
-    // 4. The new shop's shopkeeper — a real, distinct authenticated
+    // 3. The new shop's shopkeeper — a real, distinct authenticated
     // identity — must be denied; the original demo shopkeeper (who
     // actually owns SHOP-DEMO001) must be allowed.
     await request(server)

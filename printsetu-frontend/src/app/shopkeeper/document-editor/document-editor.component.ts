@@ -264,13 +264,13 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
                 <label>Color</label>
                 <p-select [options]="colorModeOptions" optionLabel="label" optionValue="value" [(ngModel)]="settingsDraft.colorMode" (onChange)="commitSettings()" size="small" appendTo="body" styleClass="field__control" />
               </div>
-              <div class="field">
-                <label>Sides</label>
-                <p-select [options]="sideModeOptions" optionLabel="label" optionValue="value" [(ngModel)]="settingsDraft.sideMode" (onChange)="commitSettings()" size="small" appendTo="body" styleClass="field__control" />
-              </div>
               <div class="field field--copies">
                 <label>Copies</label>
                 <p-inputNumber [(ngModel)]="settingsDraft.copies" [min]="1" [max]="999" [showButtons]="true" buttonLayout="horizontal" incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus" size="small" (onInput)="commitSettings()" />
+              </div>
+              <div class="field">
+                <label>Sides</label>
+                <p-select [options]="sideModeOptions" optionLabel="label" optionValue="value" [(ngModel)]="settingsDraft.sideMode" (onChange)="commitSettings()" size="small" appendTo="body" styleClass="field__control" />
               </div>
             }
           </div>
@@ -1061,7 +1061,7 @@ export class DocumentEditorComponent implements OnInit {
   settingsDraft: { paperSize: PaperSize; colorMode: ColorMode; sideMode: SideMode; copies: number } = {
     paperSize: 'A4',
     colorMode: 'BW',
-    sideMode: 'SIMPLEX',
+    sideMode: 'DUPLEX',
     copies: 1,
   };
 

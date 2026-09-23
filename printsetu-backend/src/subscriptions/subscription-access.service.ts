@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Prisma, PrinterStatus, ShopSubscription, SubscriptionPlan, SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -7,6 +8,8 @@ import {
   SubscriptionRestrictedException,
 } from './subscription.exceptions';
 import { ACCESS_BY_STATUS, AccessLevel, daysToMs } from './subscription.constants';
+import { AppConfig } from '../config/configuration';
+import { OpeningHours, effectiveAvailability } from '../shops/shop-availability';
 
 export interface ShopAccess {
   /** The stored subscription state, or NONE for a shop that has never had a plan. */
@@ -49,7 +52,10 @@ const ceilDays = (ms: number) => Math.max(0, Math.ceil(ms / daysToMs(1)));
  */
 @Injectable()
 export class SubscriptionAccessService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService<AppConfig, true>,
+  ) {}
 
   private load(shopId: string): Promise<SubWithPlan | null> {
     return this.prisma.shopSubscription.findUnique({ where: { shopId }, include: { plan: true } });
@@ -143,10 +149,23 @@ export class SubscriptionAccessService {
     if (!access.acceptsOrders) {
       return { available: false, message: 'This shop is temporarily unavailable. Please try again later.' };
     }
-    // The shopkeeper's own Online / Offline switch (a lunch break, a printer fault, ...).
-    const settings = await this.prisma.printSettings.findUnique({ where: { shopId }, select: { acceptingOrders: true } });
-    if (settings && !settings.acceptingOrders) {
-      return { available: false, message: 'This shop has paused new orders for now. Please try again in a little while.' };
+    // The shopkeeper's own Online / Offline switch (a lunch break, a printer fault, ...),
+    // optionally driven by the shop's daily opening hours.
+    const settings = await this.prisma.printSettings.findUnique({ where: { shopId } });
+    if (settings) {
+      const hours = settings.autoSchedule
+        ? ((await this.prisma.shop.findUnique({ where: { id: shopId }, select: { openingHours: true } }))?.openingHours as OpeningHours | null)
+        : null;
+      const availability = effectiveAvailability(settings, hours ?? null, new Date(), this.config.get('shopTimeZone', { infer: true }));
+      if (!availability.online) {
+        return {
+          available: false,
+          message:
+            availability.source === 'SCHEDULE'
+              ? 'This shop is closed right now. Please come back during its opening hours.'
+              : 'This shop has paused new orders for now. Please try again in a little while.',
+        };
+      }
     }
     if (sub) {
       const limit = await this.limitReached(shopId, sub.plan);

@@ -11,7 +11,6 @@ import { SubscriptionAccessService } from '../subscriptions/subscription-access.
 import { FileValidationService } from './file-validation.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
-  FileTooLargeException,
   ShopAccessDeniedException,
 } from '../common/exceptions/app.exceptions';
 import { AppNotFoundException } from '../common/exceptions/app.exceptions';
@@ -48,15 +47,6 @@ export class DocumentsService {
   async upload(shopCode: string, file: Express.Multer.File, sessionId?: string) {
     const { shopId } = await this.qrService.resolvePublicCode(shopCode);
     await this.subscriptionAccess.assertCustomerCanOrder(shopId);
-
-    const settings = await this.prisma.printSettings.findUnique({ where: { shopId } });
-    const maxSize =
-      settings?.maxFileSizeBytes ?? this.config.get('security', { infer: true }).maxUploadSizeBytes;
-    if (file.size > maxSize) {
-      throw new FileTooLargeException(
-        `File exceeds the ${Math.floor(maxSize / (1024 * 1024))}MB limit for this shop.`,
-      );
-    }
 
     const session = sessionId
       ? await this.requireOwnSession(sessionId, shopId)
@@ -160,12 +150,6 @@ export class DocumentsService {
     }
     if (document.status === DocumentStatus.DELETED) {
       throw new AppNotFoundException('Document has been deleted per retention policy.');
-    }
-    const settings = await this.prisma.printSettings.findUnique({ where: { shopId } });
-    if (!settings?.documentPreviewEnabled) {
-      throw new ShopAccessDeniedException(
-        'Document preview is not enabled for your shop. Ask your admin to turn it on.',
-      );
     }
     const url = await this.storage.getSignedDownloadUrl(document.s3Key, 120);
     return { url, expiresInSeconds: 120 };

@@ -9,7 +9,7 @@ export type SubscriptionState =
 /** A shop that has never been given a plan. */
 export type SubscriptionStateOrNone = SubscriptionState | 'NONE';
 
-export type BillingCycle = 'MONTHLY' | 'YEARLY';
+export type BillingCycle = 'DAILY' | 'MONTHLY' | 'YEARLY';
 export type InvoiceStatus = 'OPEN' | 'PAID' | 'FAILED' | 'VOID' | 'PARTIALLY_REFUNDED' | 'REFUNDED';
 export type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'UPI' | 'CARD' | 'GATEWAY' | 'OTHER';
 export type BillingChannel = 'IN_APP' | 'EMAIL' | 'SMS' | 'WHATSAPP';
@@ -20,6 +20,7 @@ export interface SubscriptionPlan {
   id: string;
   name: string;
   description: string | null;
+  dailyPrice: string;
   monthlyPrice: string;
   yearlyPrice: string;
   currency: string;
@@ -38,6 +39,7 @@ export interface SubscriptionPlan {
 export interface PlanInput {
   name: string;
   description?: string;
+  dailyPrice: number;
   monthlyPrice: number;
   yearlyPrice: number;
   trialDays: number;
@@ -180,7 +182,7 @@ export interface SubscriptionDetail {
 export interface RevenueDashboard {
   currency: string;
   totalShops: number;
-  activeSubscriptions: { total: number; monthly: number; yearly: number };
+  activeSubscriptions: { total: number; daily: number; monthly: number; yearly: number };
   byStatus: Record<string, number>;
   mrr: number;
   arr: number;

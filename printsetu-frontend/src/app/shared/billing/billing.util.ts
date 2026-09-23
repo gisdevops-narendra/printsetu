@@ -1,4 +1,4 @@
-import { InvoiceStatus, SubscriptionPlan, SubscriptionStateOrNone } from '../../core/models/billing.models';
+import { BillingCycle, InvoiceStatus, SubscriptionPlan, SubscriptionStateOrNone } from '../../core/models/billing.models';
 
 export type Tone = 'ok' | 'info' | 'warn' | 'bad' | 'muted';
 
@@ -76,6 +76,33 @@ export function money(value: string | number | null | undefined, currency = 'INR
 /** "Unlimited" for null, otherwise the number with thousands separators. */
 export function limit(value: number | null | undefined): string {
   return value === null || value === undefined ? 'Unlimited' : value.toLocaleString('en-IN');
+}
+
+/** Billing cycles in the order they are offered. */
+export const BILLING_CYCLES: { value: BillingCycle; label: string }[] = [
+  { value: 'DAILY', label: 'Daily' },
+  { value: 'MONTHLY', label: 'Monthly' },
+  { value: 'YEARLY', label: 'Yearly' },
+];
+
+/** "Daily" / "Monthly" / "Yearly". */
+export function cycleLabel(cycle: BillingCycle): string {
+  return cycle === 'DAILY' ? 'Daily' : cycle === 'YEARLY' ? 'Yearly' : 'Monthly';
+}
+
+/** "day" / "month" / "year", as in "₹20 / day". */
+export function cycleUnit(cycle: BillingCycle): string {
+  return cycle === 'DAILY' ? 'day' : cycle === 'YEARLY' ? 'year' : 'month';
+}
+
+/** The plan's price for one billing cycle. */
+export function cyclePrice(plan: Pick<SubscriptionPlan, 'dailyPrice' | 'monthlyPrice' | 'yearlyPrice'>, cycle: BillingCycle): string {
+  return cycle === 'DAILY' ? plan.dailyPrice : cycle === 'YEARLY' ? plan.yearlyPrice : plan.monthlyPrice;
+}
+
+/** What the plan costs per month on this cycle (a daily plan counts as 30 days). */
+export function monthlyEquivalent(plan: Pick<SubscriptionPlan, 'dailyPrice' | 'monthlyPrice' | 'yearlyPrice'>, cycle: BillingCycle): number {
+  return cycle === 'DAILY' ? Number(plan.dailyPrice) * 30 : cycle === 'YEARLY' ? Number(plan.yearlyPrice) / 12 : Number(plan.monthlyPrice);
 }
 
 /** Yearly saving as a friendly phrase, e.g. "2 months free" or "Save 17%". */

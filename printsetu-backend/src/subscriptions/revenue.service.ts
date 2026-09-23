@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { addDays, round2 } from './subscription.constants';
+import { monthlyEquivalent, priceFor } from './invoices.service';
 
 const startOfMonth = (monthsBack = 0) => {
   const d = new Date();
@@ -14,7 +15,7 @@ const startOfMonth = (monthsBack = 0) => {
  * Revenue dashboard figures.
  *  - MRR counts shops that are paying: Active plus Payment pending (still in
  *    service and expected to pay). Trials are not revenue yet. Yearly plans
- *    contribute one twelfth of their yearly price.
+ *    contribute one twelfth of their yearly price; daily plans 30 days' worth.
  *  - ARR = MRR x 12.
  *  - Churn = subscriptions cancelled or expired this calendar month.
  *  - Recovery rate = of the shops whose payment failed in the last 30 days,
@@ -61,8 +62,7 @@ export class RevenueService {
       }),
     ]);
 
-    const monthly = (s: (typeof subs)[number]) =>
-      s.cycle === 'YEARLY' ? Number(s.plan.yearlyPrice) / 12 : Number(s.plan.monthlyPrice);
+    const monthly = (s: (typeof subs)[number]) => monthlyEquivalent(s.plan, s.cycle);
 
     const byStatus: Record<string, number> = {};
     for (const s of subs) byStatus[s.status] = (byStatus[s.status] ?? 0) + 1;
@@ -103,6 +103,7 @@ export class RevenueService {
       totalShops: await this.prisma.shop.count(),
       activeSubscriptions: {
         total: active.length,
+        daily: active.filter((s) => s.cycle === 'DAILY').length,
         monthly: active.filter((s) => s.cycle === 'MONTHLY').length,
         yearly: active.filter((s) => s.cycle === 'YEARLY').length,
       },
@@ -116,7 +117,7 @@ export class RevenueService {
         shopName: s.shop.name,
         plan: s.plan.name,
         cycle: s.cycle,
-        amount: s.status === 'TRIAL' ? Number(s.cycle === 'YEARLY' ? s.plan.yearlyPrice : s.plan.monthlyPrice) : Number(s.cycle === 'YEARLY' ? s.plan.yearlyPrice : s.plan.monthlyPrice),
+        amount: priceFor(s.plan, s.cycle),
         date: s.currentPeriodEnd,
         isTrial: s.status === 'TRIAL',
         autoRenew: s.autoRenew,

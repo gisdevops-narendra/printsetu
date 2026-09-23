@@ -90,9 +90,6 @@ const MAX_RESULTS = 6;
       </div>
 
       <div hdrActions class="actions">
-        <a class="add-btn" routerLink="/admin/shops" [queryParams]="{ new: 1 }" title="Add a new shop">
-          <i class="pi pi-plus"></i><span class="add-btn__label">Add shop</span>
-        </a>
         <app-theme-toggle class="theme-inline" />
         <app-header-bell
           [alerts]="header.alerts()"
@@ -132,7 +129,6 @@ const MAX_RESULTS = 6;
         }
 
         <span class="grow"></span>
-        <a class="add-btn add-btn--strip" routerLink="/admin/shops" [queryParams]="{ new: 1 }"><i class="pi pi-plus"></i>Add shop</a>
         <app-header-clock />
       </div>
     </app-header-frame>
@@ -317,55 +313,9 @@ const MAX_RESULTS = 6;
         align-items: center;
         gap: 0.5rem;
       }
-      .add-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        height: 2.5rem;
-        padding: 0 1rem;
-        border-radius: 12px;
-        background: var(--p-primary-600);
-        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.22);
-        color: #fff;
-        font-size: 0.8125rem;
-        font-weight: 700;
-        white-space: nowrap;
-        text-decoration: none;
-        transition: background 0.15s ease, transform 0.08s ease;
-      }
-      .add-btn:hover {
-        background: var(--p-primary-700);
-      }
-      .add-btn:active {
-        transform: scale(0.98);
-      }
-      .add-btn--strip {
-        display: none;
-        height: 2rem;
-      }
-      @media (max-width: 1299px) {
-        .add-btn {
-          width: 2.5rem;
-          padding: 0;
-          justify-content: center;
-        }
-        .add-btn__label {
-          display: none;
-        }
-      }
       @media (max-width: 479px) {
         .theme-inline {
           display: none; /* Dark mode moves into the account menu on phones. */
-        }
-      }
-      @media (max-width: 767px) {
-        .actions .add-btn {
-          display: none;
-        }
-        .add-btn--strip {
-          display: inline-flex;
-          width: auto;
-          padding: 0 0.875rem;
         }
       }
 

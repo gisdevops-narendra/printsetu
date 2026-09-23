@@ -141,8 +141,7 @@ loopback-only rather than proxied.
 
 Nginx forwards `Host`, `X-Real-IP`, `X-Forwarded-For` and
 `X-Forwarded-Proto` on every proxied request. `client_max_body_size` is
-30m (matches `MAX_UPLOAD_SIZE_BYTES=26214400` in the backend with
-headroom for multipart overhead); `proxy_read_timeout`/`proxy_send_timeout`
+0 (unlimited — customer uploads have no size limit); `proxy_read_timeout`/`proxy_send_timeout`
 are 120s for normal requests and 3600s for the WebSocket location, so a
 long-lived Print Agent connection isn't dropped for being idle.
 

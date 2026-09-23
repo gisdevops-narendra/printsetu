@@ -1,4 +1,4 @@
-import { Component, EventEmitter, HostListener, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MessageService } from 'primeng/api';
 import { copyText, downloadUrl } from '../../utils/browser.util';
@@ -61,10 +61,9 @@ export interface QrData {
               <i class="pi pi-qrcode"></i> QR image only
             </button>
           </div>
-          <div class="grid3">
+          <div class="grid2">
             <button type="button" class="tile" (click)="copyLink()"><i class="pi pi-copy"></i><span>Copy link</span></button>
             <button type="button" class="tile" (click)="share()"><i class="pi pi-share-alt"></i><span>Share</span></button>
-            <button type="button" class="tile" (click)="fullscreen.set(true)"><i class="pi pi-expand"></i><span>Show QR</span></button>
           </div>
         </section>
 
@@ -100,19 +99,6 @@ export interface QrData {
         }
       </div>
     </div>
-
-    <!-- ============ Full-screen QR for a customer at the counter ============ -->
-    @if (fullscreen()) {
-      <div class="fs" role="dialog" aria-modal="true" aria-label="QR code" (click)="fullscreen.set(false)">
-        <button type="button" class="fs__close" (click)="fullscreen.set(false)" aria-label="Close"><i class="pi pi-times"></i></button>
-        <div class="fs__body" (click)="$event.stopPropagation()">
-          <p class="fs__brand">Scan to print</p>
-          @if (shopName) { <p class="fs__shop">{{ shopName }}</p> }
-          <img class="fs__qr" [src]="qr.dataUrl" alt="QR code" />
-          <p class="fs__hint">Point your phone camera here</p>
-        </div>
-      </div>
-    }
   `,
   styles: [
     `
@@ -339,16 +325,10 @@ export interface QrData {
       .btn--danger:hover {
         background: var(--bg-fef2f2);
       }
-      .grid2,
-      .grid3 {
+      .grid2 {
         display: grid;
         gap: 0.625rem;
-      }
-      .grid2 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-      .grid3 {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
       .tile {
         display: flex;
@@ -461,60 +441,6 @@ export interface QrData {
           align-items: stretch;
         }
       }
-
-      /* ---------- Full-screen QR ---------- */
-      .fs {
-        position: fixed;
-        inset: 0;
-        z-index: 3000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1.5rem;
-        background: rgba(255, 255, 255, 0.98);
-      }
-      .fs__close {
-        position: absolute;
-        top: max(1rem, env(safe-area-inset-top));
-        right: 1rem;
-        width: 3rem;
-        height: 3rem;
-        border: 1px solid var(--line);
-        border-radius: 50%;
-        background: var(--bg-ffffff);
-        color: var(--tx-334155);
-        font-size: 1.125rem;
-        cursor: pointer;
-      }
-      .fs__body {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
-        max-width: 100%;
-        text-align: center;
-      }
-      .fs__brand {
-        margin: 0;
-        font-size: clamp(1.5rem, 5vw, 2.5rem);
-        font-weight: 800;
-        letter-spacing: -0.03em;
-      }
-      .fs__shop {
-        margin: 0;
-        font-size: 1.0625rem;
-        color: var(--tx-475569);
-      }
-      .fs__qr {
-        width: min(80vw, 70vh, 560px);
-        height: auto;
-        margin: 1rem 0;
-        image-rendering: pixelated;
-      }
-      .fs__hint {
-        margin: 0;
-        color: var(--muted);
-      }
     `,
   ],
 })
@@ -525,18 +451,12 @@ export class QrPanelComponent {
   @Input() canRegenerate = false;
   @Output() regenerate = new EventEmitter<void>();
 
-  fullscreen = signal(false);
   busy = signal(false);
 
   constructor(private readonly messageService: MessageService) {}
 
   get shortUrl(): string {
     return this.qr.url.replace(/^https?:\/\//, '');
-  }
-
-  @HostListener('document:keydown.escape')
-  closeFullscreen(): void {
-    this.fullscreen.set(false);
   }
 
   printSign(): void {

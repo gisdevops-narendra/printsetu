@@ -23,18 +23,19 @@ export interface AppConfig {
     issuer: string;
     jwksUri: string;
     tokenUrl: string;
+    revokeUrl: string;
     adminApiBaseUrl: string;
   };
   security: {
     statusTokenSecret: string;
     agentTokenSecret: string;
-    maxUploadSizeBytes: number;
     rateLimitTtlSeconds: number;
     rateLimitMax: number;
     credentialEncryptionKey: string;
   };
-  retention: { defaultMinutes: number };
   docAnalysis: { url: string };
+  /** Time zone the shops' opening hours are written in (IANA name). */
+  shopTimeZone: string;
 }
 
 export default (): AppConfig => {
@@ -73,19 +74,17 @@ export default (): AppConfig => {
       issuer: `${keycloakBaseUrl}/realms/${realm}`,
       jwksUri: `${keycloakBaseUrl}/realms/${realm}/protocol/openid-connect/certs`,
       tokenUrl: `${keycloakBaseUrl}/realms/${realm}/protocol/openid-connect/token`,
+      revokeUrl: `${keycloakBaseUrl}/realms/${realm}/protocol/openid-connect/revoke`,
       adminApiBaseUrl: `${keycloakBaseUrl}/admin/realms/${realm}`,
     },
     security: {
       statusTokenSecret: process.env.STATUS_TOKEN_SECRET as string,
       agentTokenSecret: process.env.AGENT_TOKEN_SECRET as string,
-      maxUploadSizeBytes: parseInt(process.env.MAX_UPLOAD_SIZE_BYTES || '26214400', 10),
       rateLimitTtlSeconds: parseInt(process.env.RATE_LIMIT_TTL_SECONDS || '60', 10),
       rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '60', 10),
       credentialEncryptionKey: process.env.CREDENTIAL_ENCRYPTION_KEY as string,
     },
-    retention: {
-      defaultMinutes: parseInt(process.env.DEFAULT_RETENTION_MINUTES || '30', 10),
-    },
+    shopTimeZone: process.env.SHOP_TIME_ZONE || 'Asia/Kolkata',
     docAnalysis: {
       url: process.env.DOC_ANALYSIS_URL || 'http://localhost:8000',
     },

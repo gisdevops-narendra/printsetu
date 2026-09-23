@@ -22,8 +22,15 @@ export class UpdateShopSettingsDto {
   /** Send confirmed customer orders straight to the printer. Off by default. */
   @IsOptional() @IsBoolean() autoAcceptOrders?: boolean;
 
-  /** The shop's Online / Offline switch: false pauses new customer orders. */
+  /**
+   * The shop's Online / Offline switch: false pauses new customer orders.
+   * While autoSchedule is on, this sets a temporary override instead
+   * (until flipped back or the next scheduled open/close).
+   */
   @IsOptional() @IsBoolean() acceptingOrders?: boolean;
+
+  /** Go Online / Offline automatically on the shop's opening hours. Off by default. */
+  @IsOptional() @IsBoolean() autoSchedule?: boolean;
 
   @IsOptional()
   @ValidateNested()

@@ -20,24 +20,20 @@ async function getServiceToken(): Promise<string> {
 }
 
 /**
- * Test-only helper. The app's own KeycloakAdminService.provisionUser
- * (src/auth/keycloak-admin.service.ts) always sets a *temporary* password
- * — correct production behavior, since a real admin-created account must
- * force a password change on first login. The password-grant login this
- * e2e suite uses to fetch tokens can't complete that required-action web
- * flow, so purely for test setup we clear the "temporary" flag right
- * after provisioning, using the same service-account credentials the
- * backend itself uses (KEYCLOAK_BACKEND_ADMIN_CLIENT_ID/SECRET). This
- * never touches application code or production behavior.
+ * Test-only helper. New accounts only come from shop self-registration,
+ * which sets a permanent, user-chosen password. Accounts created before
+ * that (by an admin, with a temporary password) can still exist, so this
+ * puts a registered account back into that legacy state to exercise the
+ * forced password-change flow that still serves them.
  */
-export async function makeTestPasswordPermanent(
+export async function makeTestPasswordTemporary(
   keycloakUserId: string,
   password: string,
 ): Promise<void> {
   const token = await getServiceToken();
   await axios.put(
     `${ADMIN_API}/users/${keycloakUserId}/reset-password`,
-    { type: 'password', value: password, temporary: false },
+    { type: 'password', value: password, temporary: true },
     { headers: { Authorization: `Bearer ${token}` } },
   );
 }

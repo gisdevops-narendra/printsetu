@@ -2,6 +2,7 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { createTestApp, closeTestApp } from './support/app';
 import { getAccessToken } from './support/keycloak';
+import { registerShop } from './support/register';
 
 /**
  * Exercises PrintersService.remove end to end: the admin-facing unlink
@@ -20,19 +21,7 @@ describe('Printer removal / unlink (e2e)', () => {
     server = app.getHttpServer();
     adminToken = await getAccessToken('admin', 'admin');
 
-    const shopRes = await request(server)
-      .post('/api/admin/shops')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({
-        name: 'E2E Printer Removal Test Shop',
-        ownerName: 'Test Owner',
-        mobile: '9333333333',
-        email: `e2e-printer-removal-shop-${Date.now()}@printsetu.local`,
-        address: '4th Floor, Test Road',
-        city: 'Surat',
-      })
-      .expect(201);
-    shopId = shopRes.body.id;
+    ({ shopId } = await registerShop(server, 'printer-removal', { mobile: '9333333333' }));
   });
 
   afterAll(async () => {

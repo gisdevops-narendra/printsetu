@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppNotFoundException } from '../common/exceptions/app.exceptions';
-import { CreateShopDto, UpdatePrintSettingsDto, UpdateShopDto } from './dto/shop.dto';
-import { ShopStatus } from '@prisma/client';
+import { CreateShopDto, UpdateShopDto } from './dto/shop.dto';
+import { Prisma, ShopStatus } from '@prisma/client';
 
 const shopCodeAlphabet = customAlphabet('0123456789ABCDEFGHJKLMNPQRSTUVWXYZ', 8);
 
@@ -11,8 +11,9 @@ const shopCodeAlphabet = customAlphabet('0123456789ABCDEFGHJKLMNPQRSTUVWXYZ', 8)
 export class ShopsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateShopDto) {
-    const shop = await this.prisma.shop.create({
+  /** `tx` lets shop registration create the shop and its owner's user atomically. */
+  async create(dto: CreateShopDto, tx: Prisma.TransactionClient = this.prisma) {
+    const shop = await tx.shop.create({
       data: {
         shopCode: `SHOP-${shopCodeAlphabet()}`,
         name: dto.name,
@@ -53,24 +54,5 @@ export class ShopsService {
   async setStatus(id: string, status: ShopStatus) {
     await this.findByIdOrThrow(id);
     return this.prisma.shop.update({ where: { id }, data: { status } });
-  }
-
-  /** SRS §6 "System settings, retention settings" / §9 retention window / §5.2 max upload size — both per-shop. */
-  async getSettings(shopId: string) {
-    await this.findByIdOrThrow(shopId);
-    return this.prisma.printSettings.upsert({
-      where: { shopId },
-      update: {},
-      create: { shopId },
-    });
-  }
-
-  async updateSettings(shopId: string, dto: UpdatePrintSettingsDto) {
-    await this.findByIdOrThrow(shopId);
-    return this.prisma.printSettings.upsert({
-      where: { shopId },
-      update: dto,
-      create: { shopId, ...dto },
-    });
   }
 }

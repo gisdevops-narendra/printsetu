@@ -5,12 +5,13 @@ import { DialogModule } from 'primeng/dialog';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { BillingService } from '../../core/services/billing.service';
-import { BillingSettings, PlanInput, SubscriptionPlan } from '../../core/models/billing.models';
-import { limit, money, yearlySaving } from '../../shared/billing/billing.util';
+import { BillingCycle, BillingSettings, PlanInput, SubscriptionPlan } from '../../core/models/billing.models';
+import { BILLING_CYCLES, cyclePrice, cycleUnit, limit, money, yearlySaving } from '../../shared/billing/billing.util';
 
 interface Form {
   name: string;
   description: string;
+  dailyPrice: number | null;
   monthlyPrice: number | null;
   yearlyPrice: number | null;
   trialDays: number | null;
@@ -26,6 +27,7 @@ interface Form {
 const BLANK: Form = {
   name: '',
   description: '',
+  dailyPrice: null,
   monthlyPrice: null,
   yearlyPrice: null,
   trialDays: 0,
@@ -45,8 +47,9 @@ const BLANK: Form = {
   template: `
     <div class="bar">
       <div class="pf-seg" role="tablist" aria-label="Price period">
-        <button type="button" role="tab" [class.is-on]="cycle() === 'MONTHLY'" [attr.aria-selected]="cycle() === 'MONTHLY'" (click)="cycle.set('MONTHLY')">Monthly</button>
-        <button type="button" role="tab" [class.is-on]="cycle() === 'YEARLY'" [attr.aria-selected]="cycle() === 'YEARLY'" (click)="cycle.set('YEARLY')">Yearly</button>
+        @for (c of cycles; track c.value) {
+          <button type="button" role="tab" [class.is-on]="cycle() === c.value" [attr.aria-selected]="cycle() === c.value" (click)="cycle.set(c.value)">{{ c.label }}</button>
+        }
       </div>
       <label class="check"><input type="checkbox" [ngModel]="showRetired()" (ngModelChange)="showRetired.set($event)" /> Show retired plans</label>
       <button type="button" class="pf-btn pf-btn--primary push" (click)="openEditor()"><i class="pi pi-plus"></i> New plan</button>
@@ -75,12 +78,13 @@ const BLANK: Form = {
             @if (p.description) { <p class="plan__desc">{{ p.description }}</p> }
 
             <div class="price">
-              <strong>{{ money(cycle() === 'YEARLY' ? p.yearlyPrice : p.monthlyPrice) }}</strong>
-              <span>/ {{ cycle() === 'YEARLY' ? 'year' : 'month' }}</span>
+              <strong>{{ money(cyclePrice(p, cycle())) }}</strong>
+              <span>/ {{ cycleUnit(cycle()) }}</span>
             </div>
             <p class="saving">
               @if (cycle() === 'YEARLY' && yearlyNote(p); as s) { <span class="badge badge--ok">{{ s }}</span> }
               @else if (cycle() === 'MONTHLY') { or {{ money(p.yearlyPrice) }} billed yearly }
+              @else if (cycle() === 'DAILY') { or {{ money(p.monthlyPrice) }} billed monthly }
               @if (p.trialDays > 0) { <span class="badge badge--info">{{ p.trialDays }}-day free trial</span> }
             </p>
 
@@ -163,6 +167,11 @@ const BLANK: Form = {
         <fieldset>
           <legend>Pricing</legend>
           <div class="pair">
+            <div class="field" [class.has-error]="touched() && !!errors()['daily']">
+              <label for="pl-d">Daily price (₹)</label>
+              <input id="pl-d" name="daily" type="number" inputmode="decimal" min="0" step="1" [(ngModel)]="form.dailyPrice" />
+              @if (touched() && errors()['daily']) { <span class="err">{{ errors()['daily'] }}</span> }
+            </div>
             <div class="field" [class.has-error]="touched() && !!errors()['monthly']">
               <label for="pl-m">Monthly price (₹)</label>
               <input id="pl-m" name="monthly" type="number" inputmode="decimal" min="0" step="1" [(ngModel)]="form.monthlyPrice" />
@@ -529,7 +538,10 @@ export class SubPlansComponent implements OnInit {
   loading = signal(true);
   plans = signal<SubscriptionPlan[]>([]);
   rules = signal<BillingSettings | null>(null);
-  cycle = signal<'MONTHLY' | 'YEARLY'>('MONTHLY');
+  readonly cycles = BILLING_CYCLES;
+  readonly cyclePrice = cyclePrice;
+  readonly cycleUnit = cycleUnit;
+  cycle = signal<BillingCycle>('MONTHLY');
   showRetired = signal(false);
 
   editorOpen = false;
@@ -578,7 +590,11 @@ export class SubPlansComponent implements OnInit {
     const e: Record<string, string> = {};
     const f = this.form;
     if (f.name.trim().length < 2) e['name'] = 'Enter a plan name.';
+    if (f.dailyPrice === null || Number(f.dailyPrice) < 0) e['daily'] = 'Enter the daily price.';
     if (f.monthlyPrice === null || Number(f.monthlyPrice) < 0) e['monthly'] = 'Enter the monthly price.';
+    else if (f.dailyPrice !== null && Number(f.monthlyPrice) > Number(f.dailyPrice) * 30) {
+      e['monthly'] = 'Monthly price can’t be more than 30 days of the daily price.';
+    }
     if (f.yearlyPrice === null || Number(f.yearlyPrice) < 0) e['yearly'] = 'Enter the yearly price.';
     else if (f.monthlyPrice !== null && Number(f.yearlyPrice) > Number(f.monthlyPrice) * 12) {
       e['yearly'] = 'Yearly price can’t be more than 12 months of the monthly price.';
@@ -593,6 +609,7 @@ export class SubPlansComponent implements OnInit {
       ? {
           name: plan.name,
           description: plan.description ?? '',
+          dailyPrice: Number(plan.dailyPrice),
           monthlyPrice: Number(plan.monthlyPrice),
           yearlyPrice: Number(plan.yearlyPrice),
           trialDays: plan.trialDays,
@@ -616,6 +633,7 @@ export class SubPlansComponent implements OnInit {
     const dto: PlanInput = {
       name: f.name.trim(),
       description: f.description.trim(),
+      dailyPrice: Number(f.dailyPrice),
       monthlyPrice: Number(f.monthlyPrice),
       yearlyPrice: Number(f.yearlyPrice),
       trialDays: Number(f.trialDays ?? 0),
