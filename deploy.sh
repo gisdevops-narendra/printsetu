@@ -73,6 +73,17 @@ else
   git log --oneline "$BEFORE..$AFTER"
 fi
 
+# git pull can rewrite this very script out from under bash, which was
+# already reading it from its old file offset — the process would then
+# silently keep running the pre-pull version for the rest of the deploy
+# (steps added/changed by the pull never execute). Re-exec on any change
+# so the rest of this run always uses what's actually on disk now.
+if [ "$BEFORE" != "$AFTER" ] && [ -z "${DEPLOY_SH_REEXECD:-}" ]; then
+  echo "deploy.sh was updated by the pull — re-executing the new version..."
+  export DEPLOY_SH_REEXECD=1
+  exec "$0" "$@"
+fi
+
 # ---------------------------------------------------------------------------
 step 4 "Building Print Agent installer bundle"
 # ---------------------------------------------------------------------------
