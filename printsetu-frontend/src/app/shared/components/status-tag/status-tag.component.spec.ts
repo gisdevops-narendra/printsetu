@@ -21,6 +21,15 @@ describe('StatusTagComponent', () => {
     expect(tag.componentInstance.severity).toBe('success');
   });
 
+  it('reads Pending -> Printing -> Printed through a print, including after the file is cleaned up', () => {
+    const label = (status: any) => render(status).debugElement.query(By.css('p-tag')).componentInstance.value;
+    expect(label('QUEUED')).toBe('Pending');
+    expect(label('PRINTING')).toBe('Printing');
+    expect(label('PRINTED')).toBe('Printed');
+    expect(label('RETENTION_PENDING')).toBe('Printed');
+    expect(label('DELETED')).toBe('Printed');
+  });
+
   it('maps a failure status to the danger severity', () => {
     const fixture = render('PRINT_FAILED');
     const tag = fixture.debugElement.query(By.css('p-tag'));

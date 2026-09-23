@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
@@ -10,9 +10,13 @@ import { InputIconModule } from 'primeng/inputicon';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { SubscriptionStatusService } from '../../core/services/subscription-status.service';
-import { PrintJobRow } from '../../core/models/models';
+import { OrderAlertsService } from '../../core/services/order-alerts.service';
+import { PrintJobRow, PrintJobStatus } from '../../core/models/models';
 import { StatusTagComponent } from '../../shared/components/status-tag/status-tag.component';
 import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
+
+const DONE: PrintJobStatus[] = ['PRINTED', 'RETENTION_PENDING', 'DELETED'];
+const isDone = (status: PrintJobStatus) => DONE.includes(status);
 
 @Component({
   selector: 'app-queue',
@@ -90,15 +94,19 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
           <td data-label="Received">{{ job.createdAt | date: 'short' }}</td>
           <td class="text-right">
             <div class="flex flex-wrap gap-2 justify-content-end align-items-center row-gap-2">
-              <p-button
-                icon="pi pi-eye"
-                size="small"
-                severity="secondary"
-                [outlined]="true"
-                (onClick)="openEditor(job)"
-                pTooltip="View / edit documents"
-              />
-              @if (readOnly()) {
+              @if (!job.done) {
+                <p-button
+                  icon="pi pi-eye"
+                  size="small"
+                  severity="secondary"
+                  [outlined]="true"
+                  (onClick)="openEditor(job)"
+                  pTooltip="View / edit documents"
+                />
+              }
+              @if (job.done) {
+                <span class="text-xs text-color-secondary"><i class="pi pi-check-circle"></i> {{ job.printedAt | date: 'shortTime' }}</span>
+              } @else if (readOnly()) {
                 <span class="text-xs paused" title="Your subscription needs attention, so new print requests are paused."><i class="pi pi-pause-circle"></i> Paused</span>
               } @else if (job.status === 'PRINT_ELIGIBLE' || job.status === 'AGENT_OFFLINE' || job.status === 'PRINT_FAILED') {
                 <p-button label="PRINT" icon="pi pi-print" size="small" (onClick)="confirmPrint(job)" />
@@ -122,14 +130,22 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
   `,
 })
 export class QueueComponent implements OnInit {
-  jobs = signal<PrintJobRow[]>([]);
+  /** The live queue, kept fresh by OrderAlertsService (faster while a job is printing). */
+  readonly jobs = computed(() => {
+    const jobs = this.alerts.jobs();
+    // Jobs still to do first (oldest first), then the ones that just finished (most recent first).
+    const todo = jobs.filter((j) => !isDone(j.status));
+    const done = jobs.filter((j) => isDone(j.status)).sort((a, b) => (b.printedAt ?? '').localeCompare(a.printedAt ?? ''));
+    return [...todo, ...done];
+  });
   enrichedJobs = computed(() =>
     this.jobs().map((job) => ({
       ...job,
       documentNames: job.items.map((item) => item.document?.originalName).join(' '),
+      done: isDone(job.status),
     })),
   );
-  loading = signal(true);
+  readonly loading = computed(() => !this.alerts.loaded());
   /** Past due / expired / cancelled shops can look at orders but not print them. */
   readOnly = () => this.subscriptionStatus.readOnly();
 
@@ -139,6 +155,7 @@ export class QueueComponent implements OnInit {
     private readonly messageService: MessageService,
     private readonly router: Router,
     private readonly subscriptionStatus: SubscriptionStatusService,
+    private readonly alerts: OrderAlertsService,
   ) {}
 
   ngOnInit(): void {
@@ -151,11 +168,7 @@ export class QueueComponent implements OnInit {
   }
 
   load(): void {
-    this.loading.set(true);
-    this.shopkeeperService.queue().subscribe((jobs) => {
-      this.jobs.set(jobs);
-      this.loading.set(false);
-    });
+    this.alerts.refresh();
   }
 
   private describe(job: PrintJobRow): string {

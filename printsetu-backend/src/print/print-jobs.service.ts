@@ -41,6 +41,9 @@ function mimeFromKey(key: string, fallback: string): string {
   return fallback;
 }
 
+/** How long a finished job stays in the shop's live queue, showing "Printed". */
+const RECENTLY_PRINTED_MS = 10 * 60_000;
+
 @Injectable()
 export class PrintJobsService {
   private readonly logger = new Logger(PrintJobsService.name);
@@ -161,19 +164,32 @@ export class PrintJobsService {
     };
   }
 
+  /**
+   * Unfinished jobs, plus jobs printed in the last few minutes so the shopkeeper
+   * sees each one finish (Pending -> Printing -> Printed) before it leaves the queue.
+   */
   async shopQueue(shopId: string) {
+    const recentlyPrinted = new Date(Date.now() - RECENTLY_PRINTED_MS);
     return this.prisma.printJob.findMany({
       where: {
         shopId,
-        status: {
-          in: [
-            PrintJobStatus.PRINT_ELIGIBLE,
-            PrintJobStatus.QUEUED,
-            PrintJobStatus.PRINTING,
-            PrintJobStatus.AGENT_OFFLINE,
-            PrintJobStatus.PRINT_UNKNOWN,
-          ],
-        },
+        OR: [
+          {
+            status: {
+              in: [
+                PrintJobStatus.PRINT_ELIGIBLE,
+                PrintJobStatus.QUEUED,
+                PrintJobStatus.PRINTING,
+                PrintJobStatus.AGENT_OFFLINE,
+                PrintJobStatus.PRINT_UNKNOWN,
+              ],
+            },
+          },
+          {
+            status: { in: [PrintJobStatus.PRINTED, PrintJobStatus.RETENTION_PENDING, PrintJobStatus.DELETED] },
+            printedAt: { gte: recentlyPrinted },
+          },
+        ],
       },
       include: { items: { include: { document: true }, orderBy: { printOrder: 'asc' } }, printer: true },
       orderBy: { createdAt: 'asc' },

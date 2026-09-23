@@ -17,7 +17,7 @@ const EVENT_META: Record<
   { label: string; icon: string; severity: Severity }
 > = {
   UPLOAD_RECEIVED: { label: 'Document uploaded', icon: 'pi pi-upload', severity: 'info' },
-  PRINT_QUEUED: { label: 'Print queued', icon: 'pi pi-clock', severity: 'info' },
+  PRINT_QUEUED: { label: 'Pending', icon: 'pi pi-clock', severity: 'info' },
   PRINT_COMPLETED: { label: 'Print completed', icon: 'pi pi-check-circle', severity: 'success' },
   PRINT_FAILED: { label: 'Print failed', icon: 'pi pi-times-circle', severity: 'danger' },
   SUBSCRIPTION_RENEWAL_REMINDER: { label: 'Renewal reminder', icon: 'pi pi-calendar', severity: 'info' },

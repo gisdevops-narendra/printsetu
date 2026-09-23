@@ -13,7 +13,7 @@ const ATTENTION: PrintJobStatus[] = ['AGENT_OFFLINE', 'PRINT_FAILED', 'PRINT_UNK
 
 const EVENT: Record<NotificationEventType, { label: string; icon: string; tone: HeaderAlert['tone'] }> = {
   UPLOAD_RECEIVED: { label: 'New customer upload', icon: 'pi pi-upload', tone: 'info' },
-  PRINT_QUEUED: { label: 'Print queued', icon: 'pi pi-clock', tone: 'info' },
+  PRINT_QUEUED: { label: 'Pending', icon: 'pi pi-clock', tone: 'info' },
   PRINT_COMPLETED: { label: 'Print completed', icon: 'pi pi-check-circle', tone: 'ok' },
   PRINT_FAILED: { label: 'Print failed', icon: 'pi pi-times-circle', tone: 'bad' },
   SUBSCRIPTION_RENEWAL_REMINDER: { label: 'Renewal reminder', icon: 'pi pi-calendar', tone: 'info' },

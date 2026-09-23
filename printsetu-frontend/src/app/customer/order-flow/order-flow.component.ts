@@ -1577,16 +1577,17 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
       case 'PRINT_ELIGIBLE':
         return 'Order confirmed';
       case 'QUEUED':
-        return 'Queued at the shop';
+        return 'Pending at the shop';
       case 'PRINTING':
         return 'Printing now…';
       case 'PRINTED':
       case 'RETENTION_PENDING':
+      case 'DELETED':
         return 'All done. Please collect your printout';
       case 'PRINT_FAILED':
         return 'Printing failed. Please check with the shop';
       case 'AGENT_OFFLINE':
-        return "The shop's printer is offline. Your order is still queued";
+        return "The shop's printer is offline. Your order is still pending";
       default:
         return 'Tracking your order…';
     }

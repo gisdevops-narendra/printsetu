@@ -4,6 +4,9 @@ import { NotificationPrefs, PrintJobRow, PrintJobStatus } from '../models/models
 import { ShopkeeperService } from './shopkeeper.service';
 
 const POLL_MS = 15_000;
+/** While a job is on its way to the printer, poll quickly so Pending -> Printing -> Printed shows live. */
+const ACTIVE_POLL_MS = 3_000;
+const ACTIVE: PrintJobStatus[] = ['QUEUED', 'PRINTING'];
 const PROBLEM: PrintJobStatus[] = ['AGENT_OFFLINE', 'PRINT_UNKNOWN'];
 
 const DEFAULT_PREFS: NotificationPrefs = { newOrderSound: true, desktopAlerts: false, failureAlerts: true };
@@ -21,10 +24,13 @@ const DEFAULT_PREFS: NotificationPrefs = { newOrderSound: true, desktopAlerts: f
 export class OrderAlertsService {
   /** The latest queue snapshot, shared with the shop header's queue indicator so it needn't poll again. */
   readonly jobs = signal<PrintJobRow[]>([]);
+  /** True once the first queue snapshot has arrived. */
+  readonly loaded = signal(false);
   private prefs: NotificationPrefs = { ...DEFAULT_PREFS };
   private known = new Map<string, PrintJobStatus>();
   private primed = false;
-  private timer?: ReturnType<typeof setInterval>;
+  private timer?: ReturnType<typeof setTimeout>;
+  private running = false;
   private audio?: AudioContext;
   private readonly onVisibility = () => (document.hidden ? this.pause() : this.resume());
 
@@ -39,8 +45,8 @@ export class OrderAlertsService {
       next: (res) => (this.prefs = { ...DEFAULT_PREFS, ...res.settings.notificationPrefs }),
       error: () => undefined,
     });
+    this.running = true;
     this.poll();
-    this.timer = setInterval(() => this.poll(), POLL_MS);
     document.addEventListener('visibilitychange', this.onVisibility);
   }
 
@@ -50,6 +56,7 @@ export class OrderAlertsService {
     this.primed = false;
     this.known.clear();
     this.jobs.set([]);
+    this.loaded.set(false);
   }
 
   /** Keep alerts in sync when the shopkeeper changes their preferences. */
@@ -70,21 +77,36 @@ export class OrderAlertsService {
   }
 
   private pause(): void {
-    if (this.timer) clearInterval(this.timer);
+    this.running = false;
+    if (this.timer) clearTimeout(this.timer);
     this.timer = undefined;
   }
 
   private resume(): void {
-    if (this.timer) return;
+    if (this.running) return;
+    this.running = true;
     this.poll();
-    this.timer = setInterval(() => this.poll(), POLL_MS);
   }
 
+  /** Polls, then schedules the next poll: every few seconds while something is printing, otherwise every 15s. */
   private poll(): void {
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = undefined;
     this.shopkeeperService.queue().subscribe({
-      next: (jobs) => this.detect(jobs),
-      error: () => undefined, // a missed poll is harmless; try again next time
+      next: (jobs) => {
+        this.detect(jobs);
+        this.loaded.set(true);
+        this.scheduleNext();
+      },
+      error: () => this.scheduleNext(), // a missed poll is harmless; try again next time
     });
+  }
+
+  private scheduleNext(): void {
+    if (!this.running) return;
+    if (this.timer) clearTimeout(this.timer);
+    const busy = this.jobs().some((j) => ACTIVE.includes(j.status));
+    this.timer = setTimeout(() => this.poll(), busy ? ACTIVE_POLL_MS : POLL_MS);
   }
 
   /** Pull the queue right now (e.g. after the shopkeeper acts) instead of waiting for the next tick. */
