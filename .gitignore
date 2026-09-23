@@ -4,13 +4,12 @@ node_modules/
 # Build output
 dist/
 .angular/
-# ...except the assembled Print Agent bundle (release/bundle/) — that's a
-# committed distributable the backend serves for shopkeeper download in
-# production, not a throwaway build artifact. The loose intermediate exe
-# next to it (release/PrintSetuAgent.exe) stays ignored.
-printsetu-print-agent/release/*
-!printsetu-print-agent/release/bundle/
-!printsetu-print-agent/release/bundle/**
+# Print Agent installer bundle — rebuilt fresh on every deploy by
+# deploy.sh (see its "Building Print Agent installer bundle" step), so
+# it's a throwaway build artifact now, not something to commit. Never
+# byte-for-byte reproducible (pkg embeds build timestamps), so keeping it
+# tracked meant every deploy left the working tree permanently dirty.
+printsetu-print-agent/release/
 
 # Python
 .venv/
