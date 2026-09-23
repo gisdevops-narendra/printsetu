@@ -54,6 +54,21 @@ export interface PricingRate {
   effectiveFrom: string;
 }
 
+export type AgentOs = 'windows' | 'linux';
+
+/** One OS printer installed on the Print Agent's computer, as the agent reported it. */
+export interface DetectedPrinter {
+  name: string;
+  isDefault: boolean;
+}
+
+export interface AgentCapabilities {
+  printers: DetectedPrinter[];
+  platform?: string;
+  hostname?: string;
+  reportedAt: string;
+}
+
 export interface PrinterRow {
   id: string;
   shopId: string;
@@ -63,6 +78,10 @@ export interface PrinterRow {
   status: 'ONLINE' | 'OFFLINE' | 'UNKNOWN';
   lastHeartbeatAt?: string;
   createdAt: string;
+  /** OS printer jobs are sent to; null = the agent computer's default printer. */
+  osPrinterName?: string | null;
+  /** Null until the agent has reported its printers at least once. */
+  capabilitiesJson?: AgentCapabilities | null;
 }
 
 export interface DocumentInfo {

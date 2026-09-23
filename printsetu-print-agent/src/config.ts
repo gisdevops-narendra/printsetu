@@ -4,6 +4,8 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
+export type PrintDriver = 'windows' | 'cups' | 'mock';
+
 export interface AgentConfig {
   agentId: string;
   agentSecret: string;
@@ -12,7 +14,7 @@ export interface AgentConfig {
   printerName?: string;
   pollIntervalMs: number;
   heartbeatIntervalMs: number;
-  printDriver: 'windows' | 'mock';
+  printDriver: PrintDriver;
   downloadDir: string;
 }
 
@@ -56,7 +58,8 @@ export function loadConfig(): AgentConfig {
     );
   }
 
-  const platformDefault = process.platform === 'win32' ? 'windows' : 'mock';
+  const platformDefault: PrintDriver =
+    process.platform === 'win32' ? 'windows' : process.platform === 'linux' ? 'cups' : 'mock';
 
   return {
     agentId,
@@ -66,7 +69,7 @@ export function loadConfig(): AgentConfig {
     printerName: process.env.PRINTSETU_PRINTER_NAME || persisted.printerName,
     pollIntervalMs: parseInt(process.env.PRINTSETU_POLL_INTERVAL_MS || '8000', 10),
     heartbeatIntervalMs: parseInt(process.env.PRINTSETU_HEARTBEAT_INTERVAL_MS || '20000', 10),
-    printDriver: (process.env.PRINTSETU_PRINT_DRIVER as 'windows' | 'mock') || platformDefault,
+    printDriver: (process.env.PRINTSETU_PRINT_DRIVER as PrintDriver) || platformDefault,
     downloadDir: process.env.PRINTSETU_DOWNLOAD_DIR || path.join(process.cwd(), 'downloads'),
   };
 }

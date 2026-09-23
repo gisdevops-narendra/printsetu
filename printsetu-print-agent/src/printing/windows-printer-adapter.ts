@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as pdfToPrinter from 'pdf-to-printer';
-import { PrinterAdapter, PrintOptions } from './printer-adapter.interface';
+import { DetectedPrinter, PrinterAdapter, PrintOptions } from './printer-adapter.interface';
 import { logger } from '../logger';
 
 const SUMATRA_ASSET = 'SumatraPDF-3.4.6-32.exe';
@@ -52,8 +52,13 @@ export class WindowsPrinterAdapter implements PrinterAdapter {
     await pdfToPrinter.print(filePath, printOptions);
   }
 
-  async listPrinters(): Promise<string[]> {
-    const printers = await pdfToPrinter.getPrinters();
-    return printers.map((p) => p.name);
+  async listPrinters(): Promise<DetectedPrinter[]> {
+    const [printers, defaultPrinter] = await Promise.all([
+      pdfToPrinter.getPrinters(),
+      // The agent runs as SYSTEM (see service/Install-Task.ps1), which often
+      // has no default printer of its own — treat that as "none", not an error.
+      pdfToPrinter.getDefaultPrinter().catch(() => null),
+    ]);
+    return printers.map((p) => ({ name: p.name, isDefault: p.name === defaultPrinter?.name }));
   }
 }

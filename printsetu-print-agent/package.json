@@ -1,7 +1,7 @@
 {
   "name": "printsetu-print-agent",
   "version": "1.0.0",
-  "description": "PrintSetu local Windows Print Agent — bridges the cloud/local backend to the shop's Windows print spooler (SRS §13).",
+  "description": "PrintSetu local Print Agent (Windows + Linux/CUPS) — bridges the cloud/local backend to the shop's print spooler (SRS §13).",
   "private": true,
   "license": "UNLICENSED",
   "main": "dist/index.js",
@@ -13,6 +13,8 @@
     "configure": "ts-node src/configure.ts",
     "test": "jest",
     "build:exe": "npm run build && pkg . --output release/PrintSetuAgent.exe",
+    "build:exe:linux": "npm run build && pkg . --targets node18-linux-x64 --output release/printsetu-agent-linux",
+    "build:exe:all": "npm run build:exe && npm run build:exe:linux",
     "package": "node scripts/build-release-bundle.js"
   },
   "dependencies": {

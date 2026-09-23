@@ -407,7 +407,7 @@ export class PrintJobsService {
   async dispatchToAgent(jobId: string) {
     const job = await this.prisma.printJob.findUniqueOrThrow({
       where: { id: jobId },
-      include: { items: { include: { document: true }, orderBy: { printOrder: 'asc' } } },
+      include: { items: { include: { document: true }, orderBy: { printOrder: 'asc' } }, printer: true },
     });
     if (job.status !== PrintJobStatus.QUEUED) return; // already progressed (e.g. reconciled)
     if (!job.printerId || !this.agentConnections.isConnected(job.printerId)) {
@@ -444,6 +444,7 @@ export class PrintJobsService {
       jobId: job.id,
       documents,
       attemptId: `${job.id}:${job.attemptCount}`,
+      printerName: job.printer?.osPrinterName ?? null,
     });
   }
 

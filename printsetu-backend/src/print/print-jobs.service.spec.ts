@@ -1,5 +1,8 @@
 import { PrintJobsService } from './print-jobs.service';
-import { AppNotFoundException, InvalidPrintOptionException } from '../common/exceptions/app.exceptions';
+import {
+  AppNotFoundException,
+  InvalidPrintOptionException,
+} from '../common/exceptions/app.exceptions';
 
 describe('PrintJobsService — shop document editor (reorder/delete/settings) + edited-file dispatch', () => {
   let service: PrintJobsService;
@@ -18,8 +21,26 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
     shopId: 'shop-1',
     status: 'PRINT_ELIGIBLE',
     items: [
-      { id: 'item-1', documentId: 'doc-1', paperSize: 'A4', colorMode: 'BW', sideMode: 'SIMPLEX', copies: 1, pageCount: 5, amount: 10 },
-      { id: 'item-2', documentId: 'doc-2', paperSize: 'A4', colorMode: 'BW', sideMode: 'SIMPLEX', copies: 1, pageCount: 3, amount: 6 },
+      {
+        id: 'item-1',
+        documentId: 'doc-1',
+        paperSize: 'A4',
+        colorMode: 'BW',
+        sideMode: 'SIMPLEX',
+        copies: 1,
+        pageCount: 5,
+        amount: 10,
+      },
+      {
+        id: 'item-2',
+        documentId: 'doc-2',
+        paperSize: 'A4',
+        colorMode: 'BW',
+        sideMode: 'SIMPLEX',
+        copies: 1,
+        pageCount: 3,
+        amount: 6,
+      },
     ],
   };
 
@@ -67,11 +88,17 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
     it('rewrites printOrder to match the requested sequence', async () => {
       await service.reorderItems('job-1', 'shop-1', { itemIds: ['item-2', 'item-1'] });
 
-      expect(prisma.printJobItem.update).toHaveBeenCalledWith({ where: { id: 'item-2' }, data: { printOrder: 0 } });
-      expect(prisma.printJobItem.update).toHaveBeenCalledWith({ where: { id: 'item-1' }, data: { printOrder: 1 } });
+      expect(prisma.printJobItem.update).toHaveBeenCalledWith({
+        where: { id: 'item-2' },
+        data: { printOrder: 0 },
+      });
+      expect(prisma.printJobItem.update).toHaveBeenCalledWith({
+        where: { id: 'item-1' },
+        data: { printOrder: 1 },
+      });
     });
 
-    it('rejects when the id list does not exactly match the job\'s current items', async () => {
+    it("rejects when the id list does not exactly match the job's current items", async () => {
       await expect(
         service.reorderItems('job-1', 'shop-1', { itemIds: ['item-1'] }),
       ).rejects.toThrow(InvalidPrintOptionException);
@@ -103,12 +130,20 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
         where: { id: 'doc-1' },
         data: { status: 'PROCESSED' },
       });
-      expect(prisma.printJob.update).toHaveBeenCalledWith({ where: { id: 'job-1' }, data: { amount: 6 } });
+      expect(prisma.printJob.update).toHaveBeenCalledWith({
+        where: { id: 'job-1' },
+        data: { amount: 6 },
+      });
     });
 
     it('refuses to remove the only document in a job', async () => {
-      prisma.printJob.findUnique.mockResolvedValue({ ...eligibleJob, items: [eligibleJob.items[0]] });
-      await expect(service.deleteItem('job-1', 'shop-1', 'item-1')).rejects.toThrow(InvalidPrintOptionException);
+      prisma.printJob.findUnique.mockResolvedValue({
+        ...eligibleJob,
+        items: [eligibleJob.items[0]],
+      });
+      await expect(service.deleteItem('job-1', 'shop-1', 'item-1')).rejects.toThrow(
+        InvalidPrintOptionException,
+      );
     });
   });
 
@@ -117,10 +152,22 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
       await service.updateItemSettings('job-1', 'shop-1', 'item-1', { copies: 3 });
 
       // pageCount 5 * copies 3 = 15 billable pages * ₹2.00/page = ₹30
-      expect(pricingService.getActiveRateOrThrow).toHaveBeenCalledWith('shop-1', 'A4', 'BW', 'SIMPLEX');
+      expect(pricingService.getActiveRateOrThrow).toHaveBeenCalledWith(
+        'shop-1',
+        'A4',
+        'BW',
+        'SIMPLEX',
+      );
       expect(prisma.printJobItem.update).toHaveBeenCalledWith({
         where: { id: 'item-1' },
-        data: { paperSize: 'A4', colorMode: 'BW', sideMode: 'SIMPLEX', copies: 3, billablePages: 15, amount: 30 },
+        data: {
+          paperSize: 'A4',
+          colorMode: 'BW',
+          sideMode: 'SIMPLEX',
+          copies: 3,
+          billablePages: 15,
+          amount: 30,
+        },
       });
     });
   });
@@ -140,7 +187,11 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
             colorMode: 'BW',
             sideMode: 'SIMPLEX',
             copies: 1,
-            document: { originalName: 'a.jpg', mimeType: 'image/jpeg', s3Key: 'shop-1/doc-1/a.jpg' },
+            document: {
+              originalName: 'a.jpg',
+              mimeType: 'image/jpeg',
+              s3Key: 'shop-1/doc-1/a.jpg',
+            },
           },
           {
             documentId: 'doc-2',
@@ -149,15 +200,74 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
             colorMode: 'BW',
             sideMode: 'SIMPLEX',
             copies: 1,
-            document: { originalName: 'b.pdf', mimeType: 'application/pdf', s3Key: 'shop-1/doc-2/b.pdf' },
+            document: {
+              originalName: 'b.pdf',
+              mimeType: 'application/pdf',
+              s3Key: 'shop-1/doc-2/b.pdf',
+            },
           },
         ],
       });
 
       await service.dispatchToAgent('job-1');
 
-      expect(storage.getSignedDownloadUrl).toHaveBeenCalledWith('shop-1/doc-1/edits/item-1-123.jpg');
+      expect(storage.getSignedDownloadUrl).toHaveBeenCalledWith(
+        'shop-1/doc-1/edits/item-1-123.jpg',
+      );
       expect(storage.getSignedDownloadUrl).toHaveBeenCalledWith('shop-1/doc-2/b.pdf');
+    });
+  });
+
+  describe('dispatchToAgent — target OS printer', () => {
+    const queuedJob = (printer: { osPrinterName: string | null } | null) => ({
+      id: 'job-1',
+      status: 'QUEUED',
+      printerId: 'printer-1',
+      attemptCount: 2,
+      printer,
+      items: [
+        {
+          documentId: 'doc-1',
+          renderedS3Key: null,
+          paperSize: 'A4',
+          colorMode: 'BW',
+          sideMode: 'SIMPLEX',
+          copies: 1,
+          document: {
+            originalName: 'a.pdf',
+            mimeType: 'application/pdf',
+            s3Key: 'shop-1/doc-1/a.pdf',
+          },
+        },
+      ],
+    });
+
+    it("sends the shopkeeper's chosen OS printer with the job", async () => {
+      prisma.printJob.findUniqueOrThrow.mockResolvedValue(
+        queuedJob({ osPrinterName: 'HP LaserJet M1005' }),
+      );
+
+      await service.dispatchToAgent('job-1');
+
+      expect(agentConnections.pushJob).toHaveBeenCalledWith(
+        'printer-1',
+        expect.objectContaining({
+          jobId: 'job-1',
+          attemptId: 'job-1:2',
+          printerName: 'HP LaserJet M1005',
+        }),
+      );
+    });
+
+    it('sends null when no OS printer was chosen, letting the agent use its default', async () => {
+      prisma.printJob.findUniqueOrThrow.mockResolvedValue(queuedJob({ osPrinterName: null }));
+
+      await service.dispatchToAgent('job-1');
+
+      expect(agentConnections.pushJob).toHaveBeenCalledWith(
+        'printer-1',
+        expect.objectContaining({ printerName: null }),
+      );
     });
   });
 });

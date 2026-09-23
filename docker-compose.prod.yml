@@ -36,12 +36,14 @@ services:
     expose:
       - "3000"
     volumes:
-      # Optional: mount a pre-built Print Agent bundle (built separately
-      # via `npm run build:exe && npm run package` in
-      # printsetu-print-agent/) so the "Download Print Agent" feature
+      # Optional: mount the pre-built Print Agent bundles (Windows + Linux,
+      # built by deploy.sh via `npm run build:exe:all && npm run package`
+      # in printsetu-print-agent/) so the "Download Print Agent" feature
       # works. Pair with PRINT_AGENT_BUNDLE_DIR=/app/agent-bundle in
-      # .env.production. Comment out if you don't need this yet.
+      # .env.production — the Linux bundle is found at that path + "-linux".
+      # Comment out if you don't need this yet.
       - ./printsetu-print-agent/release/bundle:/app/agent-bundle:ro
+      - ./printsetu-print-agent/release/bundle-linux:/app/agent-bundle-linux:ro
 
   document-analysis:
     build:

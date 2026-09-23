@@ -88,26 +88,32 @@ fi
 step 4 "Building Print Agent installer bundle"
 # ---------------------------------------------------------------------------
 # The backend's "Download Print Agent" endpoint (agent-package.service.ts)
-# serves printsetu-print-agent/release/bundle/PrintSetuAgent.exe straight
-# off disk via the volume mount in docker-compose.prod.yml — it 404s with
-# "installer has not been built on this server yet" if that file is
-# missing. Nothing else in this pipeline builds it, so do it here, every
-# deploy, gated on PRINT_AGENT_BUNDLE_DIR (opt-in — see
-# .env.production.example) so servers that don't use the feature don't
-# need it. Built inside a throwaway Node container rather than requiring
-# Node/npm on the host, since this server only has Docker installed.
-if grep -qE '^PRINT_AGENT_BUNDLE_DIR=' "$ENV_FILE"; then
-  docker run --rm \
-    -v "$APP_DIR/printsetu-print-agent:/app" \
-    -w /app \
-    node:20 \
-    sh -c "npm ci --no-audit --no-fund && npm run build:exe && npm run package"
-  [ -f printsetu-print-agent/release/bundle/PrintSetuAgent.exe ] \
-    || fail "Print Agent build reported success but release/bundle/PrintSetuAgent.exe is still missing."
-  echo "OK — printsetu-print-agent/release/bundle/PrintSetuAgent.exe built."
-else
-  echo "PRINT_AGENT_BUNDLE_DIR not set in $ENV_FILE — skipping Print Agent bundle build (the 'Download Print Agent' feature will 404 until it's configured; see infra/README.md)."
+# serves printsetu-print-agent/release/bundle/PrintSetuAgent.exe (Windows)
+# and release/bundle-linux/printsetu-agent (Linux) straight off disk via
+# the volume mounts in docker-compose.prod.yml — it 404s with
+# "installer has not been built on this server yet" if they are missing.
+# Nothing else in this pipeline builds them, so do it here, every deploy.
+# Built inside a throwaway Node container rather than requiring Node/npm
+# on the host, since this server only has Docker installed.
+
+# The backend only finds the mounted bundles if PRINT_AGENT_BUNDLE_DIR
+# points at the mount — add it once, automatically, instead of relying on
+# someone remembering to (the Linux bundle is found at that path + "-linux").
+if ! grep -qE '^PRINT_AGENT_BUNDLE_DIR=' "$ENV_FILE"; then
+  printf '\n# Added automatically by deploy.sh — where the backend finds the Print Agent bundles.\nPRINT_AGENT_BUNDLE_DIR=/app/agent-bundle\n' >> "$ENV_FILE"
+  echo "Added PRINT_AGENT_BUNDLE_DIR=/app/agent-bundle to $ENV_FILE."
 fi
+
+docker run --rm \
+  -v "$APP_DIR/printsetu-print-agent:/app" \
+  -w /app \
+  node:20 \
+  sh -c "npm ci --no-audit --no-fund && npm run build:exe:all && npm run package"
+[ -f printsetu-print-agent/release/bundle/PrintSetuAgent.exe ] \
+  || fail "Print Agent build reported success but release/bundle/PrintSetuAgent.exe is still missing."
+[ -f printsetu-print-agent/release/bundle-linux/printsetu-agent ] \
+  || fail "Print Agent build reported success but release/bundle-linux/printsetu-agent is still missing."
+echo "OK — Print Agent bundles built (Windows: release/bundle, Linux: release/bundle-linux)."
 
 # ---------------------------------------------------------------------------
 step 5 "Building and restarting services"

@@ -498,6 +498,10 @@ model Printer {
   agentKeyHash     String        @map("agent_key_hash")
   printerName      String        @map("printer_name")
   driverName       String?       @map("driver_name")
+  // OS-level printer on the agent's computer that jobs are sent to, picked
+  // by the shopkeeper from the agent-reported list in capabilitiesJson.
+  // Null = let the agent use that computer's default printer.
+  osPrinterName    String?       @map("os_printer_name")
   status           PrinterStatus @default(UNKNOWN)
   lastHeartbeatAt  DateTime?     @map("last_heartbeat_at")
   capabilitiesJson Json?         @map("capabilities_json")

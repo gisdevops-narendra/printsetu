@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Inject, Param, Post, UseGuards } from '@nestjs/common';
 import { PrintersService } from './printers.service';
 import { PrintJobsService } from '../print/print-jobs.service';
-import { RegisterPrinterDto } from './dto/printer.dto';
+import { RegisterPrinterDto, ReportPrintersDto } from './dto/printer.dto';
 import { AgentJobStatusDto } from '../print/dto/print.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
@@ -38,7 +38,10 @@ export class AgentController {
         printerId: agent.printerId,
         status: { in: [PrintJobStatus.QUEUED, PrintJobStatus.AGENT_OFFLINE] },
       },
-      include: { items: { include: { document: true }, orderBy: { printOrder: 'asc' } } },
+      include: {
+        items: { include: { document: true }, orderBy: { printOrder: 'asc' } },
+        printer: true,
+      },
       orderBy: { queuedAt: 'asc' },
     });
     if (!job) return { job: null };
@@ -60,6 +63,7 @@ export class AgentController {
       job: {
         jobId: job.id,
         attemptId: `${job.id}:${job.attemptCount}`,
+        printerName: job.printer?.osPrinterName ?? null,
         documents,
       },
     };
@@ -74,6 +78,14 @@ export class AgentController {
     @CurrentAgent() agent: AuthenticatedAgent,
   ) {
     return this.printJobsService.reportAgentStatus(id, agent.printerId, dto);
+  }
+
+  /** Agent reports the OS printers installed on its computer, so the shopkeeper can choose one. */
+  @Public()
+  @UseGuards(AgentAuthGuard)
+  @Post('printers')
+  reportPrinters(@Body() dto: ReportPrintersDto, @CurrentAgent() agent: AuthenticatedAgent) {
+    return this.printersService.reportPrinters(agent.printerId, dto);
   }
 
   @Public()

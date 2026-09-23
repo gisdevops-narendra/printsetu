@@ -3,22 +3,31 @@ import { BackendHttpClient } from './http-client';
 import { createPrinterAdapter } from './printing/printer-adapter.factory';
 import { JobProcessor } from './job-processor';
 import { AgentSocketClient } from './socket-client';
+import { PrinterReporter } from './printer-reporter';
 import { logger } from './logger';
+
+const PRINTER_SCAN_INTERVAL_MS = 60_000;
 
 async function main() {
   const config = loadConfig();
   logger.info('Starting PrintSetu Print Agent', {
     agentId: config.agentId,
     printDriver: config.printDriver,
-    printerName: config.printerName || '(system default)',
+    printerName: config.printerName || '(chosen on dashboard)',
   });
 
   const http = new BackendHttpClient(config);
   const printer = createPrinterAdapter(config);
   const processor = new JobProcessor(config, http, printer);
-  const socket = new AgentSocketClient(config, processor);
+  const printerReporter = new PrinterReporter(http, printer);
+  const socket = new AgentSocketClient(config, processor, printerReporter);
 
   socket.connect();
+
+  // Printers get plugged in/removed while the agent runs — rescan so the
+  // dashboard's printer picker stays current (only uploads on change).
+  void printerReporter.report(true);
+  setInterval(() => void printerReporter.report(), PRINTER_SCAN_INTERVAL_MS);
 
   // Heartbeat: prefer the socket channel, but always also hit the HTTP
   // endpoint so printers.last_heartbeat_at advances even during a

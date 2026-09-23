@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Param, Post, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { PrintersService } from './printers.service';
 import { AgentPackageService } from './agent-package.service';
@@ -6,6 +6,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/request-context';
 import { ShopAccessDeniedException } from '../common/exceptions/app.exceptions';
+import { DownloadAgentPackageDto, SelectOsPrinterDto } from './dto/printer.dto';
 
 /**
  * Shop-side self-serve counterpart to POST /api/agent/register (admin-only,
@@ -30,32 +31,65 @@ export class ShopPrintersController {
   }
 
   /**
-   * Issues a brand-new agent credential for this shop and streams back a
-   * ZIP containing the packaged agent exe + Windows service installer with
-   * that credential already baked in. Each call registers a fresh printer
+   * Issues a brand-new agent credential for this shop and streams back an
+   * archive containing the packaged agent + that OS's service installer
+   * (Windows ZIP by default, Linux tar.gz for `os: 'linux'`) with that
+   * credential already baked in. Each call registers a fresh printer
    * row (mirrors admin registration) — reinstalling on a new PC is just
    * "download again", no revoke step needed since old credentials simply
    * go unused.
    */
   @Post('agent-package')
-  async downloadAgentPackage(@CurrentUser() user: AuthenticatedUser, @Res() res: Response) {
+  async downloadAgentPackage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: DownloadAgentPackageDto,
+    @Res() res: Response,
+  ) {
     if (!user.shopId) throw new ShopAccessDeniedException('No shop assigned to this account.');
+    const os = dto.os ?? 'windows';
 
-    const printerName = 'Print Agent';
+    // Fail before registering a printer row if this server has no bundle
+    // for that OS — otherwise every failed click leaves a dead "Print
+    // Agent" row behind on the shop's printer list.
+    this.agentPackageService.assertBundleAvailable(os);
+
     const { agentId, agentSecret } = await this.printersService.register({
       shopId: user.shopId,
-      printerName,
-      driverName: 'auto',
+      printerName: os === 'linux' ? 'Print Agent (Linux)' : 'Print Agent',
+      driverName: os === 'linux' ? 'cups' : 'windows',
     });
 
-    const zip = await this.agentPackageService.buildZip({ agentId, agentSecret, printerName });
+    const pkg = await this.agentPackageService.buildPackage(os, { agentId, agentSecret });
 
     res.set({
-      'Content-Type': 'application/zip',
-      'Content-Disposition': 'attachment; filename="PrintSetu-Print-Agent.zip"',
-      'Content-Length': zip.length,
+      'Content-Type': pkg.contentType,
+      'Content-Disposition': `attachment; filename="${pkg.fileName}"`,
+      'Content-Length': pkg.data.length,
     });
-    res.send(zip);
+    res.send(pkg.data);
+  }
+
+  /** Chooses which printer on the agent's computer receives jobs; `osPrinterName: null` = that computer's default printer. */
+  @Patch(':id')
+  async selectOsPrinter(
+    @Param('id') id: string,
+    @Body() dto: SelectOsPrinterDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    if (!user.shopId) throw new ShopAccessDeniedException('No shop assigned to this account.');
+    const { agentKeyHash: _agentKeyHash, ...printer } = await this.printersService.selectOsPrinter(
+      user.shopId,
+      id,
+      dto.osPrinterName,
+    );
+    return printer;
+  }
+
+  /** Asks a connected agent to re-scan its computer's printers right away (e.g. one was just plugged in). */
+  @Post(':id/refresh-printers')
+  refreshPrinters(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    if (!user.shopId) throw new ShopAccessDeniedException('No shop assigned to this account.');
+    return this.printersService.requestPrinterRefresh(user.shopId, id);
   }
 
   /** Self-serve unlink of one of this shop's own printers/agents (e.g. a replaced or decommissioned PC). */

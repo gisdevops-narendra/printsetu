@@ -10,6 +10,7 @@ import {
   SideMode,
   PricingRate,
   PrinterRow,
+  AgentOs,
   PrintJobRow,
   NotificationPrefs,
   OpeningHours,
@@ -218,8 +219,18 @@ export class ShopkeeperService {
     return this.http.get<PrinterRow[]>(`${BASE}/shop/printers`);
   }
 
-  downloadAgentPackage() {
-    return this.http.post(`${BASE}/shop/printers/agent-package`, {}, { responseType: 'blob' });
+  downloadAgentPackage(os: AgentOs) {
+    return this.http.post(`${BASE}/shop/printers/agent-package`, { os }, { responseType: 'blob' });
+  }
+
+  /** Picks which printer on the agent's computer receives jobs; null = that computer's default printer. */
+  selectOsPrinter(printerId: string, osPrinterName: string | null) {
+    return this.http.patch<PrinterRow>(`${BASE}/shop/printers/${printerId}`, { osPrinterName });
+  }
+
+  /** Asks a connected agent to re-scan its printers; `requested: false` means it is offline. */
+  refreshAgentPrinters(printerId: string) {
+    return this.http.post<{ requested: boolean }>(`${BASE}/shop/printers/${printerId}/refresh-printers`, {});
   }
 
   removePrinter(printerId: string) {

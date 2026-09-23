@@ -189,11 +189,12 @@ long-lived Print Agent connection isn't dropped for being idle.
   meant to be internet-facing later.
 - **Print Agent bundle**: the backend's "Download Print Agent" feature
   reads a pre-built bundle from disk
-  (`PRINT_AGENT_BUNDLE_DIR`). Building that bundle (`npm run build:exe`
-  in `printsetu-print-agent`) needs Windows tooling and isn't part of
-  this Docker setup — mount the built `release/bundle` folder into the
-  backend container (see the commented volume in
-  `docker-compose.prod.yml`) if you need that feature in production.
+  (`PRINT_AGENT_BUNDLE_DIR`, plus the same path + `-linux` for the
+  Linux agent). `deploy.sh` builds both bundles (Windows `.exe` and
+  Linux binary, cross-compiled by `pkg` in a throwaway Node container)
+  on every deploy, adds `PRINT_AGENT_BUNDLE_DIR` to `.env.production`
+  if it's missing, and `docker-compose.prod.yml`
+  mounts `release/bundle` and `release/bundle-linux` into the backend.
 - **Disk budget**: a 6.7 GB root disk is tight. After the initial
   `--build`, run `docker builder prune` and `docker image prune` to drop
   intermediate build layers you don't need at runtime.

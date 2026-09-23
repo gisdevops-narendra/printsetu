@@ -2,6 +2,7 @@ import { io, Socket } from 'socket.io-client';
 import { AgentConfig } from './config';
 import { AgentJobPayload } from './http-client';
 import { JobProcessor } from './job-processor';
+import { PrinterReporter } from './printer-reporter';
 import { logger } from './logger';
 
 /**
@@ -17,6 +18,7 @@ export class AgentSocketClient {
   constructor(
     private readonly config: AgentConfig,
     private readonly processor: JobProcessor,
+    private readonly printerReporter: PrinterReporter,
   ) {}
 
   get connected(): boolean {
@@ -34,6 +36,7 @@ export class AgentSocketClient {
     this.socket.on('connect', () => {
       this._connected = true;
       logger.info('Connected to PrintSetu backend over WebSocket.');
+      void this.printerReporter.report(true);
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -48,6 +51,11 @@ export class AgentSocketClient {
 
     this.socket.on('error', (payload) => {
       logger.error(`Backend reported error: ${JSON.stringify(payload)}`);
+    });
+
+    // The shopkeeper asked the dashboard to re-scan this computer's printers.
+    this.socket.on('printers:refresh', () => {
+      void this.printerReporter.report(true);
     });
 
     this.socket.on('job:assigned', (payload: AgentJobPayload) => {

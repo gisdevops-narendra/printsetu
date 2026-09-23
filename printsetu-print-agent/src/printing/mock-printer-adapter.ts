@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { PrinterAdapter, PrintOptions } from './printer-adapter.interface';
+import { DetectedPrinter, PrinterAdapter, PrintOptions } from './printer-adapter.interface';
 import { logger } from '../logger';
 
 /**
@@ -20,7 +20,10 @@ export class MockPrinterAdapter implements PrinterAdapter {
     logger.info(`[MOCK PRINT] ${filePath} -> ${destination}`, { printerName, options });
   }
 
-  async listPrinters(): Promise<string[]> {
-    return ['Mock-Printer-1'];
+  async listPrinters(): Promise<DetectedPrinter[]> {
+    return [
+      { name: 'Mock-Printer-1', isDefault: true },
+      { name: 'Mock-Printer-2', isDefault: false },
+    ];
   }
 }

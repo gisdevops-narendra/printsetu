@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import * as fs from 'fs';
 import { AgentConfig } from './config';
 import { logger } from './logger';
+import { DetectedPrinter } from './printing/printer-adapter.interface';
 
 export interface AgentJobDocument {
   documentId: string;
@@ -14,12 +15,21 @@ export interface AgentJobDocument {
 export interface AgentJobPayload {
   jobId: string;
   attemptId: string;
+  // OS printer the shopkeeper picked for this agent on the dashboard, or
+  // null to let the agent choose (see JobProcessor.resolvePrinter).
+  printerName?: string | null;
   // One print request can cover several documents, each with its own
   // options — printed in array order.
   documents: AgentJobDocument[];
 }
 
 export type AgentJobStatus = 'ACCEPTED' | 'PRINTING' | 'PRINTED' | 'PRINT_FAILED' | 'PRINT_UNKNOWN';
+
+export interface PrinterReport {
+  printers: DetectedPrinter[];
+  platform: string;
+  hostname: string;
+}
 
 /** HTTP side of the agent contract (SRS §17): polling fallback + status reporting. */
 export class BackendHttpClient {
@@ -40,6 +50,11 @@ export class BackendHttpClient {
 
   async reportStatus(jobId: string, status: AgentJobStatus, agentAttemptId: string, message?: string): Promise<void> {
     await this.http.post(`/agent/jobs/${jobId}/status`, { status, agentAttemptId, message });
+  }
+
+  /** Tells the backend which OS printers this computer can print to, so the shopkeeper can pick one. */
+  async reportPrinters(report: PrinterReport): Promise<void> {
+    await this.http.post('/agent/printers', report);
   }
 
   async heartbeat(): Promise<void> {

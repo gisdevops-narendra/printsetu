@@ -4,13 +4,23 @@ import { RouterLink } from '@angular/router';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
-import { PrinterRow } from '../../core/models/models';
+import { AgentOs, DetectedPrinter, PrinterRow } from '../../core/models/models';
 import { copyText, downloadUrl, timeAgo } from '../../shared/utils/browser.util';
 
 type AgentState = 'loading' | 'error' | 'none' | 'online' | 'offline';
 
 const POLL_MS = 5000;
 const TICK_MS = 10_000;
+/** How long to wait for an agent to answer a "re-scan printers" request before re-reading the list. */
+const RESCAN_SETTLE_MS = 3000;
+
+const OS_LABEL: Record<AgentOs, string> = { windows: 'Windows', linux: 'Linux' };
+
+/** Best guess at the OS of the computer this page is open on, to preselect the right download. */
+function detectOs(): AgentOs {
+  const ua = navigator.userAgent;
+  return /Linux|X11/.test(ua) && !/Android|CrOS/.test(ua) ? 'linux' : 'windows';
+}
 
 interface Faq {
   q: string;
@@ -48,7 +58,7 @@ interface Faq {
         <i class="pi pi-desktop"></i>
         <div>
           <strong>Set this up on a computer</strong>
-          <p>The Print Agent installs on the Windows computer that is connected to your printer. Open this page there, or send yourself the link.</p>
+          <p>The Print Agent installs on the Windows or Linux computer that is connected to your printer. Open this page there, or send yourself the link.</p>
           <button type="button" class="link-btn" (click)="copyPageLink()"><i class="pi pi-copy"></i> Copy link to this page</button>
         </div>
       </div>
@@ -79,7 +89,7 @@ interface Faq {
             <p class="hero__text">Install the Print Agent on the computer that is connected to your printer. It takes about a minute, and there are no codes to enter.</p>
           </div>
           <button type="button" class="btn btn--solid" (click)="download()" [disabled]="downloading()">
-            <i class="pi" [ngClass]="downloading() ? 'pi-spin pi-spinner' : 'pi-download'"></i> Download Print Agent
+            <i class="pi" [ngClass]="downloading() ? 'pi-spin pi-spinner' : 'pi-download'"></i> Download for {{ osLabel() }}
           </button>
         }
         @case ('online') {
@@ -88,7 +98,7 @@ interface Faq {
             <h2 class="hero__title">Printer connected</h2>
             <p class="hero__text">
               {{ online().length }} {{ online().length === 1 ? 'printer is' : 'printers are' }} online &middot; last check-in {{ lastSeenLabel() }}.
-              New jobs are sent to it automatically.
+              New jobs are sent to the printer you choose below.
             </p>
           </div>
         }
@@ -127,32 +137,63 @@ interface Faq {
               <span class="step__badge">@if (step1Done()) { <i class="pi pi-check"></i> } @else { 1 }</span>
               <div class="step__body">
                 <h3>Download the Print Agent</h3>
-                <p>A small Windows installer, about a minute to set up.</p>
+                <div class="os-switch" role="radiogroup" aria-label="Computer type">
+                  @for (o of osOptions; track o) {
+                    <button type="button" role="radio" class="os-switch__opt" [class.is-active]="os() === o" [attr.aria-checked]="os() === o" (click)="os.set(o)">
+                      <i class="pi" [ngClass]="o === 'windows' ? 'pi-microsoft' : 'pi-server'"></i> {{ osLabels[o] }}
+                    </button>
+                  }
+                </div>
+                <p>
+                  @if (os() === 'windows') { A small installer for Windows 10 and 11, about a minute to set up. }
+                  @else { For Ubuntu, Debian, Mint, Fedora and other Linux computers that print through CUPS. }
+                </p>
                 <button type="button" class="btn btn--primary" (click)="download()" [disabled]="downloading()">
                   <i class="pi" [ngClass]="downloading() ? 'pi-spin pi-spinner' : 'pi-download'"></i>
-                  {{ step1Done() ? 'Download again' : 'Download Print Agent' }}
+                  {{ step1Done() ? 'Download again' : 'Download for ' + osLabel() }}
                 </button>
               </div>
             </li>
-            <li class="step" [class.is-done]="step23Done()">
-              <span class="step__badge">@if (step23Done()) { <i class="pi pi-check"></i> } @else { 2 }</span>
-              <div class="step__body">
-                <h3>Run <code>Install.bat</code></h3>
-                <p>Open the downloaded file, extract it, then double-click <code>Install.bat</code> on the computer that is connected to your printer.</p>
-              </div>
-            </li>
-            <li class="step" [class.is-done]="step23Done()">
-              <span class="step__badge">@if (step23Done()) { <i class="pi pi-check"></i> } @else { 3 }</span>
-              <div class="step__body">
-                <h3>Click &ldquo;Yes&rdquo; when Windows asks</h3>
-                <p>That lets it install quietly in the background.</p>
-              </div>
-            </li>
+            @if (os() === 'windows') {
+              <li class="step" [class.is-done]="step23Done()">
+                <span class="step__badge">@if (step23Done()) { <i class="pi pi-check"></i> } @else { 2 }</span>
+                <div class="step__body">
+                  <h3>Run <code>Install.bat</code></h3>
+                  <p>Open the downloaded file, extract it, then double-click <code>Install.bat</code> on the computer that is connected to your printer.</p>
+                </div>
+              </li>
+              <li class="step" [class.is-done]="step23Done()">
+                <span class="step__badge">@if (step23Done()) { <i class="pi pi-check"></i> } @else { 3 }</span>
+                <div class="step__body">
+                  <h3>Click &ldquo;Yes&rdquo; when Windows asks</h3>
+                  <p>That lets it install quietly in the background.</p>
+                </div>
+              </li>
+            } @else {
+              <li class="step" [class.is-done]="step23Done()">
+                <span class="step__badge">@if (step23Done()) { <i class="pi pi-check"></i> } @else { 2 }</span>
+                <div class="step__body">
+                  <h3>Extract it</h3>
+                  <p>Right-click the downloaded file and choose <em>Extract Here</em>. That creates a <code>PrintSetu-Print-Agent</code> folder.</p>
+                </div>
+              </li>
+              <li class="step" [class.is-done]="step23Done()">
+                <span class="step__badge">@if (step23Done()) { <i class="pi pi-check"></i> } @else { 3 }</span>
+                <div class="step__body">
+                  <h3>Run the installer in a Terminal</h3>
+                  <p>Open a Terminal in that folder, run the command below and enter your password when asked.</p>
+                  <div class="cmd">
+                    <code>{{ linuxInstallCmd }}</code>
+                    <button type="button" class="link-btn" (click)="copyInstallCmd()"><i class="pi pi-copy"></i> Copy</button>
+                  </div>
+                </div>
+              </li>
+            }
             <li class="step step--last" [class.is-done]="online().length > 0" [class.is-waiting]="online().length === 0 && step1Done()">
               <span class="step__badge">@if (online().length > 0) { <i class="pi pi-check"></i> } @else { <i class="pi pi-wifi"></i> }</span>
               <div class="step__body">
                 <h3>{{ online().length > 0 ? 'Connected' : 'Waiting for your printer…' }}</h3>
-                <p>{{ online().length > 0 ? 'Your printer showed up here on its own.' : "You don't need to do anything here. This page updates by itself once the agent connects." }}</p>
+                <p>{{ online().length > 0 ? 'Your computer showed up here on its own. Choose which printer to print on under Your printers.' : "You don't need to do anything here. This page updates by itself once the agent connects." }}</p>
               </div>
             </li>
           </ol>
@@ -186,7 +227,11 @@ interface Faq {
                   <div class="printer__main">
                     <span class="printer__name" [title]="p.printerName">{{ p.printerName }}</span>
                     <span class="printer__meta">
-                      @if (p.driverName) { <span class="printer__driver" [title]="p.driverName">{{ p.driverName }}</span> }
+                      @if (p.capabilitiesJson?.hostname) {
+                        <span class="printer__driver" [title]="p.capabilitiesJson!.hostname!">{{ p.capabilitiesJson!.hostname }}</span>
+                      } @else if (p.driverName) {
+                        <span class="printer__driver" [title]="p.driverName">{{ p.driverName }}</span>
+                      }
                       <span>Agent {{ shortId(p.agentId) }}</span>
                     </span>
                   </div>
@@ -197,6 +242,47 @@ interface Faq {
                   <button type="button" class="printer__remove" (click)="confirmRemove(p)" [attr.aria-label]="'Remove ' + p.printerName">
                     <i class="pi pi-trash"></i>
                   </button>
+
+                  <div class="target">
+                    @if (detected(p); as list) {
+                      <label class="target__label" [for]="'target-' + p.id">Print to</label>
+                      <div class="target__row">
+                        <select
+                          class="target__select"
+                          [id]="'target-' + p.id"
+                          [disabled]="savingId() === p.id"
+                          (change)="selectTarget(p, $any($event.target).value)"
+                        >
+                          <option value="" [selected]="!p.osPrinterName">{{ defaultOptionLabel(list) }}</option>
+                          @for (d of list; track d.name) {
+                            <option [value]="d.name" [selected]="p.osPrinterName === d.name">{{ d.name }}{{ d.isDefault ? ' (default)' : '' }}</option>
+                          }
+                          @if (p.osPrinterName && !hasPrinter(list, p.osPrinterName)) {
+                            <option [value]="p.osPrinterName" selected>{{ p.osPrinterName }} (not found)</option>
+                          }
+                        </select>
+                        <button
+                          type="button"
+                          class="target__rescan"
+                          (click)="rescan(p)"
+                          [disabled]="rescanningId() === p.id || p.status !== 'ONLINE'"
+                          [title]="p.status === 'ONLINE' ? 'Look for printers again' : 'The agent must be online to look for printers'"
+                          aria-label="Look for printers again"
+                        >
+                          <i class="pi" [ngClass]="rescanningId() === p.id || savingId() === p.id ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
+                        </button>
+                      </div>
+                      @if (targetWarning(p, list); as warning) {
+                        <p class="target__note target__note--warn"><i class="pi pi-exclamation-triangle"></i> {{ warning }}</p>
+                      } @else {
+                        <p class="target__note">{{ list.length }} {{ list.length === 1 ? 'printer' : 'printers' }} found on this computer.</p>
+                      }
+                    } @else if (p.status === 'ONLINE') {
+                      <p class="target__note"><i class="pi pi-spin pi-spinner"></i> Looking for printers on this computer…</p>
+                    } @else {
+                      <p class="target__note">Printers on this computer appear here once the agent connects.</p>
+                    }
+                  </div>
                 </li>
               }
             </ul>
@@ -585,6 +671,49 @@ interface Faq {
         background: var(--bg-eef1f7);
         font-size: 0.8125rem;
       }
+      .os-switch {
+        display: inline-flex;
+        gap: 0.25rem;
+        margin: 0.25rem 0 0.625rem;
+        padding: 0.25rem;
+        border-radius: 12px;
+        background: var(--bg-eef1f7);
+      }
+      .os-switch__opt {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        min-height: 2.25rem;
+        padding: 0 0.875rem;
+        border: none;
+        border-radius: 9px;
+        background: transparent;
+        font: inherit;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--tx-475569);
+        cursor: pointer;
+      }
+      .os-switch__opt.is-active {
+        background: var(--bg-ffffff);
+        color: var(--ink);
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+      }
+      .cmd {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 10px;
+        background: var(--bg-f8fafc);
+        border: 1px solid var(--line);
+      }
+      .cmd code {
+        padding: 0;
+        background: none;
+        font-size: 0.8125rem;
+      }
       .fineprint {
         display: flex;
         gap: 0.5rem;
@@ -737,9 +866,75 @@ interface Faq {
         background: var(--bg-fee2e2);
         color: var(--bad);
       }
+      .printer {
+        flex-wrap: wrap;
+      }
+      .target {
+        flex-basis: 100%;
+        min-width: 0;
+        padding: 0.75rem 0 0 3.375rem;
+        border-top: 1px dashed var(--line);
+      }
+      .target__label {
+        display: block;
+        margin-bottom: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .target__row {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .target__select {
+        flex: 1 1 auto;
+        min-width: 0;
+        height: 2.5rem;
+        padding: 0 0.75rem;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--bg-ffffff);
+        font: inherit;
+        font-size: 0.875rem;
+        color: var(--ink);
+      }
+      .target__select:focus-visible {
+        outline: 2px solid var(--p-primary-600);
+        outline-offset: 1px;
+      }
+      .target__rescan {
+        flex: 0 0 auto;
+        width: 2.5rem;
+        height: 2.5rem;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--bg-ffffff);
+        color: var(--tx-475569);
+        cursor: pointer;
+      }
+      .target__rescan:hover:not(:disabled) {
+        background: var(--bg-eef1f7);
+      }
+      .target__rescan:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      .target__note {
+        display: flex;
+        align-items: baseline;
+        gap: 0.4rem;
+        margin: 0.375rem 0 0;
+        font-size: 0.75rem;
+        line-height: 1.45;
+        color: var(--muted);
+      }
+      .target__note--warn {
+        color: var(--warn);
+        font-weight: 600;
+      }
       @media (max-width: 480px) {
-        .printer {
-          flex-wrap: wrap;
+        .target {
+          padding-left: 0;
         }
         .printer__side {
           flex-direction: row;
@@ -866,6 +1061,14 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
   lastUpdated = signal<number | null>(null);
   isMobile = signal(false);
 
+  os = signal<AgentOs>(detectOs());
+  osLabel = computed(() => OS_LABEL[this.os()]);
+  readonly osOptions: AgentOs[] = ['windows', 'linux'];
+  readonly osLabels = OS_LABEL;
+  readonly linuxInstallCmd = 'sudo sh install.sh';
+  savingId = signal<string | null>(null);
+  rescanningId = signal<string | null>(null);
+
   setupExpanded = signal<boolean | null>(null);
   faqOpen = signal<number | null>(null);
 
@@ -886,6 +1089,15 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
       ],
     },
     {
+      q: 'My printer is not in the list',
+      steps: [
+        'Check that the printer is switched on and connected to the computer running the Print Agent.',
+        'Check that it can print a test page from that computer (Windows: Settings > Printers & scanners; Linux: Settings > Printers).',
+        'Click the refresh button next to the printer list to look again.',
+        'On Linux, run "lpstat -e" in a Terminal: the printer must be listed there. If the command is missing, install CUPS with "sudo apt install cups cups-client".',
+      ],
+    },
+    {
       q: 'Windows blocked the installer',
       steps: [
         'Right-click Install.bat and choose Run as administrator.',
@@ -897,6 +1109,7 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
       q: 'A job was sent but nothing printed',
       steps: [
         'Open the Print Queue and look at the job status. It shows whether it was sent, printing or failed.',
+        'Check that the right printer is chosen under Print to on this page.',
         'Check that the printer has paper and ink, and no error light.',
         'If the printer was offline, the job prints as soon as it reconnects.',
       ],
@@ -1013,22 +1226,99 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
   }
 
   download(): void {
+    const os = this.os();
     this.downloading.set(true);
-    this.shopkeeperService.downloadAgentPackage().subscribe({
+    this.shopkeeperService.downloadAgentPackage(os).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
-        downloadUrl(url, 'PrintSetu-Print-Agent.zip');
+        downloadUrl(url, os === 'linux' ? 'PrintSetu-Print-Agent-linux.tar.gz' : 'PrintSetu-Print-Agent.zip');
         URL.revokeObjectURL(url);
         this.downloading.set(false);
         this.downloaded.set(true);
         this.messageService.add({
           severity: 'success',
           summary: 'Download started',
-          detail: 'Open the downloaded file and run Install.bat to finish setup.',
+          detail:
+            os === 'linux'
+              ? `Extract the downloaded file and run "${this.linuxInstallCmd}" in that folder to finish setup.`
+              : 'Open the downloaded file and run Install.bat to finish setup.',
         });
         this.refresh();
       },
       error: () => this.downloading.set(false),
+    });
+  }
+
+  async copyInstallCmd(): Promise<void> {
+    const ok = await copyText(this.linuxInstallCmd);
+    this.messageService.add(ok ? { severity: 'success', summary: 'Command copied' } : { severity: 'warn', summary: "Couldn't copy" });
+  }
+
+  /** Printers the agent reported on its computer, or null if it hasn't reported yet. */
+  detected(p: PrinterRow): DetectedPrinter[] | null {
+    return p.capabilitiesJson?.printers ?? null;
+  }
+
+  hasPrinter(list: DetectedPrinter[], name: string): boolean {
+    return list.some((d) => d.name === name);
+  }
+
+  defaultOptionLabel(list: DetectedPrinter[]): string {
+    const osDefault = list.find((d) => d.isDefault);
+    return osDefault ? `Computer's default printer (${osDefault.name})` : "Computer's default printer";
+  }
+
+  /** Mirrors the agent's own printer resolution (job-processor.ts) so the shopkeeper sees a failure coming. */
+  targetWarning(p: PrinterRow, list: DetectedPrinter[]): string | null {
+    if (list.length === 0) return 'No printers found on this computer. Install or connect the printer there, then refresh.';
+    if (p.osPrinterName) {
+      return this.hasPrinter(list, p.osPrinterName)
+        ? null
+        : `"${p.osPrinterName}" is no longer on this computer. Jobs will fail until you choose another printer.`;
+    }
+    if (list.length > 1 && !list.some((d) => d.isDefault)) {
+      return 'This computer has no default printer. Choose a printer so jobs know where to go.';
+    }
+    return null;
+  }
+
+  selectTarget(p: PrinterRow, value: string): void {
+    const osPrinterName = value || null;
+    if (osPrinterName === (p.osPrinterName ?? null)) return;
+    this.savingId.set(p.id);
+    this.shopkeeperService.selectOsPrinter(p.id, osPrinterName).subscribe({
+      next: (updated) => {
+        this.printers.update((rows) => rows.map((row) => (row.id === updated.id ? { ...row, ...updated } : row)));
+        this.savingId.set(null);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Printer saved',
+          detail: osPrinterName ? `Jobs will print on ${osPrinterName}.` : "Jobs will print on the computer's default printer.",
+        });
+      },
+      error: () => {
+        this.savingId.set(null);
+        // Re-read so the dropdown snaps back to what is actually saved.
+        this.refresh();
+      },
+    });
+  }
+
+  rescan(p: PrinterRow): void {
+    this.rescanningId.set(p.id);
+    this.shopkeeperService.refreshAgentPrinters(p.id).subscribe({
+      next: ({ requested }) => {
+        if (!requested) {
+          this.rescanningId.set(null);
+          this.messageService.add({ severity: 'warn', summary: 'Print Agent is offline', detail: 'It will report its printers when it reconnects.' });
+          return;
+        }
+        setTimeout(() => {
+          this.rescanningId.set(null);
+          this.refresh();
+        }, RESCAN_SETTLE_MS);
+      },
+      error: () => this.rescanningId.set(null),
     });
   }
 

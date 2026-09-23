@@ -20,6 +20,9 @@ export interface JobAssignedPayload {
   // with its own options — printed in array order.
   documents: JobAssignedDocument[];
   attemptId: string;
+  // OS printer the shopkeeper chose for this agent (Printer.osPrinterName);
+  // null lets the agent fall back to its computer's default printer.
+  printerName: string | null;
 }
 
 /**
@@ -51,6 +54,14 @@ export class AgentConnectionRegistry {
 
   isConnected(printerId: string): boolean {
     return this.sockets.has(printerId);
+  }
+
+  /** Asks a connected agent to re-scan and re-report its OS printers. Returns false if it isn't connected. */
+  requestPrinterRefresh(printerId: string): boolean {
+    const socket = this.sockets.get(printerId);
+    if (!socket) return false;
+    socket.emit('printers:refresh');
+    return true;
   }
 
   pushJob(printerId: string, payload: JobAssignedPayload): boolean {
