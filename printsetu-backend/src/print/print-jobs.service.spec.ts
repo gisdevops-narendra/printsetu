@@ -1,3 +1,4 @@
+import { PDFDocument, PDFName, PDFNumber } from 'pdf-lib';
 import { PrintJobsService } from './print-jobs.service';
 import {
   AppNotFoundException,
@@ -17,7 +18,14 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
     resolveRate: jest.Mock;
     isPricingEnabled: jest.Mock;
   };
-  let storage: { getSignedDownloadUrl: jest.Mock };
+  let storage: { getSignedDownloadUrl: jest.Mock; getObject: jest.Mock; putObject: jest.Mock };
+  let plainPdf: Buffer;
+
+  beforeAll(async () => {
+    const pdf = await PDFDocument.create();
+    pdf.addPage().drawText('hello');
+    plainPdf = Buffer.from(await pdf.save());
+  });
   let agentConnections: { isConnected: jest.Mock; pushJob: jest.Mock };
 
   const eligibleJob = {
@@ -76,7 +84,11 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
       isPricingEnabled: jest.fn().mockResolvedValue(true),
       resolveRate: jest.fn().mockResolvedValue({ pricePerPage: 2, hasTiers: false, tier: null }),
     };
-    storage = { getSignedDownloadUrl: jest.fn().mockResolvedValue('https://signed.example/file') };
+    storage = {
+      getSignedDownloadUrl: jest.fn().mockResolvedValue('https://signed.example/file'),
+      getObject: jest.fn().mockImplementation(async () => plainPdf),
+      putObject: jest.fn().mockResolvedValue(undefined),
+    };
     agentConnections = { isConnected: jest.fn().mockReturnValue(true), pushJob: jest.fn() };
 
     service = new PrintJobsService(
@@ -311,6 +323,58 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
         'shop-1/doc-1/edits/item-1-123.jpg',
       );
       expect(storage.getSignedDownloadUrl).toHaveBeenCalledWith('shop-1/doc-2/b.pdf');
+      expect(storage.putObject).not.toHaveBeenCalled();
+    });
+
+    const pdfJob = {
+      id: 'job-1',
+      status: 'QUEUED',
+      printerId: 'printer-1',
+      attemptCount: 0,
+      items: [
+        {
+          id: 'item-1',
+          documentId: 'doc-1',
+          renderedS3Key: null,
+          paperSize: 'A4',
+          colorMode: 'BW',
+          sideMode: 'SIMPLEX',
+          copies: 1,
+          document: { id: 'doc-1', shopId: 'shop-1', originalName: 'a.pdf', mimeType: 'application/pdf', s3Key: 'shop-1/doc-1/a.pdf' },
+        },
+      ],
+    };
+
+    it('prints a print-ready copy of a PDF whose on-screen text would not print', async () => {
+      const pdf = await PDFDocument.create();
+      const page = pdf.addPage();
+      const ap = pdf.context.register(pdf.context.stream('', { Type: 'XObject', Subtype: 'Form', BBox: [0, 0, 100, 20] }));
+      const annot = pdf.context.obj({ Type: 'Annot', Subtype: 'FreeText', Rect: [50, 700, 150, 720], AP: { N: ap } });
+      page.node.set(PDFName.of('Annots'), pdf.context.obj([pdf.context.register(annot)]));
+      storage.getObject.mockResolvedValue(Buffer.from(await pdf.save()));
+      prisma.printJob.findUniqueOrThrow.mockResolvedValue(pdfJob);
+
+      await service.dispatchToAgent('job-1');
+
+      expect(storage.getObject).toHaveBeenCalledWith('shop-1/doc-1/a.pdf');
+      expect(storage.putObject).toHaveBeenCalledWith(
+        expect.objectContaining({ key: 'shop-1/doc-1/print-ready/item-1.pdf', contentType: 'application/pdf' }),
+      );
+      expect(storage.getSignedDownloadUrl).toHaveBeenCalledWith('shop-1/doc-1/print-ready/item-1.pdf');
+      const printed = await PDFDocument.load(storage.putObject.mock.calls[0][0].body);
+      const flags = printed.getPage(0).node.lookup(PDFName.of('Annots')) as any;
+      expect((flags.lookup(0).lookup(PDFName.of('F')) as PDFNumber).asNumber() & 4).toBe(4);
+    });
+
+    it('sends the stored PDF unchanged when it cannot be read', async () => {
+      storage.getObject.mockRejectedValue(new Error('storage down'));
+      prisma.printJob.findUniqueOrThrow.mockResolvedValue(pdfJob);
+
+      await service.dispatchToAgent('job-1');
+
+      expect(storage.putObject).not.toHaveBeenCalled();
+      expect(storage.getSignedDownloadUrl).toHaveBeenCalledWith('shop-1/doc-1/a.pdf');
+      expect(agentConnections.pushJob).toHaveBeenCalled();
     });
   });
 

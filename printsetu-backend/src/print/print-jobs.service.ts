@@ -29,6 +29,7 @@ import {
   UpdateItemSettingsDto,
 } from './dto/print.dto';
 import { PRINT_DISPATCH_QUEUE } from './print-queue.constants';
+import { makePdfPrintReady, printReadyKey } from './pdf-print-ready';
 
 const JOB_STATUS_TOKEN_TTL_SECONDS = 48 * 60 * 60;
 
@@ -539,25 +540,31 @@ export class PrintJobsService {
     }
 
     const documents = await Promise.all(
-      job.items.map(async (item) => ({
-        documentId: item.documentId,
-        originalName: item.document.originalName,
+      job.items.map(async (item) => {
         // An edited render may be a different format than the upload (the
         // canvas editor can export PNG for a JPEG document), so describe the
         // file actually being sent.
-        mimeType: item.renderedS3Key
+        const mimeType = item.renderedS3Key
           ? mimeFromKey(item.renderedS3Key, item.document.mimeType)
-          : item.document.mimeType,
-        documentSignedUrl: await this.storage.getSignedDownloadUrl(
-          item.renderedS3Key ?? item.document.s3Key,
-        ),
-        options: {
-          paperSize: item.paperSize,
-          colorMode: item.colorMode,
-          sideMode: item.sideMode,
-          copies: item.copies,
-        },
-      })),
+          : item.document.mimeType;
+        const sourceKey = item.renderedS3Key ?? item.document.s3Key;
+        const printKey =
+          mimeType === 'application/pdf'
+            ? await this.pdfPrintReadyKey(sourceKey, printReadyKey(item.document, item.id))
+            : sourceKey;
+        return {
+          documentId: item.documentId,
+          originalName: item.document.originalName,
+          mimeType,
+          documentSignedUrl: await this.storage.getSignedDownloadUrl(printKey),
+          options: {
+            paperSize: item.paperSize,
+            colorMode: item.colorMode,
+            sideMode: item.sideMode,
+            copies: item.copies,
+          },
+        };
+      }),
     );
 
     this.agentConnections.pushJob(job.printerId, {
@@ -566,6 +573,24 @@ export class PrintJobsService {
       attemptId: `${job.id}:${job.attemptCount}`,
       printerName: job.printer?.osPrinterName ?? null,
     });
+  }
+
+  /**
+   * Key of the PDF the agent should print: a print-ready copy (stored at
+   * `targetKey`) when the file has on-screen content that would otherwise be
+   * skipped by the printer — see makePdfPrintReady — else `sourceKey` itself.
+   * Never blocks printing: on any failure the file is sent as stored.
+   */
+  private async pdfPrintReadyKey(sourceKey: string, targetKey: string): Promise<string> {
+    try {
+      const printReady = await makePdfPrintReady(await this.storage.getObject(sourceKey));
+      if (!printReady) return sourceKey;
+      await this.storage.putObject({ key: targetKey, body: printReady, contentType: 'application/pdf' });
+      return targetKey;
+    } catch (error) {
+      this.logger.warn(`Could not prepare ${sourceKey} for printing, sending it as stored: ${(error as Error).message}`);
+      return sourceKey;
+    }
   }
 
   /** SRS §13.1: "Agent reports accepted/printing/success/failure states with timestamps and an agent-side attempt ID." */

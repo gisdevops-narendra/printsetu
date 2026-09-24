@@ -4,6 +4,7 @@ import { DocumentStatus, PrintJobStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_SERVICE, IStorageService } from '../storage/storage.interface';
 import { PrintJobsRepository } from '../print/print-jobs.repository';
+import { printReadyKey } from '../print/pdf-print-ready';
 
 /**
  * SRS §9 Document Lifecycle "Cleanup" row: a scheduled job deletes eligible
@@ -34,6 +35,15 @@ export class RetentionService {
       const pendingDocuments = job.items
         .map((item) => item.document)
         .filter((document) => document.status !== DocumentStatus.DELETED);
+
+      // Print-ready copies made at dispatch (PDFs only); a missing object deletes as a no-op.
+      for (const item of job.items) {
+        if (item.document.status === DocumentStatus.DELETED || item.document.mimeType !== 'application/pdf') continue;
+        const key = printReadyKey(item.document, item.id);
+        await this.storage.deleteObject(key).catch((error: Error) => {
+          this.logger.warn(`Failed to delete object ${key}: ${error.message}`);
+        });
+      }
 
       let deleteFailed = false;
       for (const document of pendingDocuments) {
