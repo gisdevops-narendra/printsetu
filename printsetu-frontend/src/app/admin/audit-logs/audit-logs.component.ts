@@ -123,18 +123,18 @@ type ActivityRow = AuditLogRow & { what: string; item: string; by: string };
       </ng-template>
       <ng-template pTemplate="body" let-log>
         <tr>
-          <td data-label="When">{{ log.createdAt | appDate: 'medium' }}</td>
-          <td data-label="What happened">
+          <td [attr.data-label]="'common.when' | translate">{{ log.createdAt | appDate: 'medium' }}</td>
+          <td [attr.data-label]="'activityLog.what_happened' | translate">
             <span appEllipsis #whatRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="whatRef.isTruncated">{{ log.what }}</span></span
             >
           </td>
-          <td data-label="Item">
+          <td [attr.data-label]="'activityLog.item' | translate">
             <span appEllipsis #itemRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="itemRef.isTruncated">{{ log.item }}</span></span
             >
           </td>
-          <td data-label="Done by">{{ log.by }}</td>
+          <td [attr.data-label]="'activityLog.done_by' | translate">{{ log.by }}</td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">

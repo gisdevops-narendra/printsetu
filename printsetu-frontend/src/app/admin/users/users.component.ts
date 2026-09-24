@@ -68,17 +68,17 @@ import { t } from '../../core/i18n/i18n';
       </ng-template>
       <ng-template pTemplate="body" let-user>
         <tr>
-          <td data-label="Name">
+          <td [attr.data-label]="'common.name' | translate">
             <span appEllipsis #nameRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="nameRef.isTruncated">{{ user.name }}</span></span
             >
           </td>
-          <td data-label="Email">
+          <td [attr.data-label]="'common.email' | translate">
             <span appEllipsis #emailRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="emailRef.isTruncated">{{ user.email }}</span></span
             >
           </td>
-          <td data-label="Password">
+          <td [attr.data-label]="'adminUsers.password' | translate">
             @if (user.currentPassword) {
               <div class="pw-cell">
                 <span class="pw-cell__value">{{ isRevealed(user.id) ? user.currentPassword : '••••••••••' }}</span>
@@ -98,13 +98,13 @@ import { t } from '../../core/i18n/i18n';
               <span class="text-color-secondary">{{ 'adminUsers.set_by_user' | translate }}</span>
             }
           </td>
-          <td data-label="Role">{{ user.role.name }}</td>
-          <td data-label="Shop">
+          <td [attr.data-label]="'adminUsers.role' | translate">{{ user.role.name }}</td>
+          <td [attr.data-label]="'common.shop' | translate">
             <span appEllipsis #shopRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="shopRef.isTruncated">{{ user.shop?.name || '—' }}</span></span
             >
           </td>
-          <td data-label="Status"><p-tag [value]="user.status" [severity]="user.status === 'ACTIVE' ? 'success' : 'danger'" /></td>
+          <td [attr.data-label]="'common.status' | translate"><p-tag [value]="user.status" [severity]="user.status === 'ACTIVE' ? 'success' : 'danger'" /></td>
           <td class="text-right">
             <p-button
               [label]="user.status === 'ACTIVE' ? ('adminUsers.disable' | translate) : ('adminUsers.enable' | translate)"

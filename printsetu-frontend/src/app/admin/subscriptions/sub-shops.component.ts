@@ -64,13 +64,13 @@ const STATUS_OPTIONS = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPE
           <tbody>
             @for (r of rows(); track r.shopId) {
               <tr tabindex="0" (click)="openShop(r)" (keydown.enter)="openShop(r)" [attr.aria-label]="'subscriptions.open_billing_for' | translate: { shop: r.shopName }">
-                <td data-label="Shop"><strong>{{ r.shopName }}</strong><span class="sub">{{ r.shopCode }} &middot; {{ r.city }}</span></td>
-                <td data-label="Plan">
+                <td [attr.data-label]="'common.shop' | translate"><strong>{{ r.shopName }}</strong><span class="sub">{{ r.shopCode }} &middot; {{ r.city }}</span></td>
+                <td [attr.data-label]="'common.plan' | translate">
                   @if (r.plan) { <strong>{{ r.plan.name }}</strong><span class="sub">{{ money(r.price) }}</span> } @else { <span class="none">—</span> }
                 </td>
-                <td data-label="Pays">{{ r.cycle ? cycleLabel(r.cycle) : '—' }}</td>
-                <td data-label="Started">{{ r.startDate ? (r.startDate | appDate: 'd MMM y') : '—' }}</td>
-                <td data-label="Next billing">
+                <td [attr.data-label]="'subscriptions.pays' | translate">{{ r.cycle ? cycleLabel(r.cycle) : '—' }}</td>
+                <td [attr.data-label]="'common.started' | translate">{{ r.startDate ? (r.startDate | appDate: 'd MMM y') : '—' }}</td>
+                <td [attr.data-label]="'subscriptions.next_billing' | translate">
                   @if (r.currentPeriodEnd) {
                     <strong [class.soon-text]="isSoon(r)">{{ r.currentPeriodEnd | appDate: 'd MMM y' }}</strong>
                     @if (r.status === 'PAYMENT_PENDING' && r.graceEndsAt) { <span class="sub bad">{{ 'subscriptions.extra_days_end' | translate: { date: (r.graceEndsAt | appDate: 'd MMM') } }}</span> }
@@ -78,11 +78,11 @@ const STATUS_OPTIONS = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPE
                     @else if (r.status === 'TRIAL') { <span class="sub">{{ 'subscriptions.trial_ends_3' | translate }}</span> }
                   } @else { <span class="none">—</span> }
                 </td>
-                <td data-label="Renews automatically">
+                <td [attr.data-label]="'subscriptions.renews_automatically' | translate">
                   @if (r.autoRenew === null) { <span class="none">—</span> }
                   @else { <span class="ar" [class.ar--on]="r.autoRenew"><i class="pi" [ngClass]="r.autoRenew ? 'pi-sync' : 'pi-times'"></i> {{ r.autoRenew ? ('subscriptions.on' | translate) : ('subscriptions.off' | translate) }}</span> }
                 </td>
-                <td data-label="Status">
+                <td [attr.data-label]="'common.status' | translate">
                   <app-billing-pill [state]="r.status" />
                   @if (r.automationPaused) { <span class="sub"><i class="pi pi-lock"></i> {{ 'subscriptions.manually_controlled_2' | translate }}</span> }
                 </td>

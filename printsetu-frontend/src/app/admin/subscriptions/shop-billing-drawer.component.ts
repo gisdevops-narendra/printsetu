@@ -315,10 +315,10 @@ const DAY = 86_400_000;
               }
             }
             @case ('extend') {
-              <ng-container *ngTemplateOutlet="daysField; context: { label: 'Extend by (days)', help: 'The renewal date moves later by this many days.' }" />
+              <ng-container *ngTemplateOutlet="daysField; context: { label: 'subscriptions.extend_by_days', help: 'subscriptions.extend_by_days_help' }" />
             }
             @case ('grace') {
-              <ng-container *ngTemplateOutlet="daysField; context: { label: 'Extra days to pay', help: 'The shop keeps full access for this long. A shop with an overdue payment gets full access back during these days.' }" />
+              <ng-container *ngTemplateOutlet="daysField; context: { label: 'subscriptions.extra_days_to_pay', help: 'subscriptions.extra_days_to_pay_help' }" />
             }
             @case ('cancel') {
               <div class="field">
@@ -377,12 +377,12 @@ const DAY = 86_400_000;
         </ng-template>
         <ng-template #daysField let-label="label" let-help="help">
           <div class="field">
-            <label for="d-days">{{ label }}</label>
+            <label for="d-days">{{ label | translate }}</label>
             <div class="days">
               @for (n of [3, 7, 14, 30]; track n) { <button type="button" class="chip" [class.is-on]="f.days === n" (click)="f.days = n">{{ n }}</button> }
               <input id="d-days" name="days" type="number" min="1" max="366" [(ngModel)]="f.days" />
             </div>
-            <span class="fine">{{ help }}</span>
+            <span class="fine">{{ help | translate }}</span>
           </div>
         </ng-template>
         <ng-template #holdField>

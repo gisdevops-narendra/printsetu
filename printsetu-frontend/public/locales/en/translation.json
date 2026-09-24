@@ -1452,7 +1452,10 @@
     "manual_payments_note": "No online payment service (Razorpay, Stripe, …) is connected. Payments are recorded by an admin with <b>Mark paid</b> (cash, UPI, bank transfer). Automatic renewals and retries switch on once one is added.",
     "currently_on_plan": "Currently {{plan}} ({{cycle}})",
     "invoice_for_amount": "Invoice {{number}} for {{amount}}",
-    "extra_days_end": "extra days end {{date}}"
+    "extra_days_end": "extra days end {{date}}",
+    "extend_by_days": "Extend by (days)",
+    "extend_by_days_help": "The renewal date moves later by this many days.",
+    "extra_days_to_pay_help": "The shop keeps full access for this long. A shop with an overdue payment gets full access back during these days."
   },
   "adminHistory": {
     "print_history": "Print History",

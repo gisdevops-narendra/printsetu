@@ -76,8 +76,8 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
       </ng-template>
       <ng-template pTemplate="body" let-job>
         <tr>
-          <td data-label="Order no."><span class="font-semibold">#{{ job.tokenNumber }}</span></td>
-          <td data-label="Documents">
+          <td [attr.data-label]="'common.order_no' | translate"><span class="font-semibold">#{{ job.tokenNumber }}</span></td>
+          <td [attr.data-label]="'common.documents' | translate">
             <div class="item-stack">
               @for (item of job.items; track item.id) {
                 <span appEllipsis #docRef="appEllipsis"
@@ -86,16 +86,16 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
               }
             </div>
           </td>
-          <td class="text-xs" style="border-left: 1px solid var(--hdr-hover)" data-label="Options">
+          <td class="text-xs" style="border-left: 1px solid var(--hdr-hover)" [attr.data-label]="'common.options' | translate">
             <div class="item-stack">
               @for (item of job.items; track item.id) {
                 <span>{{ optionsLabel(item) }}</span>
               }
             </div>
           </td>
-          <td data-label="Amount">{{ job.currency }} {{ job.amount }}</td>
-          <td data-label="Status"><app-status-tag [status]="job.status" /></td>
-          <td data-label="Received">{{ job.createdAt | appDate: 'short' }}</td>
+          <td [attr.data-label]="'common.amount' | translate">{{ job.currency }} {{ job.amount }}</td>
+          <td [attr.data-label]="'common.status' | translate"><app-status-tag [status]="job.status" /></td>
+          <td [attr.data-label]="'common.received' | translate">{{ job.createdAt | appDate: 'short' }}</td>
           <td class="text-right">
             <div class="flex flex-wrap gap-2 justify-content-end align-items-center row-gap-2">
               @if (!job.done) {

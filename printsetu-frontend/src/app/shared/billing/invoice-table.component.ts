@@ -35,26 +35,26 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
         <tbody>
           @for (i of invoices; track i.id) {
             <tr>
-              <td data-label="Invoice">
+              <td [attr.data-label]="'common.invoice' | translate">
                 <strong class="mono">{{ i.number }}</strong>
                 <span class="sub">{{ kind(i) }}</span>
               </td>
               @if (showShop) {
-                <td data-label="Shop"><strong>{{ i.shop?.name }}</strong><span class="sub mono">{{ i.shop?.shopCode }}</span></td>
+                <td [attr.data-label]="'common.shop' | translate"><strong>{{ i.shop?.name }}</strong><span class="sub mono">{{ i.shop?.shopCode }}</span></td>
               }
-              <td data-label="Plan">
+              <td [attr.data-label]="'common.plan' | translate">
                 <strong>{{ i.planName }} <em>{{ cycleLabel(i.cycle).toLowerCase() }}</em></strong>
                 <span class="sub">{{ i.periodStart | appDate: 'd MMM y' }} – {{ i.periodEnd | appDate: 'd MMM y' }}</span>
               </td>
-              <td data-label="Amount" class="num">
+              <td [attr.data-label]="'common.amount' | translate" class="num">
                 <strong>{{ money(i.amount, i.currency) }}</strong>
                 @if (+i.refundedAmount > 0) { <span class="sub refund">{{ 'billingShared.refunded' | translate: { refundedAmount: money(i.refundedAmount, i.currency) } }}</span> }
               </td>
-              <td data-label="Date">
+              <td [attr.data-label]="'common.date' | translate">
                 @if (i.paidAt) { <strong>{{ i.paidAt | appDate: 'd MMM y' }}</strong><span class="sub">{{ method(i) ? ('billingShared.paid_by' | translate: { method: method(i) }) : ('billingShared.paid' | translate) }}</span> }
                 @else { <strong>{{ i.dueDate | appDate: 'd MMM y' }}</strong><span class="sub">{{ 'billingShared.due' | translate }}</span> }
               </td>
-              <td data-label="Status">
+              <td [attr.data-label]="'common.status' | translate">
                 <app-billing-pill [invoice]="i.status" />
                 @if (i.attemptCount > 1 && (i.status === 'OPEN' || i.status === 'FAILED')) { <span class="sub">{{ 'billingShared.attempts' | translate: { attemptCount: i.attemptCount } }}</span> }
                 @if (i.lastFailure && (i.status === 'OPEN' || i.status === 'FAILED')) { <span class="sub bad">{{ i.lastFailure }}</span> }

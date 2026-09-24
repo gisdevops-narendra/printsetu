@@ -72,23 +72,23 @@ import { t } from '../../core/i18n/i18n';
       </ng-template>
       <ng-template pTemplate="body" let-shop>
         <tr>
-          <td data-label="Shop code">{{ shop.shopCode }}</td>
-          <td data-label="Name">
+          <td [attr.data-label]="'adminShops.shop_code' | translate">{{ shop.shopCode }}</td>
+          <td [attr.data-label]="'common.name' | translate">
             <span appEllipsis #nameRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="nameRef.isTruncated">{{ shop.name }}</span></span
             >
           </td>
-          <td data-label="Owner">
+          <td [attr.data-label]="'common.owner' | translate">
             <span appEllipsis #ownerRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="ownerRef.isTruncated">{{ shop.ownerName }}</span></span
             >
           </td>
-          <td data-label="City">
+          <td [attr.data-label]="'common.city' | translate">
             <span appEllipsis #cityRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="cityRef.isTruncated">{{ shop.city }}</span></span
             >
           </td>
-          <td data-label="Status">
+          <td [attr.data-label]="'common.status' | translate">
             <p-tag
               [value]="shop.status"
               [severity]="shop.status === 'ACTIVE' ? 'success' : 'danger'"

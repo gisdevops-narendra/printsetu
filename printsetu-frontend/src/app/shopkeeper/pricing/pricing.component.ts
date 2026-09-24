@@ -98,11 +98,11 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
       </ng-template>
       <ng-template pTemplate="body" let-rate>
         <tr>
-          <td data-label="Paper">{{ paperLabels[rate.paperSize] }}</td>
-          <td data-label="Color">{{ colorLabels[rate.colorMode] }}</td>
-          <td data-label="Sides">{{ sideLabels[rate.sideMode] }}</td>
-          <td data-label="Price / page">₹{{ rate.pricePerPage }}</td>
-          <td data-label="Price since">{{ rate.effectiveFrom | appDate: 'medium' }}</td>
+          <td [attr.data-label]="'common.paper' | translate">{{ paperLabels[rate.paperSize] }}</td>
+          <td [attr.data-label]="'common.color' | translate">{{ colorLabels[rate.colorMode] }}</td>
+          <td [attr.data-label]="'common.sides' | translate">{{ sideLabels[rate.sideMode] }}</td>
+          <td [attr.data-label]="'pricing.price_page' | translate">₹{{ rate.pricePerPage }}</td>
+          <td [attr.data-label]="'pricing.price_since' | translate">{{ rate.effectiveFrom | appDate: 'medium' }}</td>
           <td class="flex gap-2 justify-content-end">
             <p-button
               icon="pi pi-pencil"
@@ -203,10 +203,10 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
       </ng-template>
       <ng-template pTemplate="body" let-tier>
         <tr>
-          <td data-label="Paper / color / sides">{{ optionsLabel(tier) }}</td>
-          <td data-label="Pages in order">{{ rangeLabel(tier) }}</td>
-          <td data-label="Price / page">₹{{ tier.pricePerPage }}</td>
-          <td data-label="Normal price" class="text-color-secondary">
+          <td [attr.data-label]="'pricing.paper_color_sides' | translate">{{ optionsLabel(tier) }}</td>
+          <td [attr.data-label]="'pricing.pages_in_order' | translate">{{ rangeLabel(tier) }}</td>
+          <td [attr.data-label]="'pricing.price_page' | translate">₹{{ tier.pricePerPage }}</td>
+          <td [attr.data-label]="'pricing.normal_price' | translate" class="text-color-secondary">
             {{ fixedRateFor(tier) !== null ? '₹' + fixedRateFor(tier) : '—' }}
           </td>
           <td class="flex gap-2 justify-content-end">

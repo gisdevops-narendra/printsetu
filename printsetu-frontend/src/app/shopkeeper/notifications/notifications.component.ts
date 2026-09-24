@@ -83,7 +83,7 @@ const EVENT_META: Record<
       </ng-template>
       <ng-template pTemplate="body" let-n>
         <tr>
-          <td data-label="Event">
+          <td [attr.data-label]="'notifications.event' | translate">
             <p-tag
               [value]="meta(n.eventType).label"
               [icon]="meta(n.eventType).icon"
@@ -91,7 +91,7 @@ const EVENT_META: Record<
             />
             @if (n.message) { <p class="notif-msg">{{ n.message }}</p> }
           </td>
-          <td data-label="When">{{ n.createdAt | appDate: 'medium' }}</td>
+          <td [attr.data-label]="'common.when' | translate">{{ n.createdAt | appDate: 'medium' }}</td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">

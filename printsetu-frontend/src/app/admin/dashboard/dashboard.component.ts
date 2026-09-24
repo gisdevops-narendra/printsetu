@@ -351,13 +351,13 @@ const PAGES_TOP_N = 8;
           </ng-template>
           <ng-template pTemplate="body" let-s>
             <tr [class.row--soon]="s.subscription?.expiringSoon">
-              <td data-label="Shop">
+              <td [attr.data-label]="'common.shop' | translate">
                 <div class="item-stack">
                   <button type="button" class="shop-name shop-link" (click)="selectShop(s.shopId)">{{ s.name }}</button>
                   <div class="shop-sub">{{ s.shopCode }} &middot; {{ s.city }}</div>
                 </div>
               </td>
-              <td data-label="Status">
+              <td [attr.data-label]="'common.status' | translate">
                 <div class="item-stack">
                   <span class="pill" [attr.data-tone]="s.online ? 'ok' : 'muted'">
                     <i class="pi" [ngClass]="s.online ? 'pi-circle-fill' : 'pi-circle'"></i>{{ s.online ? ('common.online' | translate) : ('common.offline' | translate) }}
@@ -368,11 +368,11 @@ const PAGES_TOP_N = 8;
                   </div>
                 </div>
               </td>
-              <td class="num" data-label="Orders">{{ s.jobs | appNumber }}</td>
-              <td class="num" data-label="Revenue">{{ inr(s.revenue) }}</td>
-              <td class="num" data-label="B/W pages">{{ s.pagesBw | appNumber }}</td>
-              <td class="num" data-label="Color pages">{{ s.pagesColor | appNumber }}</td>
-              <td data-label="Order status" class="counts-cell">
+              <td class="num" [attr.data-label]="'common.orders' | translate">{{ s.jobs | appNumber }}</td>
+              <td class="num" [attr.data-label]="'common.revenue' | translate">{{ inr(s.revenue) }}</td>
+              <td class="num" [attr.data-label]="'adminDashboard.b_w_pages' | translate">{{ s.pagesBw | appNumber }}</td>
+              <td class="num" [attr.data-label]="'adminDashboard.color_pages' | translate">{{ s.pagesColor | appNumber }}</td>
+              <td [attr.data-label]="'adminDashboard.order_status' | translate" class="counts-cell">
                 <div class="counts">
                   @for (t of statusTiles(); track t.key) {
                     <span
@@ -387,7 +387,7 @@ const PAGES_TOP_N = 8;
                   }
                 </div>
               </td>
-              <td data-label="Plan">
+              <td [attr.data-label]="'common.plan' | translate">
                 @if (s.subscription; as sub) {
                   <div class="item-stack">
                     <div>{{ sub.plan }}</div>
@@ -397,7 +397,7 @@ const PAGES_TOP_N = 8;
                   <span class="shop-sub">{{ 'adminDashboard.no_subscription' | translate }}</span>
                 }
               </td>
-              <td data-label="Expires">
+              <td [attr.data-label]="'adminDashboard.expires' | translate">
                 @if (s.subscription; as sub) {
                   @if (sub.expiringSoon) {
                     <div class="item-stack">

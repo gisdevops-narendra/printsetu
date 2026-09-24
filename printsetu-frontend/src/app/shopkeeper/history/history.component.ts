@@ -80,8 +80,8 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
       </ng-template>
       <ng-template pTemplate="body" let-job>
         <tr>
-          <td data-label="Order no."><span class="font-semibold">#{{ job.tokenNumber }}</span></td>
-          <td data-label="Documents">
+          <td [attr.data-label]="'common.order_no' | translate"><span class="font-semibold">#{{ job.tokenNumber }}</span></td>
+          <td [attr.data-label]="'common.documents' | translate">
             <div class="item-stack">
               @for (item of job.items; track item.id) {
                 <span appEllipsis #docRef="appEllipsis"
@@ -90,17 +90,17 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
               }
             </div>
           </td>
-          <td class="text-xs" style="border-left: 1px solid var(--bd-f1f5f9)" data-label="Options">
+          <td class="text-xs" style="border-left: 1px solid var(--bd-f1f5f9)" [attr.data-label]="'common.options' | translate">
             <div class="item-stack">
               @for (item of job.items; track item.id) {
                 <span>{{ optionsLabel(item) }}</span>
               }
             </div>
           </td>
-          <td data-label="Amount">{{ job.currency }} {{ job.amount }}</td>
-          <td data-label="Status"><app-status-tag [status]="job.status" /></td>
-          <td data-label="Created">{{ job.createdAt | appDate: 'short' }}</td>
-          <td data-label="Printed">{{ job.printedAt ? (job.printedAt | appDate: 'short') : '—' }}</td>
+          <td [attr.data-label]="'common.amount' | translate">{{ job.currency }} {{ job.amount }}</td>
+          <td [attr.data-label]="'common.status' | translate"><app-status-tag [status]="job.status" /></td>
+          <td [attr.data-label]="'common.created' | translate">{{ job.createdAt | appDate: 'short' }}</td>
+          <td [attr.data-label]="'common.printed' | translate">{{ job.printedAt ? (job.printedAt | appDate: 'short') : '—' }}</td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">

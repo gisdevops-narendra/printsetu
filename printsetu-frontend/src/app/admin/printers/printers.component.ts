@@ -59,24 +59,24 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
       </ng-template>
       <ng-template pTemplate="body" let-p>
         <tr>
-          <td data-label="Printer">
+          <td [attr.data-label]="'common.printer' | translate">
             <span appEllipsis #printerRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="printerRef.isTruncated">{{ p.printerName }}</span></span
             >
           </td>
-          <td data-label="Shop">
+          <td [attr.data-label]="'common.shop' | translate">
             <span appEllipsis #shopRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="shopRef.isTruncated">{{ p.shopName }}</span></span
             >
           </td>
-          <td data-label="Computer">{{ p.computer }}</td>
-          <td data-label="Status">
+          <td [attr.data-label]="'adminPrinters.computer' | translate">{{ p.computer }}</td>
+          <td [attr.data-label]="'common.status' | translate">
             <p-tag
               [value]="p.status === 'ONLINE' ? ('common.online' | translate) : p.status === 'OFFLINE' ? ('common.offline' | translate) : ('adminPrinters.not_connected_yet' | translate)"
               [severity]="p.status === 'ONLINE' ? 'success' : p.status === 'OFFLINE' ? 'danger' : 'secondary'"
             />
           </td>
-          <td data-label="Last seen">{{ p.lastHeartbeatAt ? (p.lastHeartbeatAt | appDate: 'medium') : ('adminPrinters.never' | translate) }}</td>
+          <td [attr.data-label]="'adminPrinters.last_seen' | translate">{{ p.lastHeartbeatAt ? (p.lastHeartbeatAt | appDate: 'medium') : ('adminPrinters.never' | translate) }}</td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
