@@ -417,7 +417,10 @@ interface PersistedOrderSession {
       }
       .appbar__row {
         display: grid;
-        grid-template-columns: 72px minmax(0, 1fr) 72px;
+        /* Sides size to their content (language button + "Start over" can be wide in Hindi/Gujarati)
+           so they never spill over the title; the title shrinks and truncates instead. */
+        grid-template-columns: minmax(44px, max-content) minmax(0, 1fr) minmax(44px, max-content);
+        column-gap: 0.5rem;
         align-items: center;
         min-height: 56px;
       }
@@ -437,6 +440,10 @@ interface PersistedOrderSession {
         line-height: 1.2;
       }
       .brand {
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
         font-size: 1rem;
         font-weight: 700;
         letter-spacing: -0.01em;
@@ -482,7 +489,9 @@ interface PersistedOrderSession {
         color: var(--p-primary-600);
       }
       .text-link--small {
-        padding: 0;
+        /* Bigger tap area on phones without moving the link. */
+        padding: 8px 8px 8px 0;
+        margin: -8px -8px -8px 0;
         font-size: 0.75rem;
         color: var(--p-primary-600);
       }

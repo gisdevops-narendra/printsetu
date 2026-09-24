@@ -39,6 +39,7 @@
     "printers": "प्रिंटर",
     "uploading": "अपलोड हो रहा है…",
     "active": "चालू",
+    "disabled": "बंद किया गया",
     "billing": "बिलिंग",
     "started": "शुरू हुआ",
     "invoices": "इनवॉइस",
@@ -265,6 +266,9 @@
     "unread_count": "{{count}} बिना पढ़ी"
   },
   "billingShared": {
+    "unit_day": "दिन",
+    "unit_month": "महीना",
+    "unit_year": "साल",
     "plan_period": "प्लान और अवधि",
     "refunded": "{{refundedAmount}} वापस किए गए",
     "paid": "भुगतान हुआ",
@@ -665,6 +669,7 @@
     "connected": "जुड़ा है",
     "waiting_for_your_printer": "आपके प्रिंटर का इंतज़ार…",
     "your_computer_showed_up_here_on": "आपका कंप्यूटर अपने-आप यहाँ दिख गया। “आपके प्रिंटर” में चुनें कि किस प्रिंटर पर प्रिंट करना है।",
+    "nothing_to_do_page_updates_itself": "यहाँ आपको कुछ करने की ज़रूरत नहीं है। प्रिंटर ऐप जुड़ते ही यह पेज अपने आप अपडेट हो जाएगा।",
     "it_runs_quietly_in_the_background": "यह पीछे चुपचाप चलता है, कंप्यूटर के साथ शुरू होता है, और कभी रुक जाए तो ख़ुद फिर से शुरू हो जाता है।",
     "your_printers": "आपके प्रिंटर",
     "online": "{{online}}/{{printers}} ऑनलाइन",
@@ -1600,6 +1605,8 @@
     "new_qr_code_ready": "नया QR कोड तैयार है"
   },
   "adminShops": {
+    "confirm_activate": "\"{{name}}\" चालू करें?",
+    "confirm_deactivate": "\"{{name}}\" बंद करें? ग्राहक अब नए प्रिंट ऑर्डर नहीं भेज पाएँगे।",
     "every_shop_on_the_platform_shops": "प्लेटफ़ॉर्म की सभी दुकानें। दुकानें साइन-इन पेज से ख़ुद रजिस्टर करती हैं।",
     "shop_code": "दुकान कोड",
     "qr_code": "QR कोड",
@@ -1625,6 +1632,7 @@
     "email_already_registered": "ईमेल पहले से रजिस्टर है",
     "choose_a_stronger_password": "ज़्यादा मज़बूत पासवर्ड चुनें",
     "too_many_tries": "बहुत ज़्यादा कोशिशें",
+    "too_many_requests_detail": "एक साथ बहुत सारे अनुरोध हुए। कृपया थोड़ा रुककर फिर से कोशिश करें।",
     "plan_limit_reached": "प्लान की सीमा पूरी हो गई",
     "not_in_your_plan": "आपके प्लान में शामिल नहीं",
     "printing_paused": "प्रिंटिंग रुकी है",

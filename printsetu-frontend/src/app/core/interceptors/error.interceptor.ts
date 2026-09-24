@@ -54,6 +54,8 @@ function errorTitle(code: string | undefined, status: number): string {
 
 function errorDetail(message: string | undefined, code: string | undefined, status: number): string {
   if (status === 0) return t('errors.cant_reach_printsetu_check_your_internet');
+  // The rate limiter's own text ("ThrottlerException: Too Many Requests") is technical and English-only.
+  if (status === 429 || code === 'RATE_LIMITED') return t('errors.too_many_requests_detail');
   // Unexpected server faults carry no message worth showing.
   if (!message || code === 'INTERNAL_ERROR') return t('errors.please_try_again_in_a_moment');
   return message;

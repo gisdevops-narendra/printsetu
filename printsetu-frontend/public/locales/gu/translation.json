@@ -39,6 +39,7 @@
     "printers": "પ્રિન્ટર",
     "uploading": "અપલોડ થઈ રહ્યું છે…",
     "active": "ચાલુ",
+    "disabled": "બંધ કરેલ",
     "billing": "બિલિંગ",
     "started": "શરૂ થયું",
     "invoices": "ઇન્વૉઇસ",
@@ -265,6 +266,9 @@
     "unread_count": "{{count}} વાંચ્યા વગરની"
   },
   "billingShared": {
+    "unit_day": "દિવસ",
+    "unit_month": "મહિનો",
+    "unit_year": "વર્ષ",
     "plan_period": "પ્લાન અને સમયગાળો",
     "refunded": "{{refundedAmount}} પાછા આપ્યા",
     "paid": "ચૂકવ્યું",
@@ -665,6 +669,7 @@
     "connected": "જોડાયેલું",
     "waiting_for_your_printer": "તમારા પ્રિન્ટરની રાહ…",
     "your_computer_showed_up_here_on": "તમારું કમ્પ્યુટર આપમેળે અહીં દેખાયું. “તમારાં પ્રિન્ટર” માં પસંદ કરો કે કયા પ્રિન્ટર પર પ્રિન્ટ કરવું.",
+    "nothing_to_do_page_updates_itself": "અહીં તમારે કંઈ કરવાની જરૂર નથી. પ્રિન્ટર એપ જોડાતાં જ આ પેજ આપમેળે અપડેટ થઈ જશે.",
     "it_runs_quietly_in_the_background": "તે પાછળ શાંતિથી ચાલે છે, કમ્પ્યુટર સાથે શરૂ થાય છે, અને ક્યારેય અટકે તો જાતે ફરી શરૂ થાય છે.",
     "your_printers": "તમારાં પ્રિન્ટર",
     "online": "{{online}}/{{printers}} ઓનલાઇન",
@@ -1600,6 +1605,8 @@
     "new_qr_code_ready": "નવો QR કોડ તૈયાર છે"
   },
   "adminShops": {
+    "confirm_activate": "\"{{name}}\" ચાલુ કરો?",
+    "confirm_deactivate": "\"{{name}}\" બંધ કરો? ગ્રાહકો હવે નવા પ્રિન્ટ ઓર્ડર મોકલી શકશે નહીં.",
     "every_shop_on_the_platform_shops": "પ્લેટફોર્મની બધી દુકાનો. દુકાનો સાઇન-ઇન પેજ પરથી જાતે રજિસ્ટર કરે છે.",
     "shop_code": "દુકાન કોડ",
     "qr_code": "QR કોડ",
@@ -1625,6 +1632,7 @@
     "email_already_registered": "ઇમેઇલ પહેલેથી રજિસ્ટર છે",
     "choose_a_stronger_password": "વધુ મજબૂત પાસવર્ડ પસંદ કરો",
     "too_many_tries": "બહુ વધારે પ્રયાસ",
+    "too_many_requests_detail": "એકસાથે ઘણી બધી વિનંતીઓ થઈ. કૃપા કરીને થોડી વાર રાહ જોઈને ફરી પ્રયાસ કરો.",
     "plan_limit_reached": "પ્લાનની મર્યાદા પૂરી થઈ",
     "not_in_your_plan": "તમારા પ્લાનમાં સામેલ નથી",
     "printing_paused": "પ્રિન્ટિંગ અટકેલું છે",

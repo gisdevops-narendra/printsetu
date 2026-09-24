@@ -90,7 +90,7 @@ import { t } from '../../core/i18n/i18n';
           </td>
           <td [attr.data-label]="'common.status' | translate">
             <p-tag
-              [value]="shop.status"
+              [value]="statusLabel(shop.status)"
               [severity]="shop.status === 'ACTIVE' ? 'success' : 'danger'"
             />
           </td>
@@ -170,12 +170,15 @@ export class ShopsComponent implements OnInit, OnDestroy {
     this.table?.filterGlobal(value, 'contains');
   }
 
+  /** ACTIVE / INACTIVE shown in the reader's language. */
+  statusLabel(status: string): string {
+    return status === 'ACTIVE' ? t('common.active') : status === 'INACTIVE' ? t('layout.inactive') : status;
+  }
+
   toggleStatus(shop: Shop): void {
     const next = shop.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     this.confirmationService.confirm({
-      message: `${next === 'ACTIVE' ? 'Activate' : 'Deactivate'} "${shop.name}"? ${
-        next === 'INACTIVE' ? 'Customers will no longer be able to submit new print requests.' : ''
-      }`,
+      message: t(next === 'ACTIVE' ? 'adminShops.confirm_activate' : 'adminShops.confirm_deactivate', { name: shop.name }),
       get header() { return t('common.confirm'); },
       icon: 'pi pi-exclamation-triangle',
       accept: () => {

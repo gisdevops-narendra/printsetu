@@ -98,13 +98,13 @@ import { t } from '../../core/i18n/i18n';
               <span class="text-color-secondary">{{ 'adminUsers.set_by_user' | translate }}</span>
             }
           </td>
-          <td [attr.data-label]="'adminUsers.role' | translate">{{ user.role.name }}</td>
+          <td [attr.data-label]="'adminUsers.role' | translate">{{ roleLabel(user.role.name) }}</td>
           <td [attr.data-label]="'common.shop' | translate">
             <span appEllipsis #shopRef="appEllipsis"
               ><span class="cell-ellipsis__text" [class.is-truncated]="shopRef.isTruncated">{{ user.shop?.name || '—' }}</span></span
             >
           </td>
-          <td [attr.data-label]="'common.status' | translate"><p-tag [value]="user.status" [severity]="user.status === 'ACTIVE' ? 'success' : 'danger'" /></td>
+          <td [attr.data-label]="'common.status' | translate"><p-tag [value]="statusLabel(user.status)" [severity]="user.status === 'ACTIVE' ? 'success' : 'danger'" /></td>
           <td class="text-right">
             <p-button
               [label]="user.status === 'ACTIVE' ? ('adminUsers.disable' | translate) : ('adminUsers.enable' | translate)"
@@ -193,6 +193,15 @@ export class UsersComponent implements OnInit {
     private readonly adminService: AdminService,
     private readonly confirmationService: ConfirmationService,
   ) {}
+
+  /** Role and status codes shown in the reader's language. */
+  roleLabel(role: string): string {
+    return role === 'ADMIN' ? t('layout.administrator') : role === 'SHOPKEEPER' ? t('login.shopkeeper') : role;
+  }
+
+  statusLabel(status: string): string {
+    return status === 'ACTIVE' ? t('common.active') : status === 'DISABLED' ? t('common.disabled') : status;
+  }
 
   ngOnInit(): void {
     this.load();

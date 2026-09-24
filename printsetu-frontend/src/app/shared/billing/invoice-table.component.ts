@@ -108,7 +108,7 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
         font-weight: 700;
         letter-spacing: 0.05em;
         text-transform: uppercase;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
         border-bottom: 2px solid var(--bd-eef1f7);
       }
       .inv td {
@@ -137,7 +137,7 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
       .sub {
         margin-top: 0.125rem;
         font-size: 0.75rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .sub.refund {
         color: var(--tx-4338ca);
@@ -233,7 +233,7 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
           flex: none;
           font-size: 0.75rem;
           font-weight: 600;
-          color: var(--tx-94a3b8);
+          color: var(--tx-64748b);
           text-align: left;
         }
         .inv td > strong,

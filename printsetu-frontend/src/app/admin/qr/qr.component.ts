@@ -42,7 +42,9 @@ import { t } from '../../core/i18n/i18n';
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        margin-bottom: 0.75rem;
+        /* Taller tap area; the margins keep the spacing it had. */
+        padding: 8px 0;
+        margin: -8px 0 4px;
         font-size: 0.875rem;
         font-weight: 600;
         color: var(--accent-text-600);

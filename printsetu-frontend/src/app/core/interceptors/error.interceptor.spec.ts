@@ -99,6 +99,21 @@ describe('errorInterceptor (SRS §17.3 { code, message } -> toast)', () => {
       .flush({ code: 'NOT_FOUND', message: 'This QR code is not active.' }, { status: 404, statusText: 'Not Found' });
   });
 
+  it('turns the rate limiter technical text into a plain "please wait" message', (done) => {
+    spyOn(messageService, 'add');
+    http.get('/api/shop/print-jobs').subscribe({
+      error: () => {
+        expect(messageService.add).toHaveBeenCalledWith(
+          jasmine.objectContaining({ summary: 'Too many tries', detail: 'Too many requests at once. Please wait a moment and try again.' }),
+        );
+        done();
+      },
+    });
+    httpMock
+      .expectOne('/api/shop/print-jobs')
+      .flush({ code: 'RATE_LIMITED', message: 'ThrottlerException: Too Many Requests' }, { status: 429, statusText: 'Too Many Requests' });
+  });
+
   it('explains a lost connection instead of showing the raw HTTP failure', (done) => {
     spyOn(messageService, 'add');
     http.get('/api/offline').subscribe({

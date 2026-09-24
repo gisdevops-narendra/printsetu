@@ -220,8 +220,9 @@ export interface QrData {
         width: 7cqw;
         height: 7cqw;
         border-radius: 50%;
-        background: var(--p-primary-50);
-        color: var(--accent-text-700);
+        /* Fixed colours: the sign is printed, so it looks the same in light and dark mode. */
+        background: #eef2ff;
+        color: #4338ca;
         font-size: 3.4cqw;
       }
       .poster__url {
@@ -231,7 +232,7 @@ export interface QrData {
         text-overflow: ellipsis;
         white-space: nowrap;
         font-size: 2.6cqw;
-        color: #94a3b8;
+        color: #64748b;
       }
       .qrp__caption {
         margin: 0.75rem 0 0;

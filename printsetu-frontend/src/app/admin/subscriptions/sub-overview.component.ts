@@ -212,7 +212,7 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
       .kpi__label em {
         font-style: normal;
         font-weight: 500;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .kpi__value {
         font-size: clamp(1.5rem, 2.6vw, 2rem);

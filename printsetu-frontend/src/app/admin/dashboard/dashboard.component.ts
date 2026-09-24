@@ -14,6 +14,8 @@ import { TrendChartComponent, TrendPoint } from './charts/trend-chart.component'
 import { HBarChartComponent, HBarRow, HBarSeries } from './charts/hbar-chart.component';
 import { t, intlLocale, tn } from '../../core/i18n/i18n';
 import { AppDatePipe, AppNumberPipe } from '../../core/i18n/i18n-format.pipes';
+import { STATE_META, cycleLabel as billingCycleLabel } from '../../shared/billing/billing.util';
+import { BillingCycle } from '../../core/models/billing.models';
 
 type Preset = 'today' | 'week' | 'month' | 'custom';
 
@@ -133,7 +135,7 @@ const PAGES_TOP_N = 8;
                   <i class="pi" [ngClass]="s.online ? 'pi-circle-fill' : 'pi-circle'"></i>{{ s.online ? ('common.online' | translate) : ('common.offline' | translate) }}
                 </span>
                 <span class="shop-sub ml-2">
-                  @if (s.shopStatus !== 'ACTIVE') { {{ 'adminDashboard.shop' | translate: { shopStatus: (s.shopStatus | lowercase) } }} }
+                  @if (s.shopStatus !== 'ACTIVE') { {{ 'adminDashboard.shop' | translate: { shopStatus: shopStatusWord(s.shopStatus) } }} }
                   {{ 'adminDashboard.printer_app' | translate: { agentStatus: agentLabel(s.agentStatus) } }}
                 </span>
               </dd>
@@ -142,7 +144,7 @@ const PAGES_TOP_N = 8;
               <dt>{{ 'common.plan' | translate }}</dt>
               <dd>
                 @if (s.subscription; as sub) {
-                  {{ sub.plan }} <span class="shop-sub">&middot; {{ sub.status | titlecase }} &middot; {{ sub.cycle | lowercase }}</span>
+                  {{ sub.plan }} <span class="shop-sub">&middot; {{ stateLabel(sub.status) }} &middot; {{ cycleLabel(sub.cycle) }}</span>
                 } @else {
                   <span class="shop-sub">{{ 'adminDashboard.no_subscription' | translate }}</span>
                 }
@@ -363,7 +365,7 @@ const PAGES_TOP_N = 8;
                     <i class="pi" [ngClass]="s.online ? 'pi-circle-fill' : 'pi-circle'"></i>{{ s.online ? ('common.online' | translate) : ('common.offline' | translate) }}
                   </span>
                   <div class="shop-sub mt-1 nowrap">
-                    @if (s.shopStatus !== 'ACTIVE') { {{ 'adminDashboard.shop' | translate: { shopStatus: (s.shopStatus | lowercase) } }} }
+                    @if (s.shopStatus !== 'ACTIVE') { {{ 'adminDashboard.shop' | translate: { shopStatus: shopStatusWord(s.shopStatus) } }} }
                     {{ 'adminDashboard.printer_app' | translate: { agentStatus: agentLabel(s.agentStatus) } }}
                   </div>
                 </div>
@@ -391,7 +393,7 @@ const PAGES_TOP_N = 8;
                 @if (s.subscription; as sub) {
                   <div class="item-stack">
                     <div>{{ sub.plan }}</div>
-                    <div class="shop-sub">{{ sub.status | titlecase }} &middot; {{ sub.cycle | lowercase }}</div>
+                    <div class="shop-sub">{{ stateLabel(sub.status) }} &middot; {{ cycleLabel(sub.cycle) }}</div>
                   </div>
                 } @else {
                   <span class="shop-sub">{{ 'adminDashboard.no_subscription' | translate }}</span>
@@ -596,7 +598,9 @@ const PAGES_TOP_N = 8;
       .link {
         border: 0;
         background: none;
-        padding: 0;
+        /* Taller tap area without moving the text. */
+        padding: 8px 0;
+        margin: -8px 0;
         font: inherit;
         font-size: 0.8125rem;
         font-weight: 600;
@@ -783,6 +787,20 @@ const PAGES_TOP_N = 8;
   ],
 })
 export class DashboardComponent implements OnInit {
+  /** Subscription state and billing period in the reader's language (the API sends codes such as PAYMENT_PENDING / DAILY). */
+  stateLabel(status: string): string {
+    return STATE_META[status as keyof typeof STATE_META]?.label ?? status;
+  }
+
+  /** "inactive" in the reader's language, for the "Shop … ·" note. */
+  shopStatusWord(status: string): string {
+    return status === 'INACTIVE' ? t('layout.inactive').toLowerCase() : status.toLowerCase();
+  }
+
+  cycleLabel(cycle: string): string {
+    return ['DAILY', 'MONTHLY', 'YEARLY'].includes(cycle) ? billingCycleLabel(cycle as BillingCycle) : cycle;
+  }
+
   readonly presets: { label: string; value: Preset }[] = [
     { get label() { return t('common.today'); }, value: 'today' },
     { get label() { return t('adminDashboard.this_week'); }, value: 'week' },

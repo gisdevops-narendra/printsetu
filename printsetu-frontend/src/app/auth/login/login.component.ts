@@ -702,7 +702,9 @@ interface DemoAccount {
         }
       }
       .link {
-        padding: 0;
+        /* Taller tap area on phones without moving the text. */
+        padding: 8px 4px;
+        margin: -8px -4px;
         border: none;
         background: none;
         font: inherit;
@@ -836,7 +838,7 @@ interface DemoAccount {
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: #94a3b8;
+        color: #64748b; /* was #94a3b8 (2.6:1); #64748b reads at 4.7:1 on white */
       }
       .demo__label::before {
         content: '';

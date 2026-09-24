@@ -18,6 +18,7 @@ import { BatchParams, renderImageBatch } from './image-canvas-editor/image-batch
 import { clearLatestState, loadLatestState } from './image-canvas-editor/editor-storage';
 import { t, tn } from '../../core/i18n/i18n';
 import { TranslateCountPipe } from '../../core/i18n/translate-count.pipe';
+import { COLOR_LABELS, PAPER_LABELS } from '../../shared/utils/print-options.util';
 
 type CropDraft = { x: number; y: number; width: number; height: number };
 
@@ -111,7 +112,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
                   <div class="doc-card__text">
                     <span class="doc-card__name" [title]="item.document?.originalName">{{ item.document?.originalName }}</span>
                     <span class="doc-card__meta">
-                      {{ item.paperSize }} &middot; {{ item.colorMode === 'COLOR' ? ('common.color' | translate) : 'B/W' }} &middot; &times;{{ item.copies }}@if (job()!.priced) { &middot; {{ job()!.currency }} {{ item.amount }} }
+                      {{ paperLabels[item.paperSize] }} &middot; {{ colorLabels[item.colorMode] }} &middot; &times;{{ item.copies }}@if (job()!.priced) { &middot; {{ job()!.currency }} {{ item.amount }} }
                       @if (item.renderedS3Key) {
                         <span class="edited-tag"><i class="pi pi-pencil"></i> {{ 'editor.edited' | translate }}</span>
                       }
@@ -743,6 +744,14 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         align-items: center;
         justify-content: center;
       }
+      /* Fingers need more than 24px: bigger per-document buttons on phones. */
+      @media (max-width: 767px) {
+        .icon-btn {
+          width: 2.25rem;
+          height: 2.25rem;
+          font-size: 0.8rem;
+        }
+      }
       .icon-btn--lg {
         width: 2rem;
         height: 2rem;
@@ -1012,6 +1021,9 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
   ],
 })
 export class DocumentEditorComponent implements OnInit {
+  readonly paperLabels = PAPER_LABELS;
+  readonly colorLabels = COLOR_LABELS;
+
   @ViewChild('previewContainer') previewContainer?: ElementRef<HTMLDivElement>;
   @ViewChild('previewZoomed') previewZoomed?: ElementRef<HTMLDivElement>;
   @ViewChild('pdfCanvas') pdfCanvas?: ElementRef<HTMLCanvasElement>;

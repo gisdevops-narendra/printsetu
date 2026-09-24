@@ -93,7 +93,7 @@ export function cycleLabel(cycle: BillingCycle): string {
 
 /** "day" / "month" / "year", as in "₹20 / day". */
 export function cycleUnit(cycle: BillingCycle): string {
-  return cycle === 'DAILY' ? 'day' : cycle === 'YEARLY' ? 'year' : 'month';
+  return cycle === 'DAILY' ? t('billingShared.unit_day') : cycle === 'YEARLY' ? t('billingShared.unit_year') : t('billingShared.unit_month');
 }
 
 /** The plan's price for one billing cycle. */

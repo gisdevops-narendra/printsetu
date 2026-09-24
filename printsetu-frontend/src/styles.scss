@@ -460,6 +460,8 @@ body.shell-locked {
     padding: 0.5rem 0;
     border: none !important;
     text-align: right;
+    /* Long unbroken values (emails, codes, file names) wrap instead of running off the card. */
+    overflow-wrap: anywhere;
   }
 
   .p-datatable .p-datatable-tbody > tr > td[data-label]::before {

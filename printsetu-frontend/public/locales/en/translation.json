@@ -39,6 +39,7 @@
     "printers": "Printers",
     "uploading": "Uploading…",
     "active": "Active",
+    "disabled": "Disabled",
     "billing": "Billing",
     "started": "Started",
     "invoices": "Invoices",
@@ -265,6 +266,9 @@
     "unread_count": "{{count}} unread"
   },
   "billingShared": {
+    "unit_day": "day",
+    "unit_month": "month",
+    "unit_year": "year",
     "plan_period": "Plan & period",
     "refunded": "{{refundedAmount}} refunded",
     "paid": "paid",
@@ -665,6 +669,7 @@
     "connected": "Connected",
     "waiting_for_your_printer": "Waiting for your printer…",
     "your_computer_showed_up_here_on": "Your computer showed up here on its own. Choose which printer to print on under Your printers.",
+    "nothing_to_do_page_updates_itself": "You don't need to do anything here. This page updates by itself once the Printer App connects.",
     "it_runs_quietly_in_the_background": "It runs quietly in the background, starts with the computer, and restarts itself if it is ever interrupted.",
     "your_printers": "Your printers",
     "online": "{{online}}/{{printers}} online",
@@ -1600,6 +1605,8 @@
     "new_qr_code_ready": "New QR code ready"
   },
   "adminShops": {
+    "confirm_activate": "Activate \"{{name}}\"?",
+    "confirm_deactivate": "Deactivate \"{{name}}\"? Customers will no longer be able to submit new print requests.",
     "every_shop_on_the_platform_shops": "Every shop on the platform. Shops register themselves from the sign-in page.",
     "shop_code": "Shop Code",
     "qr_code": "QR code",
@@ -1625,6 +1632,7 @@
     "email_already_registered": "Email already registered",
     "choose_a_stronger_password": "Choose a stronger password",
     "too_many_tries": "Too many tries",
+    "too_many_requests_detail": "Too many requests at once. Please wait a moment and try again.",
     "plan_limit_reached": "Plan limit reached",
     "not_in_your_plan": "Not in your plan",
     "printing_paused": "Printing paused",

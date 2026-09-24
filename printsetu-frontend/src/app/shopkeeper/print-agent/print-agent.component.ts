@@ -195,7 +195,7 @@ interface Faq {
               <span class="step__badge">@if (online().length > 0) { <i class="pi pi-check"></i> } @else { <i class="pi pi-wifi"></i> }</span>
               <div class="step__body">
                 <h3>{{ online().length > 0 ? ('printerApp.connected' | translate) : ('printerApp.waiting_for_your_printer' | translate) }}</h3>
-                <p>{{ online().length > 0 ? ('printerApp.your_computer_showed_up_here_on' | translate) : "You don't need to do anything here. This page updates by itself once the Printer App connects." }}</p>
+                <p>{{ online().length > 0 ? ('printerApp.your_computer_showed_up_here_on' | translate) : ('printerApp.nothing_to_do_page_updates_itself' | translate) }}</p>
               </div>
             </li>
           </ol>
@@ -575,11 +575,20 @@ interface Faq {
       .btn--solid:hover:not(:disabled) {
         background: #1e293b;
       }
+      /* --ink turns light in dark mode, so the solid button inverts: dark text on a light fill. */
+      :host-context(.app-dark) .btn--solid {
+        color: #0f172a;
+      }
+      :host-context(.app-dark) .btn--solid:hover:not(:disabled) {
+        background: #cbd5e1;
+      }
       .link-btn {
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
-        padding: 0;
+        /* Taller tap area without moving the text. */
+        padding: 8px 0;
+        margin: -8px 0;
         border: none;
         background: none;
         font: inherit;
