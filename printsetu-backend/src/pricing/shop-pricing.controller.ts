@@ -1,10 +1,20 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/request-context';
 import { ShopAccessDeniedException } from '../common/exceptions/app.exceptions';
 import { PricingService } from './pricing.service';
-import { SetPricingDto } from './dto/pricing.dto';
+import { CreatePricingTierDto, SetPricingDto, UpdatePricingTierDto } from './dto/pricing.dto';
 
 /** SRS §10: "Admin/shopkeeper can configure ... prices" — the shop owns its own rates. */
 @Controller('shop/pricing')
@@ -22,6 +32,36 @@ export class ShopPricingController {
   listHistory(@CurrentUser() user: AuthenticatedUser) {
     const shopId = this.requireShopId(user);
     return this.pricingService.listHistoryForShop(shopId);
+  }
+
+  /** Optional quantity-based tiers (page range + rate) per paper/color/side combination. */
+  @Get('tiers')
+  listTiers(@CurrentUser() user: AuthenticatedUser) {
+    const shopId = this.requireShopId(user);
+    return this.pricingService.listActiveTiersForShop(shopId);
+  }
+
+  @Post('tiers')
+  addTier(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreatePricingTierDto) {
+    const shopId = this.requireShopId(user);
+    return this.pricingService.addTier(shopId, dto);
+  }
+
+  @Patch('tiers/:id')
+  updateTier(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: UpdatePricingTierDto,
+  ) {
+    const shopId = this.requireShopId(user);
+    return this.pricingService.updateTier(shopId, id, dto);
+  }
+
+  @Delete('tiers/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeTier(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    const shopId = this.requireShopId(user);
+    await this.pricingService.deactivateTier(shopId, id);
   }
 
   @Post()

@@ -12,7 +12,7 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
     document: { update: jest.Mock };
     $transaction: jest.Mock;
   };
-  let pricingService: { getActiveRateOrThrow: jest.Mock };
+  let pricingService: { getActiveRateOrThrow: jest.Mock; resolveRate: jest.Mock };
   let storage: { getSignedDownloadUrl: jest.Mock };
   let agentConnections: { isConnected: jest.Mock; pushJob: jest.Mock };
 
@@ -29,6 +29,7 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
         sideMode: 'SIMPLEX',
         copies: 1,
         pageCount: 5,
+        billablePages: 5,
         amount: 10,
       },
       {
@@ -39,6 +40,7 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
         sideMode: 'SIMPLEX',
         copies: 1,
         pageCount: 3,
+        billablePages: 3,
         amount: 6,
       },
     ],
@@ -66,6 +68,7 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
     };
     pricingService = {
       getActiveRateOrThrow: jest.fn().mockResolvedValue({ pricePerPage: 2 }),
+      resolveRate: jest.fn().mockResolvedValue({ pricePerPage: 2, hasTiers: false, tier: null }),
     };
     storage = { getSignedDownloadUrl: jest.fn().mockResolvedValue('https://signed.example/file') };
     agentConnections = { isConnected: jest.fn().mockReturnValue(true), pushJob: jest.fn() };
@@ -136,6 +139,35 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
       });
     });
 
+    it('reprices the remaining items of a tiered combination by the smaller page total', async () => {
+      prisma.printJobItem.findMany.mockResolvedValue([eligibleJob.items[1]]);
+      pricingService.resolveRate.mockResolvedValue({
+        pricePerPage: 2.5,
+        hasTiers: true,
+        tier: { id: 'tier-low' },
+      });
+
+      await service.deleteItem('job-1', 'shop-1', 'item-1');
+
+      expect(pricingService.resolveRate).toHaveBeenCalledWith(
+        'shop-1',
+        expect.objectContaining({ colorMode: 'BW' }),
+        3,
+      );
+      expect(prisma.printJobItem.update).toHaveBeenCalledWith({
+        where: { id: 'item-2' },
+        data: { amount: 7.5 },
+      });
+    });
+
+    it('leaves the remaining items at their quoted price when the combination has no tiers', async () => {
+      prisma.printJobItem.findMany.mockResolvedValue([eligibleJob.items[1]]);
+
+      await service.deleteItem('job-1', 'shop-1', 'item-1');
+
+      expect(prisma.printJobItem.update).not.toHaveBeenCalled();
+    });
+
     it('refuses to remove the only document in a job', async () => {
       prisma.printJob.findUnique.mockResolvedValue({
         ...eligibleJob,
@@ -149,9 +181,11 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
 
   describe('updateItemSettings', () => {
     it('reprices the item against the active rate and rolls the change into the job total', async () => {
+      const updatedItem1 = { ...eligibleJob.items[0], copies: 3, billablePages: 15 };
+      prisma.printJobItem.findMany.mockResolvedValue([updatedItem1, eligibleJob.items[1]]);
+
       await service.updateItemSettings('job-1', 'shop-1', 'item-1', { copies: 3 });
 
-      // pageCount 5 * copies 3 = 15 billable pages * ₹2.00/page = ₹30
       expect(pricingService.getActiveRateOrThrow).toHaveBeenCalledWith(
         'shop-1',
         'A4',
@@ -166,8 +200,44 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
           sideMode: 'SIMPLEX',
           copies: 3,
           billablePages: 15,
-          amount: 30,
         },
+      });
+      // pageCount 5 * copies 3 = 15 billable pages * ₹2.00/page = ₹30
+      expect(prisma.printJobItem.update).toHaveBeenCalledWith({
+        where: { id: 'item-1' },
+        data: { amount: 30 },
+      });
+      // No tiers: the untouched item keeps its quoted price.
+      expect(prisma.printJobItem.update).not.toHaveBeenCalledWith({
+        where: { id: 'item-2' },
+        data: expect.anything(),
+      });
+    });
+
+    it('moves every item in the combination to the tier the new page total falls into', async () => {
+      const updatedItem1 = { ...eligibleJob.items[0], copies: 3, billablePages: 15 };
+      prisma.printJobItem.findMany.mockResolvedValue([updatedItem1, eligibleJob.items[1]]);
+      pricingService.resolveRate.mockResolvedValue({
+        pricePerPage: 1,
+        hasTiers: true,
+        tier: { id: 'tier-high' },
+      });
+
+      await service.updateItemSettings('job-1', 'shop-1', 'item-1', { copies: 3 });
+
+      // 15 + 3 = 18 pages in A4/BW/SIMPLEX
+      expect(pricingService.resolveRate).toHaveBeenCalledWith(
+        'shop-1',
+        expect.objectContaining({ colorMode: 'BW' }),
+        18,
+      );
+      expect(prisma.printJobItem.update).toHaveBeenCalledWith({
+        where: { id: 'item-1' },
+        data: { amount: 15 },
+      });
+      expect(prisma.printJobItem.update).toHaveBeenCalledWith({
+        where: { id: 'item-2' },
+        data: { amount: 3 },
       });
     });
   });

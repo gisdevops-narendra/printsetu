@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { ColorMode, DocumentStatus, PaperSize, Prisma, SideMode } from '@prisma/client';
+import { DocumentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { PricingService } from '../pricing/pricing.service';
+import { PricingService, ResolvedRate, comboKey } from '../pricing/pricing.service';
 import {
   AppNotFoundException,
   InvalidPrintOptionException,
@@ -25,23 +25,32 @@ export class PrintQuoteService {
   /**
    * SRS §17.1 example generalized to N documents: billablePages =
    * pageCount * copies PER document (each can have its own paper/color/
-   * side/copies), summed into one quote total.
+   * side/copies), summed into one quote total. Quantity tiers are chosen by
+   * the order's total billable pages per paper/color/side combination, and
+   * that one rate is applied to every document in the combination.
    */
   async createQuote(dto: CreateQuoteDto, claims: StatusTokenClaims) {
     if (!claims.sessionId) {
-      throw new ShopAccessDeniedException('Status token does not grant access to any upload session.');
+      throw new ShopAccessDeniedException(
+        'Status token does not grant access to any upload session.',
+      );
     }
 
     const documentIds = dto.items.map((item) => item.documentId);
     if (new Set(documentIds).size !== documentIds.length) {
-      throw new InvalidPrintOptionException('Each document can only appear once in a quote request.');
+      throw new InvalidPrintOptionException(
+        'Each document can only appear once in a quote request.',
+      );
     }
 
     const documents = await this.prisma.document.findMany({ where: { id: { in: documentIds } } });
     const documentsById = new Map(documents.map((d) => [d.id, d]));
 
-    const items: QuoteItemCalc[] = [];
-    let totalAmount = 0;
+    const lines: {
+      line: CreateQuoteDto['items'][number];
+      pageCount: number;
+      billablePages: number;
+    }[] = [];
 
     for (const line of dto.items) {
       const document = documentsById.get(line.documentId);
@@ -69,36 +78,60 @@ export class PrintQuoteService {
         },
       });
       if (activeJobItem) {
-        throw new InvalidPrintOptionException(`"${document.originalName}" already has an active print job.`);
+        throw new InvalidPrintOptionException(
+          `"${document.originalName}" already has an active print job.`,
+        );
       }
 
-      const rate = await this.pricingService.getActiveRateOrThrow(
-        document.shopId,
-        line.paperSize,
-        line.colorMode,
-        line.sideMode,
-      );
+      lines.push({
+        line,
+        pageCount: document.pageCount,
+        billablePages: document.pageCount * line.copies,
+      });
+    }
 
-      const billablePages = document.pageCount * line.copies;
-      const amount = Number(rate.pricePerPage) * billablePages;
+    const pagesByCombo = new Map<string, number>();
+    for (const { line, billablePages } of lines) {
+      pagesByCombo.set(comboKey(line), (pagesByCombo.get(comboKey(line)) ?? 0) + billablePages);
+    }
+    const rateByCombo = new Map<string, ResolvedRate>();
+    for (const { line } of lines) {
+      const key = comboKey(line);
+      if (rateByCombo.has(key)) continue;
+      rateByCombo.set(
+        key,
+        await this.pricingService.resolveRate(claims.shopId, line, pagesByCombo.get(key)!),
+      );
+    }
+
+    const items: QuoteItemCalc[] = [];
+    let totalAmount = 0;
+
+    for (const { line, pageCount, billablePages } of lines) {
+      const key = comboKey(line);
+      const rate = rateByCombo.get(key)!;
+      const amount = rate.pricePerPage * billablePages;
       totalAmount += amount;
 
       items.push({
-        documentId: document.id,
+        documentId: line.documentId,
         paperSize: line.paperSize,
         colorMode: line.colorMode,
         sideMode: line.sideMode,
         copies: line.copies,
-        pageCount: document.pageCount,
+        pageCount,
         billablePages,
         amount,
         pricingSnapshot: {
-          pricingId: rate.id,
-          pricePerPage: rate.pricePerPage.toString(),
-          paperSize: rate.paperSize,
-          colorMode: rate.colorMode,
-          sideMode: rate.sideMode,
+          pricingId: rate.pricingId,
+          pricePerPage: rate.pricePerPage.toFixed(2),
+          basePricePerPage: rate.basePricePerPage.toFixed(2),
+          paperSize: line.paperSize,
+          colorMode: line.colorMode,
+          sideMode: line.sideMode,
           effectiveFrom: rate.effectiveFrom,
+          comboBillablePages: pagesByCombo.get(key)!,
+          tier: rate.tier,
         },
       });
     }

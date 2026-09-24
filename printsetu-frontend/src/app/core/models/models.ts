@@ -51,6 +51,21 @@ export interface PricingRate {
   effectiveFrom: string;
 }
 
+/** Optional quantity-based rate: an order's page total in [minPages, maxPages] is charged pricePerPage for every page. */
+export interface PricingTier {
+  id: string;
+  shopId: string;
+  paperSize: PaperSize;
+  colorMode: ColorMode;
+  sideMode: SideMode;
+  minPages: number;
+  /** null = no upper bound */
+  maxPages: number | null;
+  pricePerPage: string;
+  active: boolean;
+  createdAt: string;
+}
+
 export type AgentOs = 'windows' | 'linux';
 
 /** One OS printer installed on the Print Agent's computer, as the agent reported it. */

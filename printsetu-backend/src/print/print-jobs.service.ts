@@ -11,7 +11,7 @@ import { AgentConnectionRegistry } from '../agent-connection/agent-connection-re
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditService } from '../audit/audit.service';
 import { SubscriptionAccessService } from '../subscriptions/subscription-access.service';
-import { PricingService } from '../pricing/pricing.service';
+import { PricingCombo, PricingService, comboKey } from '../pricing/pricing.service';
 import { signToken } from '../common/utils/signed-token.util';
 import { AppConfig } from '../config/configuration';
 import { StatusTokenClaims } from '../common/types/request-context';
@@ -125,7 +125,9 @@ export class PrintJobsService {
           },
         },
       });
-      await tx.printJobEvent.create({ data: { printJobId: created.id, status: PrintJobStatus.CREATED } });
+      await tx.printJobEvent.create({
+        data: { printJobId: created.id, status: PrintJobStatus.CREATED },
+      });
 
       await tx.printQuote.update({ where: { id: quote.id }, data: { consumedAt: new Date() } });
       await tx.document.updateMany({
@@ -150,7 +152,9 @@ export class PrintJobsService {
       try {
         status = (await this.triggerPrint(eligible.id, shopId)).status;
       } catch (err) {
-        this.logger.warn(`Auto-accept could not print job ${eligible.id}: ${err instanceof Error ? err.message : err}`);
+        this.logger.warn(
+          `Auto-accept could not print job ${eligible.id}: ${err instanceof Error ? err.message : err}`,
+        );
       }
     }
 
@@ -186,12 +190,21 @@ export class PrintJobsService {
             },
           },
           {
-            status: { in: [PrintJobStatus.PRINTED, PrintJobStatus.RETENTION_PENDING, PrintJobStatus.DELETED] },
+            status: {
+              in: [
+                PrintJobStatus.PRINTED,
+                PrintJobStatus.RETENTION_PENDING,
+                PrintJobStatus.DELETED,
+              ],
+            },
             printedAt: { gte: recentlyPrinted },
           },
         ],
       },
-      include: { items: { include: { document: true }, orderBy: { printOrder: 'asc' } }, printer: true },
+      include: {
+        items: { include: { document: true }, orderBy: { printOrder: 'asc' } },
+        printer: true,
+      },
       orderBy: { createdAt: 'asc' },
     });
   }
@@ -202,7 +215,10 @@ export class PrintJobsService {
     const [items, total] = await Promise.all([
       this.prisma.printJob.findMany({
         where: { shopId },
-        include: { items: { include: { document: true }, orderBy: { printOrder: 'asc' } }, printer: true },
+        include: {
+          items: { include: { document: true }, orderBy: { printOrder: 'asc' } },
+          printer: true,
+        },
         orderBy: { createdAt: 'desc' },
         take,
         skip,
@@ -234,7 +250,10 @@ export class PrintJobsService {
       const ids = jobs.map((job) => job.id);
       if (ids.length === 0) return { cleared: 0 };
 
-      await tx.notification.updateMany({ where: { printJobId: { in: ids } }, data: { printJobId: null } });
+      await tx.notification.updateMany({
+        where: { printJobId: { in: ids } },
+        data: { printJobId: null },
+      });
       await tx.printJobEvent.deleteMany({ where: { printJobId: { in: ids } } });
       await tx.printJobItem.deleteMany({ where: { printJobId: { in: ids } } });
       await tx.printJob.deleteMany({ where: { id: { in: ids } } });
@@ -256,7 +275,10 @@ export class PrintJobsService {
   async getForShop(jobId: string, shopId: string) {
     const job = await this.prisma.printJob.findUnique({
       where: { id: jobId },
-      include: { items: { include: { document: true }, orderBy: { printOrder: 'asc' } }, printer: true },
+      include: {
+        items: { include: { document: true }, orderBy: { printOrder: 'asc' } },
+        printer: true,
+      },
     });
     if (!job || job.shopId !== shopId) throw new AppNotFoundException('Print job not found.');
     return job;
@@ -282,6 +304,39 @@ export class PrintJobsService {
     return job;
   }
 
+  /**
+   * Quantity tiers are chosen by a combination's total pages across the whole
+   * job, so a change to one item can move every other item sharing its
+   * paper/color/side into a different tier. Reprices those items against the
+   * shop's current rate. In a combination without tiers only `editedItemIds`
+   * are repriced — the rest keep the price locked in by the quote.
+   */
+  private async repriceCombos(
+    tx: Prisma.TransactionClient,
+    jobId: string,
+    shopId: string,
+    combos: PricingCombo[],
+    editedItemIds: string[] = [],
+  ) {
+    const items = await tx.printJobItem.findMany({ where: { printJobId: jobId } });
+    const keys = new Set(combos.map(comboKey));
+    for (const key of keys) {
+      const group = items.filter((item) => comboKey(item) === key);
+      if (group.length === 0) continue;
+      const totalPages = group.reduce((sum, item) => sum + item.billablePages, 0);
+      const rate = await this.pricingService.resolveRate(shopId, group[0], totalPages);
+      const toReprice = rate.hasTiers
+        ? group
+        : group.filter((item) => editedItemIds.includes(item.id));
+      for (const item of toReprice) {
+        await tx.printJobItem.update({
+          where: { id: item.id },
+          data: { amount: rate.pricePerPage * item.billablePages },
+        });
+      }
+    }
+  }
+
   private async recomputeJobAmount(tx: Prisma.TransactionClient, jobId: string) {
     const items = await tx.printJobItem.findMany({ where: { printJobId: jobId } });
     const amount = items.reduce((sum, item) => sum + Number(item.amount), 0);
@@ -299,7 +354,9 @@ export class PrintJobsService {
       currentIds.size !== requestedIds.size ||
       ![...currentIds].every((id) => requestedIds.has(id))
     ) {
-      throw new InvalidPrintOptionException('itemIds must exactly match the job\'s current documents.');
+      throw new InvalidPrintOptionException(
+        "itemIds must exactly match the job's current documents.",
+      );
     }
 
     await this.prisma.$transaction(
@@ -327,13 +384,19 @@ export class PrintJobsService {
         where: { id: item.documentId },
         data: { status: DocumentStatus.PROCESSED },
       });
+      await this.repriceCombos(tx, jobId, shopId, [item]);
       await this.recomputeJobAmount(tx, jobId);
     });
     return this.getForShop(jobId, shopId);
   }
 
-  /** Shop editor: per-document paper/color/side/copies change, repriced against the shop's current active rate. */
-  async updateItemSettings(jobId: string, shopId: string, itemId: string, dto: UpdateItemSettingsDto) {
+  /** Shop editor: per-document paper/color/side/copies change, repriced (with any quantity tier) against the shop's current active rate. */
+  async updateItemSettings(
+    jobId: string,
+    shopId: string,
+    itemId: string,
+    dto: UpdateItemSettingsDto,
+  ) {
     const job = await this.getEditableJobOrThrow(jobId, shopId);
     const item = job.items.find((i) => i.id === itemId);
     if (!item) throw new AppNotFoundException('Print job item not found.');
@@ -343,15 +406,23 @@ export class PrintJobsService {
     const sideMode = dto.sideMode ?? item.sideMode;
     const copies = dto.copies ?? item.copies;
 
-    const rate = await this.pricingService.getActiveRateOrThrow(shopId, paperSize, colorMode, sideMode);
+    // Fail before writing anything if the new combination has no rate.
+    await this.pricingService.getActiveRateOrThrow(shopId, paperSize, colorMode, sideMode);
     const billablePages = item.pageCount * copies;
-    const amount = Number(rate.pricePerPage) * billablePages;
 
     await this.prisma.$transaction(async (tx) => {
       await tx.printJobItem.update({
         where: { id: itemId },
-        data: { paperSize, colorMode, sideMode, copies, billablePages, amount },
+        data: { paperSize, colorMode, sideMode, copies, billablePages },
       });
+      // Both the item's old and new combination may have changed tier.
+      await this.repriceCombos(
+        tx,
+        jobId,
+        shopId,
+        [item, { paperSize, colorMode, sideMode }],
+        [itemId],
+      );
       await this.recomputeJobAmount(tx, jobId);
     });
     return this.getForShop(jobId, shopId);
@@ -404,13 +475,20 @@ export class PrintJobsService {
       { attempts: 5, backoff: { type: 'exponential', delay: 10_000 }, removeOnComplete: true },
     );
 
-    return { jobId: updated.id, status: updated.status, printerId: printer.id, message: 'Print job queued' };
+    return {
+      jobId: updated.id,
+      status: updated.status,
+      printerId: printer.id,
+      message: 'Print job queued',
+    };
   }
 
   private async resolveShopPrinter(shopId: string) {
     const settings = await this.prisma.printSettings.findUnique({ where: { shopId } });
     if (settings?.defaultPrinterId) {
-      const printer = await this.prisma.printer.findUnique({ where: { id: settings.defaultPrinterId } });
+      const printer = await this.prisma.printer.findUnique({
+        where: { id: settings.defaultPrinterId },
+      });
       if (printer && printer.status !== PrinterStatus.REMOVED) return printer;
     }
     return this.prisma.printer.findFirst({
@@ -423,7 +501,10 @@ export class PrintJobsService {
   async dispatchToAgent(jobId: string) {
     const job = await this.prisma.printJob.findUniqueOrThrow({
       where: { id: jobId },
-      include: { items: { include: { document: true }, orderBy: { printOrder: 'asc' } }, printer: true },
+      include: {
+        items: { include: { document: true }, orderBy: { printOrder: 'asc' } },
+        printer: true,
+      },
     });
     if (job.status !== PrintJobStatus.QUEUED) return; // already progressed (e.g. reconciled)
     if (!job.printerId || !this.agentConnections.isConnected(job.printerId)) {
@@ -443,7 +524,9 @@ export class PrintJobsService {
         // An edited render may be a different format than the upload (the
         // canvas editor can export PNG for a JPEG document), so describe the
         // file actually being sent.
-        mimeType: item.renderedS3Key ? mimeFromKey(item.renderedS3Key, item.document.mimeType) : item.document.mimeType,
+        mimeType: item.renderedS3Key
+          ? mimeFromKey(item.renderedS3Key, item.document.mimeType)
+          : item.document.mimeType,
         documentSignedUrl: await this.storage.getSignedDownloadUrl(
           item.renderedS3Key ?? item.document.s3Key,
         ),
@@ -506,7 +589,10 @@ export class PrintJobsService {
       });
     } else if (to === PrintJobStatus.PRINT_FAILED) {
       await this.notifications.record(job.shopId, jobId, 'PRINT_FAILED');
-      await this.prisma.printJob.update({ where: { id: jobId }, data: { failureReason: dto.message ?? 'Reported by agent' } });
+      await this.prisma.printJob.update({
+        where: { id: jobId },
+        data: { failureReason: dto.message ?? 'Reported by agent' },
+      });
     }
 
     return { jobId: updated.id, status: updated.status };

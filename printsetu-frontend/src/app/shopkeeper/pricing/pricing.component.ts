@@ -11,7 +11,7 @@ import { InputIconModule } from 'primeng/inputicon';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
-import { PricingRate } from '../../core/models/models';
+import { PricingRate, PricingTier } from '../../core/models/models';
 
 @Component({
   selector: 'app-shop-pricing',
@@ -127,6 +127,112 @@ import { PricingRate } from '../../core/models/models';
         </tr>
       </ng-template>
     </p-table>
+
+    <div class="tier-intro">
+      <h3 class="m-0 text-base">
+        Quantity-based rates <span class="text-sm text-color-secondary font-normal">(optional)</span>
+      </h3>
+      <p class="m-0 mt-2 text-sm text-color-secondary">
+        Charge a different rate for bigger orders, e.g. A4 B/W: 1–5 pages at ₹2, 6 pages and above at ₹1.
+        The order's total pages (pages × copies of every document with the same paper, color and sides)
+        picks one range, and every page is charged at that range's rate. A page count no range covers
+        uses the fixed rate above.
+      </p>
+    </div>
+
+    <div class="surface-card-flat p-4 mb-4">
+      <h3 class="mt-0 mb-3 text-base">{{ editingTierId() ? 'Update page range' : 'Add a page range' }}</h3>
+      <div class="rate-form">
+        <div class="rate-form__field">
+          <label class="text-sm">Paper size</label>
+          <p-select [options]="paperSizes" [(ngModel)]="tierForm.paperSize" [disabled]="!!editingTierId()" styleClass="w-full" appendTo="body" />
+        </div>
+        <div class="rate-form__field">
+          <label class="text-sm">Color mode</label>
+          <p-select [options]="colorModes" [(ngModel)]="tierForm.colorMode" [disabled]="!!editingTierId()" styleClass="w-full" appendTo="body" />
+        </div>
+        <div class="rate-form__field">
+          <label class="text-sm">Side mode</label>
+          <p-select [options]="sideModes" [(ngModel)]="tierForm.sideMode" [disabled]="!!editingTierId()" styleClass="w-full" appendTo="body" />
+        </div>
+        <div class="rate-form__field">
+          <label class="text-sm">From pages</label>
+          <p-inputNumber [(ngModel)]="tierForm.minPages" [min]="1" [useGrouping]="false" styleClass="w-full" inputStyleClass="w-full" />
+        </div>
+        <div class="rate-form__field">
+          <label class="text-sm">To pages</label>
+          <p-inputNumber [(ngModel)]="tierForm.maxPages" [min]="1" [useGrouping]="false" placeholder="No limit" styleClass="w-full" inputStyleClass="w-full" />
+        </div>
+        <div class="rate-form__field">
+          <label class="text-sm">Price per page (₹)</label>
+          <p-inputNumber [(ngModel)]="tierForm.pricePerPage" mode="decimal" [minFractionDigits]="2" styleClass="w-full" inputStyleClass="w-full" />
+        </div>
+        <div class="rate-form__actions">
+          <p-button
+            [label]="editingTierId() ? 'Update range' : 'Add range'"
+            (onClick)="saveTier()"
+            [loading]="savingTier()"
+            [disabled]="!tierComboHasRate()"
+          />
+          @if (editingTierId()) {
+            <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="cancelTierEdit()" />
+          }
+        </div>
+      </div>
+      @if (!tierComboHasRate()) {
+        <p class="m-0 mt-3 text-sm text-color-secondary">
+          <i class="pi pi-info-circle mr-1"></i>Set a fixed rate for {{ tierForm.paperSize }} / {{ tierForm.colorMode }} /
+          {{ tierForm.sideMode }} first. It's used for any page count your ranges don't cover.
+        </p>
+      }
+    </div>
+
+    <p-table
+      [tableStyle]="{ 'min-width': '40rem' }"
+      [value]="tiers()"
+      [loading]="loadingTiers()"
+      styleClass="surface-card-flat"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 30%">Paper / color / side</th>
+          <th style="width: 20%">Pages in order</th>
+          <th style="width: 18%">Price / page</th>
+          <th style="width: 18%">Fixed rate</th>
+          <th style="width: 14%"></th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-tier>
+        <tr>
+          <td data-label="Paper / color / side">{{ tier.paperSize }} / {{ tier.colorMode }} / {{ tier.sideMode }}</td>
+          <td data-label="Pages in order">{{ rangeLabel(tier) }}</td>
+          <td data-label="Price / page">₹{{ tier.pricePerPage }}</td>
+          <td data-label="Fixed rate" class="text-color-secondary">
+            {{ fixedRateFor(tier) !== null ? '₹' + fixedRateFor(tier) : '—' }}
+          </td>
+          <td class="flex gap-2 justify-content-end">
+            <p-button icon="pi pi-pencil" size="small" [text]="true" (onClick)="editTier(tier)" pTooltip="Edit" />
+            <p-button
+              icon="pi pi-trash"
+              size="small"
+              severity="danger"
+              [text]="true"
+              (onClick)="confirmDeleteTier(tier)"
+              pTooltip="Remove"
+            />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="5">
+            <div class="table-empty">
+              <i class="pi pi-chart-bar"></i><span>No page ranges — every order is charged the fixed rate.</span>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
   `,
   styles: [
     `
@@ -137,6 +243,9 @@ import { PricingRate } from '../../core/models/models';
         grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
         gap: 1rem;
         align-items: end;
+      }
+      .tier-intro {
+        margin: 2.5rem 0 1rem;
       }
       .rate-form__field {
         display: flex;
@@ -174,6 +283,11 @@ export class ShopPricingComponent implements OnInit {
   saving = signal(false);
   editingId = signal<string | null>(null);
 
+  tiers = signal<PricingTier[]>([]);
+  loadingTiers = signal(true);
+  savingTier = signal(false);
+  editingTierId = signal<string | null>(null);
+
   paperSizes = ['A4', 'A3', 'LETTER', 'LEGAL'];
   colorModes = ['BW', 'COLOR'];
   sideModes = ['SIMPLEX', 'DUPLEX'];
@@ -185,6 +299,15 @@ export class ShopPricingComponent implements OnInit {
     pricePerPage: null,
   };
 
+  tierForm: {
+    paperSize: string;
+    colorMode: string;
+    sideMode: string;
+    minPages: number | null;
+    maxPages: number | null;
+    pricePerPage: number | null;
+  } = this.emptyTierForm();
+
   constructor(
     private readonly shopkeeperService: ShopkeeperService,
     private readonly messageService: MessageService,
@@ -193,6 +316,7 @@ export class ShopPricingComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.loadTiers();
   }
 
   load(): void {
@@ -244,7 +368,7 @@ export class ShopPricingComponent implements OnInit {
 
   confirmDelete(rate: PricingRate): void {
     this.confirmationService.confirm({
-      message: `Remove the ${rate.paperSize} / ${rate.colorMode} / ${rate.sideMode} rate? Customers will no longer be able to select this combination until a new rate is set.`,
+      message: `Remove the ${rate.paperSize} / ${rate.colorMode} / ${rate.sideMode} rate? Customers will no longer be able to select this combination until a new rate is set, and its page ranges are removed too.`,
       header: 'Confirm',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
@@ -252,8 +376,107 @@ export class ShopPricingComponent implements OnInit {
           this.messageService.add({ severity: 'success', summary: 'Rate removed' });
           if (this.editingId() === rate.id) this.cancelEdit();
           this.load();
+          this.loadTiers();
         });
       },
     });
+  }
+
+  // ---- Quantity-based rates ----
+
+  loadTiers(): void {
+    this.loadingTiers.set(true);
+    this.shopkeeperService.listPricingTiers().subscribe({
+      next: (tiers) => {
+        this.tiers.set(tiers);
+        this.loadingTiers.set(false);
+      },
+      error: () => this.loadingTiers.set(false),
+    });
+  }
+
+  rangeLabel(tier: PricingTier): string {
+    if (tier.maxPages === null) return `${tier.minPages} and above`;
+    if (tier.maxPages === tier.minPages) return `${tier.minPages}`;
+    return `${tier.minPages}–${tier.maxPages}`;
+  }
+
+  fixedRateFor(combo: { paperSize: string; colorMode: string; sideMode: string }): string | null {
+    const rate = this.rates().find(
+      (r) => r.paperSize === combo.paperSize && r.colorMode === combo.colorMode && r.sideMode === combo.sideMode,
+    );
+    return rate ? rate.pricePerPage : null;
+  }
+
+  tierComboHasRate(): boolean {
+    return this.loading() || this.fixedRateFor(this.tierForm) !== null;
+  }
+
+  editTier(tier: PricingTier): void {
+    this.editingTierId.set(tier.id);
+    this.tierForm = {
+      paperSize: tier.paperSize,
+      colorMode: tier.colorMode,
+      sideMode: tier.sideMode,
+      minPages: tier.minPages,
+      maxPages: tier.maxPages,
+      pricePerPage: Number(tier.pricePerPage),
+    };
+  }
+
+  cancelTierEdit(): void {
+    this.editingTierId.set(null);
+    this.tierForm = this.emptyTierForm();
+  }
+
+  saveTier(): void {
+    const { minPages, maxPages, pricePerPage } = this.tierForm;
+    if (!minPages || !pricePerPage) {
+      this.messageService.add({ severity: 'warn', summary: 'Enter "From pages" and a price per page' });
+      return;
+    }
+    if (maxPages !== null && maxPages < minPages) {
+      this.messageService.add({ severity: 'warn', summary: '"To pages" must be at least "From pages"' });
+      return;
+    }
+    const range = { minPages, maxPages, pricePerPage };
+    const editingId = this.editingTierId();
+    const request = editingId
+      ? this.shopkeeperService.updatePricingTier(editingId, range)
+      : this.shopkeeperService.addPricingTier({
+          paperSize: this.tierForm.paperSize,
+          colorMode: this.tierForm.colorMode,
+          sideMode: this.tierForm.sideMode,
+          ...range,
+        });
+    this.savingTier.set(true);
+    request.subscribe({
+      next: () => {
+        this.savingTier.set(false);
+        this.messageService.add({ severity: 'success', summary: editingId ? 'Page range updated' : 'Page range added' });
+        this.cancelTierEdit();
+        this.loadTiers();
+      },
+      error: () => this.savingTier.set(false),
+    });
+  }
+
+  confirmDeleteTier(tier: PricingTier): void {
+    this.confirmationService.confirm({
+      message: `Remove the ${this.rangeLabel(tier)} pages range for ${tier.paperSize} / ${tier.colorMode} / ${tier.sideMode}? Orders in that range will be charged the fixed rate.`,
+      header: 'Confirm',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.shopkeeperService.deletePricingTier(tier.id).subscribe(() => {
+          this.messageService.add({ severity: 'success', summary: 'Page range removed' });
+          if (this.editingTierId() === tier.id) this.cancelTierEdit();
+          this.loadTiers();
+        });
+      },
+    });
+  }
+
+  private emptyTierForm() {
+    return { paperSize: 'A4', colorMode: 'BW', sideMode: 'SIMPLEX', minPages: null, maxPages: null, pricePerPage: null };
   }
 }

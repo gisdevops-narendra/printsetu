@@ -193,6 +193,7 @@ model Shop {
   documents          Document[]
   printJobs          PrintJob[]
   pricing            Pricing[]
+  pricingTiers       PricingTier[]
   qrCodes            QrCode[]
   printers           Printer[]
   printSettings      PrintSettings?
@@ -483,6 +484,31 @@ model Pricing {
   @@unique([shopId, paperSize, colorMode, sideMode, effectiveFrom])
   @@index([shopId, active])
   @@map("pricing")
+}
+
+// Optional quantity-based rates on top of a combination's fixed Pricing rate.
+// When a combination has active tiers, the order's total billable pages for
+// that combination (pages x copies, summed across its documents) picks ONE
+// tier and every page is charged at that tier's rate. No tiers, or a page
+// count no tier covers, falls back to the fixed rate. Edits deactivate the
+// old row and create a new one, same as Pricing.
+model PricingTier {
+  id           String    @id @default(uuid())
+  shopId       String    @map("shop_id")
+  paperSize    PaperSize
+  colorMode    ColorMode
+  sideMode     SideMode
+  minPages     Int       @map("min_pages")
+  // null = no upper bound ("21 pages and above")
+  maxPages     Int?      @map("max_pages")
+  pricePerPage Decimal   @map("price_per_page") @db.Decimal(10, 2)
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  shop Shop @relation(fields: [shopId], references: [id])
+
+  @@index([shopId, active])
+  @@map("pricing_tiers")
 }
 
 model QrCode {

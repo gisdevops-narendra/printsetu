@@ -9,6 +9,7 @@ import {
   ColorMode,
   SideMode,
   PricingRate,
+  PricingTier,
   PrinterRow,
   AgentOs,
   PrintJobRow,
@@ -38,6 +39,18 @@ export interface SetPricingDto {
   colorMode: string;
   sideMode: string;
   pricePerPage: number;
+}
+
+export interface PricingTierRangeDto {
+  minPages: number;
+  maxPages: number | null;
+  pricePerPage: number;
+}
+
+export interface CreatePricingTierDto extends PricingTierRangeDto {
+  paperSize: string;
+  colorMode: string;
+  sideMode: string;
 }
 
 const BASE = environment.apiBaseUrl;
@@ -207,6 +220,18 @@ export class ShopkeeperService {
   }
   deletePricing(id: string) {
     return this.http.delete<void>(`${BASE}/shop/pricing/${id}`);
+  }
+  listPricingTiers() {
+    return this.http.get<PricingTier[]>(`${BASE}/shop/pricing/tiers`);
+  }
+  addPricingTier(dto: CreatePricingTierDto) {
+    return this.http.post<PricingTier>(`${BASE}/shop/pricing/tiers`, dto);
+  }
+  updatePricingTier(id: string, dto: PricingTierRangeDto) {
+    return this.http.patch<PricingTier>(`${BASE}/shop/pricing/tiers/${id}`, dto);
+  }
+  deletePricingTier(id: string) {
+    return this.http.delete<void>(`${BASE}/shop/pricing/tiers/${id}`);
   }
 
   // ---- QR (SRS §12: view/download own QR; regenerating stays admin-only) ----
