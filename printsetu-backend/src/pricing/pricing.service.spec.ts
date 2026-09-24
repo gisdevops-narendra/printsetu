@@ -217,7 +217,7 @@ describe('PricingService (SRS §10 versioned pricing)', () => {
 
       await expect(
         service.addTier('shop-1', { ...combo, minPages: 4, maxPages: 8, pricePerPage: 2 }),
-      ).rejects.toThrow('overlaps the existing 1–5 pages tier');
+      ).rejects.toThrow('This overlaps the 1–5 pages range.');
     });
 
     it('refuses a range whose "to" is below its "from"', async () => {

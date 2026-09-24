@@ -31,10 +31,10 @@ import { timeAgo } from '../../shared/utils/browser.util';
         @if (settings.autoAcceptOrders) {
           <p class="callout callout--warn">
             <i class="pi pi-exclamation-triangle"></i>
-            <span>Auto-accept is on. Make sure your printer has paper and is connected. If it can't print, the order stays in your queue.</span>
+            <span>Auto-accept is on. Make sure your printer has paper and is connected. If it can't print, the order stays in Print Orders.</span>
           </p>
         } @else {
-          <p class="callout"><i class="pi pi-info-circle"></i><span>Manual mode: you review each order in the queue and tap Print.</span></p>
+          <p class="callout"><i class="pi pi-info-circle"></i><span>Manual mode: you review each order in Print Orders and tap Print.</span></p>
         }
       </section>
 
@@ -92,19 +92,19 @@ import { timeAgo } from '../../shared/utils/browser.util';
           <span class="setting__icon"><i class="pi pi-exclamation-triangle"></i></span>
           <div class="setting__text">
             <label for="n-fail">Print problems</label>
-            <p>Tell me when the printer goes offline or a job needs review.</p>
+            <p>Tell me when the printer goes offline or an order needs checking.</p>
           </div>
           <p-toggleswitch inputId="n-fail" [ngModel]="settings.notificationPrefs.failureAlerts" (ngModelChange)="onPref('failureAlerts', $event)" [disabled]="saving()" />
         </div>
         @if (permissionNote()) { <p class="callout callout--warn"><i class="pi pi-info-circle"></i><span>{{ permissionNote() }}</span></p> }
-        <p class="fine">Alerts run while the shop portal is open in a browser tab.</p>
+        <p class="fine">Alerts only work while PrintSetu is open in your browser.</p>
       </section>
 
       <!-- ---------- Printers ---------- -->
       <section class="pf-card wide">
         <header class="pf-card__head">
           <h3 class="pf-eyebrow">Printers</h3>
-          <a routerLink="/shop/print-agent" class="pf-btn pf-btn--quiet">Manage print agent <i class="pi pi-arrow-right"></i></a>
+          <a routerLink="/shop/print-agent" class="pf-btn pf-btn--quiet">Manage Printer App <i class="pi pi-arrow-right"></i></a>
         </header>
         @if (printersLoading()) {
           <div class="pf-skeleton" style="height: 4.5rem"></div>
@@ -112,7 +112,7 @@ import { timeAgo } from '../../shared/utils/browser.util';
           <div class="pf-empty">
             <span class="pf-empty__icon"><i class="pi pi-print"></i></span>
             <strong>No printer connected</strong>
-            <p>Install the Print Agent on the computer connected to your printer.</p>
+            <p>Install the Printer App on the computer connected to your printer.</p>
             <a routerLink="/shop/print-agent" class="pf-btn pf-btn--primary"><i class="pi pi-download"></i> Set up printer</a>
           </div>
         } @else {
@@ -128,15 +128,15 @@ import { timeAgo } from '../../shared/utils/browser.util';
                   </span>
                 </div>
                 @if (p.id === settings.defaultPrinterId) {
-                  <span class="badge"><i class="pi pi-check"></i> Default</span>
+                  <span class="badge"><i class="pi pi-check"></i> Main printer</span>
                 } @else {
-                  <button type="button" class="pf-btn" (click)="makeDefault(p)" [disabled]="saving()">Make default</button>
+                  <button type="button" class="pf-btn" (click)="makeDefault(p)" [disabled]="saving()">Use as main printer</button>
                 }
               </li>
             }
           </ul>
           @if (!settings.defaultPrinterId) {
-            <p class="fine">No default chosen: jobs go to the first available printer.</p>
+            <p class="fine">No main printer chosen: orders go to the first printer that's online.</p>
           }
         }
       </section>
@@ -147,7 +147,7 @@ import { timeAgo } from '../../shared/utils/browser.util';
         <dl class="facts">
           <div>
             <dt><i class="pi pi-trash"></i> File cleanup</dt>
-            <dd>Customer files are deleted as soon as their print job completes.</dd>
+            <dd>Customer files are deleted as soon as their order is printed.</dd>
           </div>
           <div>
             <dt><i class="pi pi-upload"></i> Upload limit</dt>

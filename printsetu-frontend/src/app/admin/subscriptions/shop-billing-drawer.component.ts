@@ -49,13 +49,13 @@ const ACTION_META: Record<ActionKind, { title: string; cta: string; icon: string
   assign: { title: 'Assign a plan', cta: 'Assign plan', icon: 'pi-plus' },
   change: { title: 'Change plan', cta: 'Change plan', icon: 'pi-arrows-h' },
   extend: { title: 'Extend subscription', cta: 'Extend', icon: 'pi-clock' },
-  grace: { title: 'Extend grace period', cta: 'Extend grace', icon: 'pi-hourglass' },
+  grace: { title: 'Give extra days to pay', cta: 'Give extra days', icon: 'pi-hourglass' },
   cancel: { title: 'Cancel subscription', cta: 'Cancel subscription', icon: 'pi-ban', danger: true },
   resume: { title: 'Withdraw cancellation', cta: 'Keep subscription', icon: 'pi-replay' },
   markPaid: { title: 'Mark payment as received', cta: 'Mark as paid', icon: 'pi-check' },
-  forceSuspend: { title: 'Force-suspend this shop', cta: 'Suspend shop', icon: 'pi-lock', danger: true },
-  forceReactivate: { title: 'Force-reactivate this shop', cta: 'Reactivate shop', icon: 'pi-lock-open' },
-  release: { title: 'Release manual override', cta: 'Hand back to automation', icon: 'pi-unlock' },
+  forceSuspend: { title: 'Pause this shop now', cta: 'Suspend shop', icon: 'pi-lock', danger: true },
+  forceReactivate: { title: 'Turn this shop back on', cta: 'Reactivate shop', icon: 'pi-lock-open' },
+  release: { title: 'Return to automatic rules', cta: 'Return to automatic rules', icon: 'pi-unlock' },
 };
 
 const monthlyEq = (p: SubscriptionPlan, c: BillingCycle) => monthlyEquivalent(p, c);
@@ -110,7 +110,7 @@ const DAY = 86_400_000;
         <section class="sum">
           <div class="sum__top">
             <app-billing-pill [state]="d.access.state" />
-            @if (d.subscription?.automationPaused) { <span class="tag tag--lock"><i class="pi pi-lock"></i> Manual override{{ d.subscription!.pausedUntil ? ' until ' + (d.subscription!.pausedUntil | date: 'd MMM') : '' }}</span> }
+            @if (d.subscription?.automationPaused) { <span class="tag tag--lock"><i class="pi pi-lock"></i> Manually controlled{{ d.subscription!.pausedUntil ? ' until ' + (d.subscription!.pausedUntil | date: 'd MMM') : '' }}</span> }
             @if (d.subscription?.cancelAtPeriodEnd) { <span class="tag tag--warn">Ends {{ d.subscription!.currentPeriodEnd | date: 'd MMM y' }}</span> }
             @if (d.pendingPlan) { <span class="tag tag--info"><i class="pi pi-calendar"></i> Moves to {{ d.pendingPlan.name }} on {{ d.subscription!.currentPeriodEnd | date: 'd MMM' }}</span> }
           </div>
@@ -144,9 +144,9 @@ const DAY = 86_400_000;
             @if (d.subscription.status === 'PAYMENT_PENDING' || d.subscription.status === 'PAST_DUE') { <button type="button" class="act" (click)="open('grace')"><i class="pi pi-hourglass"></i> Extend grace</button> }
             @if (d.subscription.cancelAtPeriodEnd) { <button type="button" class="act" (click)="open('resume')"><i class="pi pi-replay"></i> Keep subscription</button> }
             @if (d.subscription.status !== 'CANCELLED') { <button type="button" class="act act--danger" (click)="open('cancel')"><i class="pi pi-ban"></i> Cancel</button> }
-            @if (d.subscription.status !== 'SUSPENDED') { <button type="button" class="act act--danger" (click)="open('forceSuspend')"><i class="pi pi-lock"></i> Force-suspend</button> }
-            @if (d.subscription.status !== 'ACTIVE' && d.subscription.status !== 'TRIAL') { <button type="button" class="act" (click)="open('forceReactivate')"><i class="pi pi-lock-open"></i> Force-reactivate</button> }
-            @if (d.subscription.automationPaused) { <button type="button" class="act" (click)="open('release')"><i class="pi pi-unlock"></i> Release override</button> }
+            @if (d.subscription.status !== 'SUSPENDED') { <button type="button" class="act act--danger" (click)="open('forceSuspend')"><i class="pi pi-lock"></i> Pause shop now</button> }
+            @if (d.subscription.status !== 'ACTIVE' && d.subscription.status !== 'TRIAL') { <button type="button" class="act" (click)="open('forceReactivate')"><i class="pi pi-lock-open"></i> Turn shop back on</button> }
+            @if (d.subscription.automationPaused) { <button type="button" class="act" (click)="open('release')"><i class="pi pi-unlock"></i> Return to automatic rules</button> }
           }
         </section>
 
@@ -172,16 +172,16 @@ const DAY = 86_400_000;
                     <div class="track"><span [style.width.%]="pct(d.usage.printsThisMonth, s.plan.maxPrintsPerMonth)" [class.hot]="pct(d.usage.printsThisMonth, s.plan.maxPrintsPerMonth) >= 90"></span></div>
                   </div>
                   <div class="bar">
-                    <div class="bar__row"><span>Tokens today</span><strong>{{ d.usage.tokensToday | number }} / {{ limit(s.plan.maxTokensPerDay) }}</strong></div>
+                    <div class="bar__row"><span>Orders today</span><strong>{{ d.usage.tokensToday | number }} / {{ limit(s.plan.maxTokensPerDay) }}</strong></div>
                     <div class="track"><span [style.width.%]="pct(d.usage.tokensToday, s.plan.maxTokensPerDay)" [class.hot]="pct(d.usage.tokensToday, s.plan.maxTokensPerDay) >= 90"></span></div>
                   </div>
                   <div class="bar">
-                    <div class="bar__row"><span>Print agent devices</span><strong>{{ d.usage.printers }} / {{ limit(s.plan.maxPrinters) }}</strong></div>
+                    <div class="bar__row"><span>Computers connected to a printer</span><strong>{{ d.usage.printers }} / {{ limit(s.plan.maxPrinters) }}</strong></div>
                     <div class="track"><span [style.width.%]="pct(d.usage.printers, s.plan.maxPrinters)" [class.hot]="pct(d.usage.printers, s.plan.maxPrinters) >= 100"></span></div>
                   </div>
                 </div>
                 <ul class="feat">
-                  <li [class.off]="!s.plan.analyticsAccess"><i class="pi" [ngClass]="s.plan.analyticsAccess ? 'pi-check' : 'pi-times'"></i> Sales analytics</li>
+                  <li [class.off]="!s.plan.analyticsAccess"><i class="pi" [ngClass]="s.plan.analyticsAccess ? 'pi-check' : 'pi-times'"></i> Sales reports</li>
                   <li [class.off]="!s.plan.prioritySupport"><i class="pi" [ngClass]="s.plan.prioritySupport ? 'pi-check' : 'pi-times'"></i> Priority support</li>
                 </ul>
               </div>
@@ -189,12 +189,12 @@ const DAY = 86_400_000;
               <div class="block">
                 <h4>Billing preferences</h4>
                 <div class="pref">
-                  <div><strong>Auto-renewal</strong><p>{{ s.autoRenew ? 'A renewal invoice is created on the renewal date.' : 'The subscription expires at the end of the period.' }}</p></div>
-                  <p-toggleswitch [ngModel]="s.autoRenew" (ngModelChange)="setAutoRenew($event)" [ngModelOptions]="{ standalone: true }" aria-label="Auto-renewal" />
+                  <div><strong>Renew automatically</strong><p>{{ s.autoRenew ? 'A renewal invoice is created on the renewal date.' : 'The subscription expires at the end of the period.' }}</p></div>
+                  <p-toggleswitch [ngModel]="s.autoRenew" (ngModelChange)="setAutoRenew($event)" [ngModelOptions]="{ standalone: true }" aria-label="Renew automatically" />
                 </div>
                 <div class="pref pref--col">
                   <div>
-                    <strong>Notification channels</strong>
+                    <strong>How to send reminders</strong>
                     <p>{{ s.notificationChannels ? 'This shop uses its own channels.' : 'Using the platform default channels.' }}</p>
                   </div>
                   <div class="chans">
@@ -281,7 +281,7 @@ const DAY = 86_400_000;
                 </select>
               </div>
               <div class="field">
-                <label>Billing cycle</label>
+                <label>Billing period</label>
                 <div class="pf-seg">@for (c of cycles; track c.value) {<button type="button" [class.is-on]="f.cycle === c.value" (click)="f.cycle = c.value">{{ c.label }}</button>}</div>
               </div>
               @if (selectedPlan()?.trialDays) {
@@ -302,7 +302,7 @@ const DAY = 86_400_000;
                 </select>
               </div>
               <div class="field">
-                <label>Billing cycle</label>
+                <label>Billing period</label>
                 <div class="pf-seg">@for (c of cycles; track c.value) {<button type="button" [class.is-on]="f.cycle === c.value" (click)="f.cycle = c.value">{{ c.label }}</button>}</div>
               </div>
               @if (changePreview(); as pv) {
@@ -325,14 +325,14 @@ const DAY = 86_400_000;
               <ng-container *ngTemplateOutlet="daysField; context: { label: 'Extend by (days)', help: 'The renewal date moves later by this many days.' }" />
             }
             @case ('grace') {
-              <ng-container *ngTemplateOutlet="daysField; context: { label: 'Extra grace (days)', help: 'The shop keeps full access for this long. A past-due shop is moved back into its grace period.' }" />
+              <ng-container *ngTemplateOutlet="daysField; context: { label: 'Extra days to pay', help: 'The shop keeps full access for this long. A shop with an overdue payment gets full access back during these days.' }" />
             }
             @case ('cancel') {
               <div class="field">
                 <label>When?</label>
                 <div class="radios">
                   <label class="radio"><input type="radio" name="mode" value="PERIOD_END" [(ngModel)]="f.mode" /><span><b>At the end of the paid period</b><small>Full access until {{ d()?.subscription?.currentPeriodEnd | date: 'd MMM y' }}, then it stops.</small></span></label>
-                  <label class="radio"><input type="radio" name="mode" value="IMMEDIATE" [(ngModel)]="f.mode" /><span><b>Immediately</b><small>New print requests stop now and open invoices are voided.</small></span></label>
+                  <label class="radio"><input type="radio" name="mode" value="IMMEDIATE" [(ngModel)]="f.mode" /><span><b>Immediately</b><small>New print requests stop now and unpaid invoices are cancelled.</small></span></label>
                 </div>
               </div>
             }
@@ -351,7 +351,7 @@ const DAY = 86_400_000;
               <p class="fine">The shop is reactivated immediately.</p>
             }
             @case ('forceSuspend') {
-              <p class="fine warn">The shop portal is locked (except Billing) and customers see &ldquo;temporarily unavailable&rdquo;. Automatic billing checks leave this shop alone until you release the override.</p>
+              <p class="fine warn">The shop portal is locked (except Billing) and customers see &ldquo;temporarily unavailable&rdquo;. Automatic billing checks leave this shop alone until you return it to automatic rules.</p>
               <ng-container *ngTemplateOutlet="holdField" />
             }
             @case ('forceReactivate') {
@@ -363,7 +363,7 @@ const DAY = 86_400_000;
           }
 
           <div class="field" [class.has-error]="touched() && reason.trim().length < 3">
-            <label for="a-reason">Reason <small>(required, kept in the audit log with your name)</small></label>
+            <label for="a-reason">Reason <small>(required, kept in the activity log with your name)</small></label>
             <textarea id="a-reason" name="reason" rows="2" maxlength="300" [(ngModel)]="reason" placeholder="e.g. Paid cash at the counter, receipt #123"></textarea>
             @if (touched() && reason.trim().length < 3) { <span class="err">Please give a short reason.</span> }
           </div>
@@ -1109,7 +1109,7 @@ export class ShopBillingDrawerComponent {
     if (d.access.state === 'NONE') return 'No plan assigned, so this shop has full access and customers can order.';
     if (level === 'FULL') {
       return d.access.state === 'PAYMENT_PENDING'
-        ? `Full access with a warning banner (${d.access.daysLeft ?? 0} day(s) of grace left). Customers can still order.`
+        ? `Full access with a warning banner (${d.access.daysLeft ?? 0} extra day(s) to pay left). Customers can still order.`
         : 'Full access. Customers can order.';
     }
     if (level === 'READ_ONLY') return 'Read-only: the shop can view old orders but cannot accept new print requests. Customers see the shop as unavailable.';
@@ -1130,7 +1130,7 @@ export class ShopBillingDrawerComponent {
     const next = this.selectedPlan();
     const settings = this.d()?.settings;
     if (!sub || !next || !settings) return null;
-    if (next.id === sub.planId && this.f.cycle === sub.cycle) return { kind: 'same', title: 'No change', text: 'Pick a different plan or billing cycle.' };
+    if (next.id === sub.planId && this.f.cycle === sub.cycle) return { kind: 'same', title: 'No change', text: 'Pick a different plan or billing period.' };
     const diff = monthlyEq(next, this.f.cycle) - monthlyEq(sub.plan, sub.cycle);
     if (sub.status === 'TRIAL') return { kind: 'same', title: 'During the trial', text: 'The new plan starts immediately and the trial continues. Nothing is charged yet.' };
     if (diff > 0.005) {
@@ -1140,12 +1140,12 @@ export class ShopBillingDrawerComponent {
       const est = this.f.cycle === sub.cycle ? Math.max(price(next, this.f.cycle) * frac - price(sub.plan, sub.cycle) * frac, 0) : Math.max(price(next, this.f.cycle) - price(sub.plan, sub.cycle) * frac, 0);
       const days = Math.ceil(left / DAY);
       return settings.upgradeTiming === 'IMMEDIATE_PRORATED'
-        ? { kind: 'up', title: 'Upgrade: takes effect now', text: `A prorated invoice of about ${money(Math.round(est * 100) / 100)} is created for the ${days} day(s) left in this cycle.` }
-        : { kind: 'up', title: 'Upgrade: starts at the next renewal', text: `The shop stays on ${sub.plan.name} until ${new Date(sub.currentPeriodEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}. Choose “Apply now” to charge the prorated difference straight away.` };
+        ? { kind: 'up', title: 'Upgrade: takes effect now', text: `An invoice of about ${money(Math.round(est * 100) / 100)} is created for just the ${days} day(s) left in this billing period.` }
+        : { kind: 'up', title: 'Upgrade: starts at the next renewal', text: `The shop stays on ${sub.plan.name} until ${new Date(sub.currentPeriodEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}. Choose “Apply now” to charge the difference for the days left straight away.` };
     }
     if (diff < -0.005) {
       return settings.downgradeTiming === 'END_OF_CYCLE' || this.f.cycle !== sub.cycle
-        ? { kind: 'down', title: 'Downgrade: at the end of the billing cycle', text: `The shop keeps ${sub.plan.name} until ${new Date(sub.currentPeriodEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, then moves to ${next.name}. No refund is due.` }
+        ? { kind: 'down', title: 'Downgrade: at the end of the billing period', text: `The shop keeps ${sub.plan.name} until ${new Date(sub.currentPeriodEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, then moves to ${next.name}. No refund is due.` }
         : { kind: 'down', title: 'Downgrade: takes effect now', text: 'The cheaper plan starts immediately, with no credit for unused days.' };
     }
     return { kind: 'same', title: 'Same price', text: 'The plan switches immediately at no charge.' };
@@ -1248,8 +1248,8 @@ export class ShopBillingDrawerComponent {
         const held = (res as { heldByOverride?: boolean } | null)?.heldByOverride;
         this.messages.add({
           severity: held ? 'warn' : 'success',
-          summary: held ? 'Payment recorded, but the shop is still force-suspended' : ACTION_META[kind].cta + ' — done',
-          detail: held ? 'Release the manual override to reactivate it.' : undefined,
+          summary: held ? 'Payment recorded, but the shop is still paused by an admin' : ACTION_META[kind].cta + ' — done',
+          detail: held ? 'Return it to automatic rules to turn it back on.' : undefined,
         });
         this.reload();
       },

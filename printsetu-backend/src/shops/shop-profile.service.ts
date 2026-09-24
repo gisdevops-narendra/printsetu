@@ -16,6 +16,7 @@ import {
   OpeningHours,
   effectiveAvailability,
   hasOpenDay,
+  normalizeOpeningHours,
   overrideFor,
 } from './shop-availability';
 
@@ -84,7 +85,7 @@ export class ShopProfileService {
     if (!shop) throw new AppNotFoundException('Shop not found.');
     const settings = shop.printSettings;
     const { logoKey, bannerKey, openingHours, printSettings: _ps, ...rest } = shop;
-    const hours = this.normalizeHours(openingHours);
+    const hours = normalizeOpeningHours(openingHours);
     const availability = effectiveAvailability(
       {
         acceptingOrders: settings?.acceptingOrders ?? true,
@@ -266,7 +267,7 @@ export class ShopProfileService {
   private async onlineChanges(shopId: string, dto: UpdateShopSettingsDto): Promise<Prisma.PrintSettingsUpdateInput> {
     const shop = await this.prisma.shop.findUnique({ where: { id: shopId }, include: { printSettings: true } });
     if (!shop) throw new AppNotFoundException('Shop not found.');
-    const hours = this.normalizeHours(shop.openingHours);
+    const hours = normalizeOpeningHours(shop.openingHours);
     const now = new Date();
     const current = {
       acceptingOrders: shop.printSettings?.acceptingOrders ?? true,
@@ -379,17 +380,6 @@ export class ShopProfileService {
   }
 
   /** Always returns all seven days; a shop that never set hours gets `null` so the UI can show "not set". */
-  private normalizeHours(raw: unknown): OpeningHours | null {
-    if (!raw || typeof raw !== 'object') return null;
-    const hours = raw as Partial<OpeningHours>;
-    const out = {} as OpeningHours;
-    for (const day of DAYS) {
-      const d = hours[day];
-      out[day] = { open: !!d?.open, from: d?.from ?? '09:00', to: d?.to ?? '18:00' };
-    }
-    return out;
-  }
-
   private validateHours(input: unknown): OpeningHours {
     if (!input || typeof input !== 'object') throw new InvalidPrintOptionException('Opening hours are invalid.');
     const src = input as Record<string, { open?: unknown; from?: unknown; to?: unknown }>;

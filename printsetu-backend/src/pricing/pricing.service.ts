@@ -7,6 +7,15 @@ import {
 } from '../common/exceptions/app.exceptions';
 import { CreatePricingTierDto, SetPricingDto, UpdatePricingTierDto } from './dto/pricing.dto';
 
+const PAPER_NAMES: Record<PaperSize, string> = {
+  A4: 'A4',
+  A3: 'A3',
+  LETTER: 'Letter',
+  LEGAL: 'Legal',
+};
+const COLOR_NAMES: Record<ColorMode, string> = { BW: 'black & white', COLOR: 'color' };
+const SIDE_NAMES: Record<SideMode, string> = { SIMPLEX: 'single-sided', DUPLEX: 'double-sided' };
+
 export interface PricingCombo {
   paperSize: PaperSize;
   colorMode: ColorMode;
@@ -135,7 +144,7 @@ export class PricingService {
     });
     if (!rate) {
       throw new InvalidPrintOptionException(
-        `No active pricing configured for ${paperSize}/${colorMode}/${sideMode} at this shop.`,
+        `This shop doesn't offer ${PAPER_NAMES[paperSize]} ${COLOR_NAMES[colorMode]} ${SIDE_NAMES[sideMode]} printing.`,
       );
     }
     return rate;
@@ -281,9 +290,7 @@ export class PricingService {
     if (clash) {
       const range =
         clash.maxPages === null ? `${clash.minPages}+` : `${clash.minPages}–${clash.maxPages}`;
-      throw new InvalidPrintOptionException(
-        `This page range overlaps the existing ${range} pages tier.`,
-      );
+      throw new InvalidPrintOptionException(`This overlaps the ${range} pages range.`);
     }
   }
 }

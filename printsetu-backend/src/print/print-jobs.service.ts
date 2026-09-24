@@ -75,13 +75,17 @@ export class PrintJobsService {
     });
     if (!quote) throw new AppNotFoundException('Quote not found.');
     if (claims.sessionId !== quote.sessionId || claims.shopId !== quote.session.shopId) {
-      throw new ShopAccessDeniedException('Status token does not grant access to this quote.');
+      throw new ShopAccessDeniedException(
+        "This link has expired. Please scan the shop's QR code again.",
+      );
     }
     if (quote.consumedAt) {
-      throw new InvalidPrintOptionException('This quote has already been used.');
+      throw new InvalidPrintOptionException('This order was already sent.');
     }
     if (quote.expiresAt.getTime() < Date.now()) {
-      throw new InvalidPrintOptionException('Quote has expired; please recalculate the price.');
+      throw new InvalidPrintOptionException(
+        'The price has expired. Please check your order again.',
+      );
     }
     if (quote.items.length === 0) {
       throw new InvalidPrintOptionException('Quote has no documents.');
@@ -298,7 +302,7 @@ export class PrintJobsService {
     if (!job || job.shopId !== shopId) throw new AppNotFoundException('Print job not found.');
     if (job.status !== PrintJobStatus.PRINT_ELIGIBLE) {
       throw new InvalidPrintOptionException(
-        `Documents can only be edited while the job is awaiting print (current status: ${job.status}).`,
+        "This order has already been sent to the printer and can't be changed.",
       );
     }
     return job;
@@ -355,7 +359,7 @@ export class PrintJobsService {
       ![...currentIds].every((id) => requestedIds.has(id))
     ) {
       throw new InvalidPrintOptionException(
-        "itemIds must exactly match the job's current documents.",
+        'The list of files changed. Refresh the page and try again.',
       );
     }
 
@@ -374,7 +378,7 @@ export class PrintJobsService {
     if (!item) throw new AppNotFoundException('Print job item not found.');
     if (job.items.length === 1) {
       throw new InvalidPrintOptionException(
-        'Cannot remove the only document in this job — cancel the job instead.',
+        'Cannot remove the only file in this order — cancel the order instead.',
       );
     }
 
@@ -454,7 +458,7 @@ export class PrintJobsService {
       fromStatus !== PrintJobStatus.AGENT_OFFLINE &&
       fromStatus !== PrintJobStatus.PRINT_FAILED
     ) {
-      throw new InvalidPrintOptionException(`Job cannot be queued from status ${fromStatus}.`);
+      throw new InvalidPrintOptionException('This order was just updated. Refresh the page.');
     }
 
     const updated = await this.repo.transition({
@@ -603,7 +607,9 @@ export class PrintJobsService {
     const job = await this.prisma.printJob.findUnique({ where: { id: jobId } });
     if (!job || job.shopId !== shopId) throw new AppNotFoundException('Print job not found.');
     if (job.status !== PrintJobStatus.PRINT_UNKNOWN) {
-      throw new InvalidPrintOptionException('Only PRINT_UNKNOWN jobs can be manually reconciled.');
+      throw new InvalidPrintOptionException(
+        "Only orders marked 'Check if printed' can be updated this way.",
+      );
     }
     const to = dto.outcome === 'PRINTED' ? PrintJobStatus.PRINTED : PrintJobStatus.PRINT_FAILED;
     const updated = await this.repo.transition({
@@ -633,7 +639,9 @@ export class PrintJobsService {
     });
     if (!job) throw new AppNotFoundException('Print job not found.');
     if (claims.printJobId !== jobId || claims.shopId !== job.shopId) {
-      throw new ShopAccessDeniedException('Status token does not grant access to this job.');
+      throw new ShopAccessDeniedException(
+        "This link has expired. Please scan the shop's QR code again.",
+      );
     }
     return job;
   }

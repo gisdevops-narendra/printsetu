@@ -11,7 +11,7 @@ interface Crumb {
 }
 
 /** Pages that live outside the sidebar but belong under one of its entries. */
-const PATH_ALIASES: { prefix: string; label: string; link: string }[] = [{ prefix: '/shop/print-jobs', label: 'Print Queue', link: '/shop/queue' }];
+const PATH_ALIASES: { prefix: string; label: string; link: string }[] = [{ prefix: '/shop/print-jobs', label: 'Print Orders', link: '/shop/queue' }];
 /** Last URL segment → breadcrumb label for detail pages. */
 const SEGMENT_LABELS: Record<string, string> = { qr: 'QR code', edit: 'Edit document' };
 

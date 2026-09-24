@@ -113,13 +113,13 @@ const MAX_RESULTS = 6;
           <a class="chip" routerLink="/admin/shops" title="Active shops out of all shops">
             <i class="pi pi-building"></i><b>{{ s.activeShops }}</b><span class="chip__of">/ {{ s.totalShops }}</span> active shops
           </a>
-          <a class="chip" [class.chip--warn]="s.unpaidInvoices > 0" routerLink="/admin/subscriptions" title="Open invoices waiting for payment">
+          <a class="chip" [class.chip--warn]="s.unpaidInvoices > 0" routerLink="/admin/subscriptions" title="Unpaid invoices waiting for payment">
             <i class="pi pi-wallet"></i><b>{{ s.unpaidInvoices }}</b> unpaid
             @if (s.unpaidInvoices > 0) {
               <span class="chip__of">· {{ fmt(s.unpaidAmount, s.currency) }}</span>
             }
           </a>
-          <a class="chip" [class.chip--bad]="s.failedPayments > 0" routerLink="/admin/subscriptions" title="Shops that are past due or have a payment pending">
+          <a class="chip" [class.chip--bad]="s.failedPayments > 0" routerLink="/admin/subscriptions" title="Shops with an overdue or pending payment">
             <i class="pi pi-exclamation-triangle"></i><b>{{ s.failedPayments }}</b> payment issues
           </a>
         } @else {
@@ -439,7 +439,7 @@ export class AdminHeaderComponent implements OnInit, OnDestroy {
   readonly menu: HeaderMenuItem[] = [
     { label: 'Billing & plans', icon: 'pi pi-wallet', route: '/admin/subscriptions' },
     { label: 'Users', icon: 'pi pi-users', route: '/admin/users' },
-    { label: 'Audit logs', icon: 'pi pi-shield', route: '/admin/audit-logs' },
+    { label: 'Activity log', icon: 'pi pi-shield', route: '/admin/audit-logs' },
   ];
 
   readonly env = {

@@ -32,7 +32,7 @@ export class PrintQuoteService {
   async createQuote(dto: CreateQuoteDto, claims: StatusTokenClaims) {
     if (!claims.sessionId) {
       throw new ShopAccessDeniedException(
-        'Status token does not grant access to any upload session.',
+        "This link has expired. Please scan the shop's QR code again.",
       );
     }
 
@@ -56,14 +56,16 @@ export class PrintQuoteService {
       const document = documentsById.get(line.documentId);
       if (!document) throw new AppNotFoundException(`Document ${line.documentId} not found.`);
       if (claims.sessionId !== document.sessionId || claims.shopId !== document.shopId) {
-        throw new ShopAccessDeniedException('Status token does not grant access to this document.');
+        throw new ShopAccessDeniedException(
+          "This link has expired. Please scan the shop's QR code again.",
+        );
       }
       if (document.status === DocumentStatus.DELETED) {
         throw new AppNotFoundException('Document has been deleted.');
       }
       if (!document.pageCount || document.status === DocumentStatus.ANALYSIS_FAILED) {
         throw new UnsupportedDocumentException(
-          `"${document.originalName}" has not finished analysis; cannot calculate a reliable quote.`,
+          `"${document.originalName}" is still being checked. Please wait a moment and try again.`,
         );
       }
 

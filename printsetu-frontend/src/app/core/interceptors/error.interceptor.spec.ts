@@ -31,7 +31,7 @@ describe('errorInterceptor (SRS §17.3 { code, message } -> toast)', () => {
       error: (err) => {
         expect(messageService.add).toHaveBeenCalledWith({
           severity: 'error',
-          summary: 'UNSUPPORTED_DOCUMENT',
+          summary: "Can't use this file",
           detail: 'File cannot be processed safely.',
           life: 6000,
         });
@@ -48,13 +48,17 @@ describe('errorInterceptor (SRS §17.3 { code, message } -> toast)', () => {
       );
   });
 
-  it('falls back to a generic "Error <status>" summary when the body has no code', (done) => {
+  it('falls back to a plain summary and detail when the body has no code', (done) => {
     spyOn(messageService, 'add');
 
     http.get('/api/whatever').subscribe({
       error: () => {
         expect(messageService.add).toHaveBeenCalledWith(
-          jasmine.objectContaining({ severity: 'error', summary: 'Error 500' }),
+          jasmine.objectContaining({
+            severity: 'error',
+            summary: 'Something went wrong',
+            detail: 'Please try again in a moment.',
+          }),
         );
         done();
       },
@@ -77,6 +81,22 @@ describe('errorInterceptor (SRS §17.3 { code, message } -> toast)', () => {
     httpMock
       .expectOne('/api/shop/profile')
       .flush({ code: 'UNAUTHENTICATED', message: 'Missing or invalid authentication.' }, { status: 401, statusText: 'Unauthorized' });
+  });
+
+  it('explains a lost connection instead of showing the raw HTTP failure', (done) => {
+    spyOn(messageService, 'add');
+    http.get('/api/offline').subscribe({
+      error: () => {
+        expect(messageService.add).toHaveBeenCalledWith(
+          jasmine.objectContaining({
+            summary: 'No internet connection',
+            detail: "Can't reach PrintSetu. Check your internet connection and try again.",
+          }),
+        );
+        done();
+      },
+    });
+    httpMock.expectOne('/api/offline').error(new ProgressEvent('error'), { status: 0 });
   });
 
   it('does not touch a successful response', (done) => {

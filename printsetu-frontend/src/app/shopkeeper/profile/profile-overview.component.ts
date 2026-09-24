@@ -39,9 +39,9 @@ type Metric = 'earnings' | 'jobs';
 
         <article class="kpi">
           <span class="kpi__icon kpi__icon--info"><i class="pi pi-hourglass"></i></span>
-          <p class="kpi__label">Pending tokens</p>
+          <p class="kpi__label">Orders waiting</p>
           <strong class="kpi__value">{{ s.totals.pending | number }}</strong>
-          <a routerLink="/shop/queue" class="kpi__link">Open queue <i class="pi pi-arrow-right"></i></a>
+          <a routerLink="/shop/queue" class="kpi__link">Open Print Orders <i class="pi pi-arrow-right"></i></a>
         </article>
 
         <article class="kpi kpi--earn">
@@ -90,7 +90,7 @@ type Metric = 'earnings' | 'jobs';
             <div class="pf-empty">
               <span class="pf-empty__icon"><i class="pi pi-chart-bar"></i></span>
               <strong>No completed prints in this period</strong>
-              <p>Once jobs are printed, your daily {{ metric() === 'earnings' ? 'earnings' : 'print counts' }} show up here.</p>
+              <p>Once orders are printed, your daily {{ metric() === 'earnings' ? 'earnings' : 'print counts' }} show up here.</p>
             </div>
           } @else {
             <app-bar-chart [data]="chartData()" [format]="chartFormat()" [ariaLabel]="'Daily ' + metric() + ' for the last ' + range() + ' days'" />

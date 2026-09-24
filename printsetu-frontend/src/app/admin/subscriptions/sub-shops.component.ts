@@ -50,10 +50,10 @@ const STATUS_OPTIONS = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPE
             <tr>
               <th scope="col">Shop</th>
               <th scope="col">Plan</th>
-              <th scope="col">Cycle</th>
+              <th scope="col">Pays</th>
               <th scope="col">Started</th>
               <th scope="col">Next billing</th>
-              <th scope="col">Auto-renew</th>
+              <th scope="col">Renews automatically</th>
               <th scope="col">Status</th>
               <th scope="col"><span class="sr">Open</span></th>
             </tr>
@@ -65,7 +65,7 @@ const STATUS_OPTIONS = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPE
                 <td data-label="Plan">
                   @if (r.plan) { <strong>{{ r.plan.name }}</strong><span class="sub">{{ money(r.price) }}</span> } @else { <span class="none">—</span> }
                 </td>
-                <td data-label="Cycle">{{ r.cycle ? cycleLabel(r.cycle) : '—' }}</td>
+                <td data-label="Pays">{{ r.cycle ? cycleLabel(r.cycle) : '—' }}</td>
                 <td data-label="Started">{{ r.startDate ? (r.startDate | date: 'd MMM y') : '—' }}</td>
                 <td data-label="Next billing">
                   @if (r.currentPeriodEnd) {
@@ -75,13 +75,13 @@ const STATUS_OPTIONS = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPE
                     @else if (r.status === 'TRIAL') { <span class="sub">trial ends</span> }
                   } @else { <span class="none">—</span> }
                 </td>
-                <td data-label="Auto-renew">
+                <td data-label="Renews automatically">
                   @if (r.autoRenew === null) { <span class="none">—</span> }
                   @else { <span class="ar" [class.ar--on]="r.autoRenew"><i class="pi" [ngClass]="r.autoRenew ? 'pi-sync' : 'pi-times'"></i> {{ r.autoRenew ? 'On' : 'Off' }}</span> }
                 </td>
                 <td data-label="Status">
                   <app-billing-pill [state]="r.status" />
-                  @if (r.automationPaused) { <span class="sub"><i class="pi pi-lock"></i> manual override</span> }
+                  @if (r.automationPaused) { <span class="sub"><i class="pi pi-lock"></i> manually controlled</span> }
                 </td>
                 <td class="go"><i class="pi pi-chevron-right" aria-hidden="true"></i></td>
               </tr>

@@ -207,7 +207,7 @@ export class SubscriptionAccessService {
     const count = await this.prisma.printer.count({ where: { shopId, status: { not: PrinterStatus.REMOVED } } });
     if (count >= sub.plan.maxPrinters) {
       throw new PlanLimitReachedException(
-        `Your ${sub.plan.name} plan allows ${sub.plan.maxPrinters} print agent ${sub.plan.maxPrinters === 1 ? 'device' : 'devices'}. Ask your administrator to upgrade the plan to add more.`,
+        `Your ${sub.plan.name} plan allows ${sub.plan.maxPrinters} ${sub.plan.maxPrinters === 1 ? 'computer' : 'computers'} with a printer. Ask your administrator to upgrade the plan to add more.`,
       );
     }
   }

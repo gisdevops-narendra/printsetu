@@ -36,9 +36,7 @@ export class PrintJobsRepository {
         data: { status: opts.to, ...opts.data },
       });
       if (result.count === 0) {
-        throw new JobAlreadyPrintingException(
-          `Job is not in ${opts.from} state (concurrent update or duplicate action).`,
-        );
+        throw new JobAlreadyPrintingException('This order was just updated. Refresh the page.');
       }
       await tx.printJobEvent.create({
         data: {

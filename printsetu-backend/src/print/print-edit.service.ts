@@ -41,7 +41,7 @@ export class PrintEditService {
     }
     if (item.printJob.status !== PrintJobStatus.PRINT_ELIGIBLE) {
       throw new InvalidPrintOptionException(
-        `Documents can only be edited while the job is awaiting print (current status: ${item.printJob.status}).`,
+        "This order has already been sent to the printer and can't be changed.",
       );
     }
     return item;
@@ -54,7 +54,7 @@ export class PrintEditService {
     const wantsPixelEdit = !!(dto.brightness || dto.contrast || dto.sharpness);
     if (isPdf && wantsPixelEdit) {
       throw new InvalidPrintOptionException(
-        'Brightness/contrast/sharpness adjustments are only supported for image documents, not PDFs.',
+        'Brightness and colour controls only work on photos, not PDFs.',
       );
     }
 
@@ -107,9 +107,7 @@ export class PrintEditService {
     const item = await this.getEditableItemOrThrow(jobId, shopId, itemId);
     const { document } = item;
     if (document.mimeType === 'application/pdf') {
-      throw new InvalidPrintOptionException(
-        'PDF documents use the rotate/crop tool, not the image canvas editor.',
-      );
+      throw new InvalidPrintOptionException('For PDFs, use rotate and crop instead.');
     }
     if (!file) {
       throw new InvalidPrintOptionException('No rendered image was uploaded.');

@@ -111,6 +111,18 @@ export function scheduledStatus(
 }
 
 /** True when the schedule has at least one open day to drive the switch with. */
+/** Stored opening-hours JSON -> a full week (missing days closed, 09:00–18:00); null when never set. */
+export function normalizeOpeningHours(raw: unknown): OpeningHours | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const hours = raw as Partial<OpeningHours>;
+  const out = {} as OpeningHours;
+  for (const day of DAY_KEYS) {
+    const d = hours[day];
+    out[day] = { open: !!d?.open, from: d?.from ?? '09:00', to: d?.to ?? '18:00' };
+  }
+  return out;
+}
+
 export function hasOpenDay(hours: OpeningHours | null): hours is OpeningHours {
   return !!hours && DAY_KEYS.some((d) => hours[d]?.open);
 }

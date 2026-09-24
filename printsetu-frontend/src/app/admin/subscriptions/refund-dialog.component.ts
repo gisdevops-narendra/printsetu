@@ -38,7 +38,7 @@ import { money } from '../../shared/billing/billing.util';
           @if (touched() && amountError()) { <span class="err">{{ amountError() }}</span> }
         </div>
         <div class="field" [class.has-error]="touched() && reason.trim().length < 3">
-          <label for="rf-reason">Reason <small>(kept in the audit log)</small></label>
+          <label for="rf-reason">Reason <small>(kept in the activity log)</small></label>
           <textarea id="rf-reason" rows="3" maxlength="300" [(ngModel)]="reason" placeholder="e.g. Charged twice, downgraded within the first week"></textarea>
           @if (touched() && reason.trim().length < 3) { <span class="err">Please give a short reason.</span> }
         </div>

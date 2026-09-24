@@ -58,7 +58,7 @@ function whenLabel(at: Date, now = new Date()): string {
             <strong class="shop__name">{{ s.name }}</strong>
             <small class="shop__meta">{{ s.shopCode }}@if (s.city) { · {{ s.city }} }</small>
           } @else {
-            <strong class="shop__name">Shop Portal</strong>
+            <strong class="shop__name">My Shop</strong>
           }
         </span>
       </a>
@@ -120,12 +120,12 @@ function whenLabel(at: Date, now = new Date()): string {
             </a>
           }
           @if (!online()) {
-            <span class="chip chip--warn" title="Customers see your shop as unavailable. Orders already in the queue are unaffected."><i class="pi pi-pause"></i>{{ scheduleNote() ?? 'Not accepting orders' }}</span>
+            <span class="chip chip--warn" title="Customers see your shop as unavailable. Orders already in Print Orders are unaffected."><i class="pi pi-pause"></i>{{ scheduleNote() ?? 'Not accepting orders' }}</span>
           } @else if (scheduleNote(); as note) {
             <span class="chip chip--muted" title="Your shop goes online and offline automatically on its shop hours."><i class="pi pi-clock"></i>{{ note }}</span>
           }
         } @else {
-          <span class="chip chip--muted" title="Queue status is paused while your subscription needs attention."><i class="pi pi-lock"></i>Queue paused</span>
+          <span class="chip chip--muted" title="Printing is paused while your subscription needs attention."><i class="pi pi-lock"></i>Printing paused</span>
         }
 
         <span class="grow"></span>
@@ -429,7 +429,7 @@ export class ShopHeaderComponent implements OnInit, OnDestroy {
   readonly menu: HeaderMenuItem[] = [
     { label: 'Shop profile & settings', icon: 'pi pi-building', route: '/shop/profile' },
     { label: 'Billing & invoices', icon: 'pi pi-credit-card', route: '/shop/billing' },
-    { label: 'Print agent', icon: 'pi pi-desktop', route: '/shop/print-agent' },
+    { label: 'Printer App', icon: 'pi pi-desktop', route: '/shop/print-agent' },
   ];
 
   /** The switch only means something while the subscription lets the shop take orders at all. */

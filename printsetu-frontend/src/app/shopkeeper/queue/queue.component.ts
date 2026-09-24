@@ -1,4 +1,4 @@
-import { Component, OnInit, computed } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
@@ -14,6 +14,7 @@ import { OrderAlertsService } from '../../core/services/order-alerts.service';
 import { PrintJobRow, PrintJobStatus } from '../../core/models/models';
 import { StatusTagComponent } from '../../shared/components/status-tag/status-tag.component';
 import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
+import { printOptionsLabel } from '../../shared/utils/print-options.util';
 
 const DONE: PrintJobStatus[] = ['PRINTED', 'RETENTION_PENDING', 'DELETED'];
 const isDone = (status: PrintJobStatus) => DONE.includes(status);
@@ -35,8 +36,8 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
   template: `
     <div class="page-header">
       <div>
-        <h1 class="page-title">Print Queue</h1>
-        <p class="page-subtitle m-0">Incoming and pending print jobs for your shop.</p>
+        <h1 class="page-title">Print Orders</h1>
+        <p class="page-subtitle m-0">Your customers' orders waiting to be printed.</p>
       </div>
       <div class="page-actions">
         <p-iconfield>
@@ -61,7 +62,7 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 8%" pSortableColumn="tokenNumber">Token <p-sortIcon field="tokenNumber" /></th>
+          <th style="width: 8%" pSortableColumn="tokenNumber">Order no. <p-sortIcon field="tokenNumber" /></th>
           <th style="width: 23%">Documents</th>
           <th style="width: 17%; border-left: 1px solid var(--hdr-hover)">Options</th>
           <th style="width: 10%" pSortableColumn="amount">Amount <p-sortIcon field="amount" /></th>
@@ -72,7 +73,7 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
       </ng-template>
       <ng-template pTemplate="body" let-job>
         <tr>
-          <td data-label="Token"><span class="font-semibold">#{{ job.tokenNumber }}</span></td>
+          <td data-label="Order no."><span class="font-semibold">#{{ job.tokenNumber }}</span></td>
           <td data-label="Documents">
             <div class="item-stack">
               @for (item of job.items; track item.id) {
@@ -85,7 +86,7 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
           <td class="text-xs" style="border-left: 1px solid var(--hdr-hover)" data-label="Options">
             <div class="item-stack">
               @for (item of job.items; track item.id) {
-                <span>{{ item.paperSize }} · {{ item.colorMode }} · {{ item.sideMode }} ×{{ item.copies }}</span>
+                <span>{{ optionsLabel(item) }}</span>
               }
             </div>
           </td>
@@ -109,7 +110,7 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
               } @else if (readOnly()) {
                 <span class="text-xs paused" title="Your subscription needs attention, so new print requests are paused."><i class="pi pi-pause-circle"></i> Paused</span>
               } @else if (job.status === 'PRINT_ELIGIBLE' || job.status === 'AGENT_OFFLINE' || job.status === 'PRINT_FAILED') {
-                <p-button label="PRINT" icon="pi pi-print" size="small" (onClick)="confirmPrint(job)" />
+                <p-button label="PRINT" icon="pi pi-print" size="small" [loading]="sending().has(job.id)" (onClick)="print(job)" />
               }
               @if (job.status === 'PRINT_UNKNOWN' && !readOnly()) {
                 <p-button label="Mark Printed" size="small" severity="success" [outlined]="true" (onClick)="reconcile(job, 'PRINTED')" />
@@ -122,7 +123,7 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
       <ng-template pTemplate="emptymessage">
         <tr>
           <td colspan="7">
-            <div class="table-empty"><i class="pi pi-inbox"></i><span>No pending jobs right now.</span></div>
+            <div class="table-empty"><i class="pi pi-inbox"></i><span>No orders waiting right now.</span></div>
           </td>
         </tr>
       </ng-template>
@@ -130,6 +131,7 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
   `,
 })
 export class QueueComponent implements OnInit {
+  readonly optionsLabel = printOptionsLabel;
   /** The live queue, kept fresh by OrderAlertsService (faster while a job is printing). */
   readonly jobs = computed(() => {
     const jobs = this.alerts.jobs();
@@ -174,33 +176,41 @@ export class QueueComponent implements OnInit {
   private describe(job: PrintJobRow): string {
     return job.items.length === 1
       ? `"${job.items[0].document?.originalName}"`
-      : `${job.items.length} documents (Token #${job.tokenNumber})`;
+      : `${job.items.length} documents (Order #${job.tokenNumber})`;
   }
 
-  confirmPrint(job: PrintJobRow): void {
-    this.confirmationService.confirm({
-      message: `Send ${this.describe(job)} to the printer now?`,
-      header: 'Confirm print',
-      icon: 'pi pi-print',
-      accept: () => {
-        this.shopkeeperService.print(job.id).subscribe({
-          next: (res) => {
-            this.messageService.add({ severity: 'success', summary: res.message });
-            this.load();
-          },
-        });
+  /** Jobs whose PRINT request is in flight — the button stays busy so a double-click can't send it twice. */
+  sending = signal<ReadonlySet<string>>(new Set());
+
+  /** Sends the job straight to the printer (no confirmation step). */
+  print(job: PrintJobRow): void {
+    if (this.sending().has(job.id)) return;
+    this.setSending(job.id, true);
+    this.shopkeeperService.print(job.id).subscribe({
+      next: (res) => {
+        this.setSending(job.id, false);
+        this.messageService.add({ severity: 'success', summary: res.message });
+        this.load();
       },
+      error: () => this.setSending(job.id, false),
     });
+  }
+
+  private setSending(jobId: string, on: boolean): void {
+    const next = new Set(this.sending());
+    if (on) next.add(jobId);
+    else next.delete(jobId);
+    this.sending.set(next);
   }
 
   reconcile(job: PrintJobRow, outcome: 'PRINTED' | 'PRINT_FAILED'): void {
     this.confirmationService.confirm({
-      message: `Confirm the actual outcome for ${this.describe(job)}? This cannot be undone.`,
-      header: 'Reconcile job',
+      message: `Did ${this.describe(job)} actually print? This can't be changed later.`,
+      header: 'Did it print?',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.shopkeeperService.reconcile(job.id, outcome).subscribe(() => {
-          this.messageService.add({ severity: 'success', summary: 'Job reconciled' });
+          this.messageService.add({ severity: 'success', summary: 'Order updated' });
           this.load();
         });
       },

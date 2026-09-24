@@ -26,7 +26,7 @@ const PAGE = 8;
     <section class="pf-card">
       <header class="pf-card__head">
         <div>
-          <h3 class="pf-eyebrow">Order &amp; token history</h3>
+          <h3 class="pf-eyebrow">Order history</h3>
           @if (!loading() && total() > 0) {
             <p class="summary">Showing your latest {{ jobs().length }}{{ total() > jobs().length ? ' of ' + total() : '' }} orders</p>
           }
@@ -45,7 +45,7 @@ const PAGE = 8;
         </div>
         <label class="search">
           <i class="pi pi-search"></i>
-          <input type="search" placeholder="Search token or file name" [value]="query()" (input)="onSearch($any($event.target).value)" aria-label="Search orders" />
+          <input type="search" placeholder="Search order number or file name" [value]="query()" (input)="onSearch($any($event.target).value)" aria-label="Search orders" />
         </label>
       </div>
 

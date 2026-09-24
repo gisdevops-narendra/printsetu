@@ -147,7 +147,7 @@ export class OrderAlertsService {
 
   private announceProblems(jobs: PrintJobRow[]): void {
     const offline = jobs.some((j) => j.status === 'AGENT_OFFLINE');
-    const title = offline ? 'Printer offline' : 'A print job needs your review';
+    const title = offline ? 'Printer offline' : 'An order needs checking';
     const detail = `Token ${jobs.map((j) => '#' + j.tokenNumber).join(', ')}`;
     this.messageService.add({ severity: 'warn', summary: title, detail, life: 10000 });
     this.desktop(title, detail);

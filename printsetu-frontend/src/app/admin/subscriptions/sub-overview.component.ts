@@ -26,9 +26,9 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
       <div class="kpis">
         <article class="kpi">
           <span class="kpi__icon kpi__icon--ok"><i class="pi pi-chart-line"></i></span>
-          <p class="kpi__label">MRR <em>monthly recurring</em></p>
+          <p class="kpi__label">Monthly income <em>from subscriptions</em></p>
           <strong class="kpi__value">{{ money(d.mrr) }}</strong>
-          <span class="kpi__sub">ARR {{ money(d.arr) }}</span>
+          <span class="kpi__sub">Yearly income {{ money(d.arr) }}</span>
         </article>
         <article class="kpi">
           <span class="kpi__icon kpi__icon--info"><i class="pi pi-verified"></i></span>
@@ -45,11 +45,11 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
           <span class="kpi__icon kpi__icon--warn"><i class="pi pi-wallet"></i></span>
           <p class="kpi__label">Collected this month</p>
           <strong class="kpi__value">{{ money(d.collectedThisMonth) }}</strong>
-          <span class="kpi__sub">{{ money(d.outstanding.amount) }} outstanding ({{ d.outstanding.invoices }})</span>
+          <span class="kpi__sub">{{ money(d.outstanding.amount) }} still to collect ({{ d.outstanding.invoices }})</span>
         </article>
         <article class="kpi">
           <span class="kpi__icon kpi__icon--bad"><i class="pi pi-user-minus"></i></span>
-          <p class="kpi__label">Churn this month</p>
+          <p class="kpi__label">Shops lost this month</p>
           <strong class="kpi__value">{{ d.churn.thisMonth }}</strong>
           <span class="kpi__sub">{{ d.churn.cancelled }} cancelled &middot; {{ d.churn.expired }} expired @if (d.churn.lostMrr > 0) { &middot; {{ money(d.churn.lostMrr) }}/mo lost }</span>
         </article>
@@ -58,7 +58,7 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
       <div class="sections">
         <div class="col">
           <section class="pf-card">
-            <header class="pf-card__head"><div><h3 class="pf-eyebrow">Revenue collected</h3><p class="sub">Last 6 months, net of refunds</p></div></header>
+            <header class="pf-card__head"><div><h3 class="pf-eyebrow">Revenue collected</h3><p class="sub">Last 6 months, after refunds</p></div></header>
             <app-bar-chart [data]="series()" [format]="fmt" ariaLabel="Revenue collected in the last six months" />
           </section>
 
@@ -72,7 +72,7 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
                   <li>
                     <div class="list__main">
                       <strong>{{ r.shopName }}</strong>
-                      <span>{{ r.plan }} &middot; {{ cycleLabel(r.cycle).toLowerCase() }}@if (r.isTrial) { &middot; trial ends } @else if (!r.autoRenew) { &middot; won't auto-renew }</span>
+                      <span>{{ r.plan }} &middot; {{ cycleLabel(r.cycle).toLowerCase() }}@if (r.isTrial) { &middot; trial ends } @else if (!r.autoRenew) { &middot; won't renew automatically }</span>
                     </div>
                     <div class="list__side"><strong>{{ money(r.amount) }}</strong><span>{{ r.date | date: 'd MMM' }}</span></div>
                   </li>
@@ -90,10 +90,10 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
               <div><strong>{{ d.failedPayments.shopsAffected }}</strong><span>shops affected</span></div>
               <div>
                 <strong [class.ok]="(d.failedPayments.recoveryRate ?? 0) >= 50">{{ d.failedPayments.recoveryRate === null ? '—' : d.failedPayments.recoveryRate + '%' }}</strong>
-                <span>recovery rate</span>
+                <span>paid after a failed payment</span>
               </div>
             </div>
-            <p class="note">{{ d.failedPayments.recovered }} of {{ d.failedPayments.shopsAffected }} shops paid or were reactivated afterwards. Right now {{ d.failedPayments.currentlyPending }} in grace and {{ d.failedPayments.currentlyPastDue }} past due.</p>
+            <p class="note">{{ d.failedPayments.recovered }} of {{ d.failedPayments.shopsAffected }} shops paid or were reactivated afterwards. Right now {{ d.failedPayments.currentlyPending }} have extra days to pay and {{ d.failedPayments.currentlyPastDue }} are overdue.</p>
           </section>
 
           <section class="pf-card">
@@ -124,7 +124,7 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
           </section>
         </div>
       </div>
-      <p class="foot">MRR counts shops that are paying (Active and Payment pending); trials are not counted. Yearly plans count as one twelfth of the yearly price; daily plans as 30 days.</p>
+      <p class="foot">Monthly income counts shops that are paying (Active and Payment pending); trials are not counted. Yearly plans count as one twelfth of the yearly price; daily plans as 30 days.</p>
     }
   `,
   styles: [

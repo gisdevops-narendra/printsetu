@@ -33,7 +33,7 @@ interface Form {
               <li>
                 <span class="tl tl--warn">1</span>
                 <div class="tl__body">
-                  <strong>Grace period</strong>
+                  <strong>Extra days to pay</strong>
                   <p>The shop keeps <b>full access</b> and sees a warning banner.</p>
                   <label class="num"><input type="number" min="0" max="60" [(ngModel)]="form.graceDays" name="grace" /> days</label>
                 </div>
@@ -41,7 +41,7 @@ interface Form {
               <li>
                 <span class="tl tl--bad">2</span>
                 <div class="tl__body">
-                  <strong>Past due</strong>
+                  <strong>Payment overdue</strong>
                   <p>Read-only: old orders can be viewed but no new print requests are accepted. Customers see the shop as unavailable.</p>
                   <label class="num">Suspend after <input type="number" min="0" max="90" [(ngModel)]="form.suspendAfterPastDueDays" name="susp" /> days</label>
                 </div>
@@ -58,7 +58,7 @@ interface Form {
 
           <section class="pf-card">
             <header class="pf-card__head"><h3 class="pf-eyebrow">Reminders</h3></header>
-            <p class="lead">Automatic messages are sent: before renewal, when a payment fails, halfway through the grace period, and a final warning before suspension.</p>
+            <p class="lead">Automatic messages are sent: before renewal, when a payment fails, halfway through the extra days to pay, and a final warning before suspension.</p>
             <label class="num">Renewal reminder <input type="number" min="0" max="30" [(ngModel)]="form.renewalReminderDays" name="remind" /> days before <span class="fine inline">(0 turns it off)</span></label>
           </section>
         </div>
@@ -66,12 +66,12 @@ interface Form {
         <div class="col">
           <section class="pf-card">
             <header class="pf-card__head"><h3 class="pf-eyebrow">Automatic payment retries</h3></header>
-            <p class="lead">Only for shops paying through a connected payment gateway. Shops that pay offline are followed up with reminders instead.</p>
+            <p class="lead">Only for shops paying through a connected online payment service. Shops that pay offline are followed up with reminders instead.</p>
             <div class="row">
               <label class="num"><input type="number" min="0" max="10" [(ngModel)]="form.retryAttempts" name="retries" /> retries</label>
               <label class="num">every <input type="number" min="1" max="14" [(ngModel)]="form.retryIntervalDays" name="interval" /> days</label>
             </div>
-            <p class="fine"><i class="pi pi-info-circle"></i> No payment gateway is connected yet, so these rules take effect once one is added.</p>
+            <p class="fine"><i class="pi pi-info-circle"></i> No online payment service is connected yet, so these rules take effect once one is added.</p>
           </section>
 
           <section class="pf-card">

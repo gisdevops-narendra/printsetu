@@ -22,8 +22,8 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
   template: `
     <div class="page-header">
       <div>
-        <h1 class="page-title">Printers &amp; Agents</h1>
-        <p class="page-subtitle m-0">Monitor each shop's connected Print Agent. Shops connect and unlink their own printers from their Print Agent page.</p>
+        <h1 class="page-title">Printers</h1>
+        <p class="page-subtitle m-0">See each shop's connected printers. Shops connect and remove their own printers from their Printer App page.</p>
       </div>
       <div class="page-actions">
         <p-iconfield>
@@ -38,7 +38,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
       [tableStyle]="{ 'min-width': '38rem' }"
       [value]="enrichedPrinters()"
       [loading]="loading()"
-      [globalFilterFields]="['printerName', 'shopName', 'agentId', 'status']"
+      [globalFilterFields]="['printerName', 'shopName', 'computer', 'status']"
       styleClass="surface-card-flat table-fill"
       [scrollable]="true"
       scrollHeight="flex"
@@ -49,9 +49,9 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
         <tr>
           <th style="width: 25%" pSortableColumn="printerName">Printer <p-sortIcon field="printerName" /></th>
           <th style="width: 22%" pSortableColumn="shopName">Shop <p-sortIcon field="shopName" /></th>
-          <th style="width: 19%" pSortableColumn="agentId">Agent ID <p-sortIcon field="agentId" /></th>
+          <th style="width: 19%" pSortableColumn="computer">Computer <p-sortIcon field="computer" /></th>
           <th style="width: 14%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
-          <th style="width: 20%" pSortableColumn="lastHeartbeatAt">Last heartbeat <p-sortIcon field="lastHeartbeatAt" /></th>
+          <th style="width: 20%" pSortableColumn="lastHeartbeatAt">Last seen <p-sortIcon field="lastHeartbeatAt" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-p>
@@ -66,14 +66,14 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
               ><span class="cell-ellipsis__text" [class.is-truncated]="shopRef.isTruncated">{{ p.shopName }}</span></span
             >
           </td>
-          <td data-label="Agent ID"><code class="text-xs">{{ p.agentId }}</code></td>
+          <td data-label="Computer">{{ p.computer }}</td>
           <td data-label="Status">
             <p-tag
-              [value]="p.status"
+              [value]="p.status === 'ONLINE' ? 'Online' : p.status === 'OFFLINE' ? 'Offline' : 'Not connected yet'"
               [severity]="p.status === 'ONLINE' ? 'success' : p.status === 'OFFLINE' ? 'danger' : 'secondary'"
             />
           </td>
-          <td data-label="Last heartbeat">{{ p.lastHeartbeatAt ? (p.lastHeartbeatAt | date: 'medium') : 'never' }}</td>
+          <td data-label="Last seen">{{ p.lastHeartbeatAt ? (p.lastHeartbeatAt | date: 'medium') : 'never' }}</td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
@@ -89,7 +89,13 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 export class PrintersComponent implements OnInit {
   printers = signal<PrinterRow[]>([]);
   shops = signal<Shop[]>([]);
-  enrichedPrinters = computed(() => this.printers().map((p) => ({ ...p, shopName: this.shopName(p.shopId) })));
+  enrichedPrinters = computed(() =>
+    this.printers().map((p) => ({
+      ...p,
+      shopName: this.shopName(p.shopId),
+      computer: p.capabilitiesJson?.hostname ?? 'Not reported yet',
+    })),
+  );
   loading = signal(true);
 
   constructor(private readonly adminService: AdminService) {}

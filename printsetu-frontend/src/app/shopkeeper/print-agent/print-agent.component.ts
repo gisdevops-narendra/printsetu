@@ -41,8 +41,8 @@ interface Faq {
   template: `
     <div class="page-header">
       <div>
-        <h1 class="page-title">Print Agent</h1>
-        <p class="page-subtitle">The small program that lets PrintSetu send jobs to your printer.</p>
+        <h1 class="page-title">Printer App</h1>
+        <p class="page-subtitle">The small program that lets PrintSetu send orders to your printer.</p>
       </div>
       <div class="live">
         <span class="live__dot" [class.is-paused]="state() === 'error'"></span>
@@ -58,7 +58,7 @@ interface Faq {
         <i class="pi pi-desktop"></i>
         <div>
           <strong>Set this up on a computer</strong>
-          <p>The Print Agent installs on the Windows or Linux computer that is connected to your printer. Open this page there, or send yourself the link.</p>
+          <p>The Printer App installs on the Windows or Linux computer that is connected to your printer. Open this page there, or send yourself the link.</p>
           <button type="button" class="link-btn" (click)="copyPageLink()"><i class="pi pi-copy"></i> Copy link to this page</button>
         </div>
       </div>
@@ -78,7 +78,7 @@ interface Faq {
           <div class="hero__icon"><i class="pi pi-exclamation-circle"></i></div>
           <div class="hero__body">
             <h2 class="hero__title">Couldn't check your printer</h2>
-            <p class="hero__text">We couldn't reach PrintSetu just now. Your queue is unaffected.</p>
+            <p class="hero__text">We couldn't reach PrintSetu just now. Your print orders are unaffected.</p>
           </div>
           <button type="button" class="btn btn--solid" (click)="refresh(true)">Try again</button>
         }
@@ -86,7 +86,7 @@ interface Faq {
           <div class="hero__icon"><i class="pi pi-desktop"></i></div>
           <div class="hero__body">
             <h2 class="hero__title">Connect your printer</h2>
-            <p class="hero__text">Install the Print Agent on the computer that is connected to your printer. It takes about a minute, and there are no codes to enter.</p>
+            <p class="hero__text">Install the Printer App on the computer that is connected to your printer. It takes about a minute, and there are no codes to enter.</p>
           </div>
           <button type="button" class="btn btn--solid" (click)="download()" [disabled]="downloading()">
             <i class="pi" [ngClass]="downloading() ? 'pi-spin pi-spinner' : 'pi-download'"></i> Download for {{ osLabel() }}
@@ -97,8 +97,8 @@ interface Faq {
           <div class="hero__body">
             <h2 class="hero__title">Printer connected</h2>
             <p class="hero__text">
-              {{ online().length }} {{ online().length === 1 ? 'printer is' : 'printers are' }} online &middot; last check-in {{ lastSeenLabel() }}.
-              New jobs are sent to the printer you choose below.
+              {{ online().length }} {{ online().length === 1 ? 'printer is' : 'printers are' }} online &middot; last seen {{ lastSeenLabel() }}.
+              New orders are sent to the printer you choose below.
             </p>
           </div>
         }
@@ -107,7 +107,7 @@ interface Faq {
           <div class="hero__body">
             <h2 class="hero__title">Printer offline</h2>
             <p class="hero__text">
-              We last heard from your Print Agent {{ lastSeenLabel() }}. Jobs wait in your queue and print as soon as it reconnects.
+              We last heard from your Printer App {{ lastSeenLabel() }}. Orders wait in Print Orders and print as soon as it reconnects.
             </p>
           </div>
           <button type="button" class="btn btn--solid" (click)="openFaq(0)">
@@ -136,7 +136,7 @@ interface Faq {
             <li class="step" [class.is-done]="step1Done()">
               <span class="step__badge">@if (step1Done()) { <i class="pi pi-check"></i> } @else { 1 }</span>
               <div class="step__body">
-                <h3>Download the Print Agent</h3>
+                <h3>Download the Printer App</h3>
                 <div class="os-switch" role="radiogroup" aria-label="Computer type">
                   @for (o of osOptions; track o) {
                     <button type="button" role="radio" class="os-switch__opt" [class.is-active]="os() === o" [attr.aria-checked]="os() === o" (click)="os.set(o)">
@@ -193,7 +193,7 @@ interface Faq {
               <span class="step__badge">@if (online().length > 0) { <i class="pi pi-check"></i> } @else { <i class="pi pi-wifi"></i> }</span>
               <div class="step__body">
                 <h3>{{ online().length > 0 ? 'Connected' : 'Waiting for your printer…' }}</h3>
-                <p>{{ online().length > 0 ? 'Your computer showed up here on its own. Choose which printer to print on under Your printers.' : "You don't need to do anything here. This page updates by itself once the agent connects." }}</p>
+                <p>{{ online().length > 0 ? 'Your computer showed up here on its own. Choose which printer to print on under Your printers.' : "You don't need to do anything here. This page updates by itself once the Printer App connects." }}</p>
               </div>
             </li>
           </ol>
@@ -217,7 +217,7 @@ interface Faq {
             <div class="empty">
               <span class="empty__icon"><i class="pi pi-print"></i></span>
               <strong>No printer connected yet</strong>
-              <p>Once the Print Agent is installed, your printer appears here automatically.</p>
+              <p>Once the Printer App is installed, your printer appears here automatically.</p>
             </div>
           } @else {
             <ul class="plist">
@@ -228,11 +228,10 @@ interface Faq {
                     <span class="printer__name" [title]="p.printerName">{{ p.printerName }}</span>
                     <span class="printer__meta">
                       @if (p.capabilitiesJson?.hostname) {
-                        <span class="printer__driver" [title]="p.capabilitiesJson!.hostname!">{{ p.capabilitiesJson!.hostname }}</span>
+                        <span class="printer__driver" [title]="p.capabilitiesJson!.hostname!">On {{ p.capabilitiesJson!.hostname }}</span>
                       } @else if (p.driverName) {
                         <span class="printer__driver" [title]="p.driverName">{{ p.driverName }}</span>
                       }
-                      <span>Agent {{ shortId(p.agentId) }}</span>
                     </span>
                   </div>
                   <div class="printer__side">
@@ -266,7 +265,7 @@ interface Faq {
                           class="target__rescan"
                           (click)="rescan(p)"
                           [disabled]="rescanningId() === p.id || p.status !== 'ONLINE'"
-                          [title]="p.status === 'ONLINE' ? 'Look for printers again' : 'The agent must be online to look for printers'"
+                          [title]="p.status === 'ONLINE' ? 'Look for printers again' : 'The Printer App must be online to look for printers'"
                           aria-label="Look for printers again"
                         >
                           <i class="pi" [ngClass]="rescanningId() === p.id || savingId() === p.id ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
@@ -280,7 +279,7 @@ interface Faq {
                     } @else if (p.status === 'ONLINE') {
                       <p class="target__note"><i class="pi pi-spin pi-spinner"></i> Looking for printers on this computer…</p>
                     } @else {
-                      <p class="target__note">Printers on this computer appear here once the agent connects.</p>
+                      <p class="target__note">Printers on this computer appear here once the Printer App connects.</p>
                     }
                   </div>
                 </li>
@@ -304,7 +303,7 @@ interface Faq {
                       @for (s of f.steps; track s) { <li>{{ s }}</li> }
                     </ol>
                     @if (f.queueLink) {
-                      <a routerLink="/shop/queue" class="link-btn"><i class="pi pi-inbox"></i> Open Print Queue</a>
+                      <a routerLink="/shop/queue" class="link-btn"><i class="pi pi-inbox"></i> Open Print Orders</a>
                     }
                   </div>
                 }
@@ -1084,14 +1083,14 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
       steps: [
         'Check that the computer with the printer is switched on and connected to the internet.',
         'Check that the printer itself is on and has paper.',
-        'Restart the computer. The Print Agent starts on its own.',
-        'Still offline? Download the agent again and run Install.bat once more.',
+        'Restart the computer. The Printer App starts on its own.',
+        'Still offline? Download the Printer App again and run Install.bat once more.',
       ],
     },
     {
       q: 'My printer is not in the list',
       steps: [
-        'Check that the printer is switched on and connected to the computer running the Print Agent.',
+        'Check that the printer is switched on and connected to the computer running the Printer App.',
         'Check that it can print a test page from that computer (Windows: Settings > Printers & scanners; Linux: Settings > Printers).',
         'Click the refresh button next to the printer list to look again.',
         'On Linux, run "lpstat -e" in a Terminal: the printer must be listed there. If the command is missing, install CUPS with "sudo apt install cups cups-client".',
@@ -1106,12 +1105,12 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
       ],
     },
     {
-      q: 'A job was sent but nothing printed',
+      q: 'An order was sent but nothing printed',
       steps: [
-        'Open the Print Queue and look at the job status. It shows whether it was sent, printing or failed.',
+        'Open Print Orders and look at the order status. It shows whether it was sent, printing or failed.',
         'Check that the right printer is chosen under Print to on this page.',
         'Check that the printer has paper and ink, and no error light.',
-        'If the printer was offline, the job prints as soon as it reconnects.',
+        'If the printer was offline, the order prints as soon as it reconnects.',
       ],
       queueLink: true,
     },
@@ -1219,9 +1218,9 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
     this.previousState = current;
     if (before === null || before === current) return;
     if (current === 'online' && (before === 'offline' || before === 'none')) {
-      this.messageService.add({ severity: 'success', summary: 'Printer connected', detail: 'New jobs will print automatically.' });
+      this.messageService.add({ severity: 'success', summary: 'Printer connected', detail: 'New orders will print automatically.' });
     } else if (current === 'offline' && before === 'online') {
-      this.messageService.add({ severity: 'warn', summary: 'Printer went offline', detail: 'Jobs will wait until it reconnects.' });
+      this.messageService.add({ severity: 'warn', summary: 'Printer went offline', detail: 'Orders will wait until it reconnects.' });
     }
   }
 
@@ -1274,10 +1273,10 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
     if (p.osPrinterName) {
       return this.hasPrinter(list, p.osPrinterName)
         ? null
-        : `"${p.osPrinterName}" is no longer on this computer. Jobs will fail until you choose another printer.`;
+        : `"${p.osPrinterName}" is no longer on this computer. Orders will fail until you choose another printer.`;
     }
     if (list.length > 1 && !list.some((d) => d.isDefault)) {
-      return 'This computer has no default printer. Choose a printer so jobs know where to go.';
+      return 'This computer has no default printer. Choose a printer so orders know where to go.';
     }
     return null;
   }
@@ -1293,7 +1292,7 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
         this.messageService.add({
           severity: 'success',
           summary: 'Printer saved',
-          detail: osPrinterName ? `Jobs will print on ${osPrinterName}.` : "Jobs will print on the computer's default printer.",
+          detail: osPrinterName ? `Orders will print on ${osPrinterName}.` : "Orders will print on the computer's default printer.",
         });
       },
       error: () => {
@@ -1310,7 +1309,7 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
       next: ({ requested }) => {
         if (!requested) {
           this.rescanningId.set(null);
-          this.messageService.add({ severity: 'warn', summary: 'Print Agent is offline', detail: 'It will report its printers when it reconnects.' });
+          this.messageService.add({ severity: 'warn', summary: 'Printer App is offline', detail: 'It will report its printers when it reconnects.' });
           return;
         }
         setTimeout(() => {
@@ -1340,10 +1339,6 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
     return timeAgo(iso, this.now());
   }
 
-  shortId(agentId: string): string {
-    return agentId.length > 10 ? agentId.slice(0, 8) + '…' : agentId;
-  }
-
   statusLabel(status: PrinterRow['status']): string {
     return status === 'ONLINE' ? 'Online' : status === 'OFFLINE' ? 'Offline' : 'Not connected yet';
   }
@@ -1351,7 +1346,7 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
   confirmRemove(printer: PrinterRow): void {
     this.confirmationService.confirm({
       header: 'Remove printer',
-      message: `Remove "${printer.printerName}"? Its Print Agent stops being able to receive jobs immediately. You can always install and register a new one.`,
+      message: `Remove "${printer.printerName}"? Its Printer App stops receiving orders immediately. You can always install and register a new one.`,
       icon: 'pi pi-exclamation-triangle',
       acceptButtonProps: { severity: 'danger', label: 'Remove' },
       accept: () => {

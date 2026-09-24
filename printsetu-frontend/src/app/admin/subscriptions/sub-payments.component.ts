@@ -19,7 +19,7 @@ const PAGE = 20;
       <span class="gateway__icon"><i class="pi pi-wallet"></i></span>
       <div>
         <strong>Manual payment tracking</strong>
-        <p>No payment gateway (Razorpay, Stripe, …) is connected. Payments are recorded by an admin with <b>Mark paid</b> (cash, UPI, bank transfer). Automatic renewals and retries switch on once a gateway is added.</p>
+        <p>No online payment service (Razorpay, Stripe, …) is connected. Payments are recorded by an admin with <b>Mark paid</b> (cash, UPI, bank transfer). Automatic renewals and retries switch on once one is added.</p>
       </div>
     </div>
 
@@ -176,7 +176,7 @@ export class SubPaymentsComponent implements OnInit {
     { key: 'FAILED', label: 'Failed' },
     { key: 'PARTIALLY_REFUNDED', label: 'Part refunded' },
     { key: 'REFUNDED', label: 'Refunded' },
-    { key: 'VOID', label: 'Void' },
+    { key: 'VOID', label: 'Cancelled' },
   ];
 
   loading = signal(true);

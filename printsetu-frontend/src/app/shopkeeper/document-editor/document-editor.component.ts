@@ -62,17 +62,17 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
       } @else if (!job()) {
         <div class="state-box">
           <i class="pi pi-inbox state-box__icon"></i>
-          <p class="m-0">Print job not found.</p>
-          <p-button label="Back to queue" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" size="small" (onClick)="backToQueue()" />
+          <p class="m-0">Order not found.</p>
+          <p-button label="Back to Print Orders" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" size="small" (onClick)="backToQueue()" />
         </div>
       } @else {
         <header class="editor-header">
-          <button type="button" class="back-btn" (click)="backToQueue()" pTooltip="Back to queue" tooltipPosition="bottom">
+          <button type="button" class="back-btn" (click)="backToQueue()" pTooltip="Back to Print Orders" tooltipPosition="bottom">
             <i class="pi pi-arrow-left"></i>
           </button>
           <div class="editor-header__title">
             <div class="title-row">
-              <h1 class="editor-title">Token #{{ job()!.tokenNumber }}</h1>
+              <h1 class="editor-title">Order #{{ job()!.tokenNumber }}</h1>
               <span class="pill">{{ job()!.items.length }} {{ job()!.items.length === 1 ? 'document' : 'documents' }}</span>
             </div>
             <p class="editor-subtitle" [title]="selectedItem()?.document?.originalName">
@@ -81,7 +81,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
           </div>
           <div class="header-actions">
             @if (hasEdits()) {
-              <p-button label="Revert to original" icon="pi pi-undo" severity="secondary" [outlined]="true" size="small" (onClick)="resetEdits()" [disabled]="savingEdit()" />
+              <p-button label="Undo all changes" icon="pi pi-undo" severity="secondary" [outlined]="true" size="small" (onClick)="resetEdits()" [disabled]="savingEdit()" />
             }
             <div class="pager">
               <button type="button" class="pager__btn" [disabled]="selectedIndex() === 0" (click)="prev()" aria-label="Previous document">
@@ -126,7 +126,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
                       class="icon-btn icon-btn--danger"
                       [disabled]="job()!.items.length === 1"
                       (click)="removeItem(item)"
-                      title="Remove from job"
+                      title="Remove from order"
                     >
                       <i class="pi pi-trash"></i>
                     </button>
@@ -276,7 +276,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
           </div>
           <div class="print-bar__total">
             <div class="total">
-              <span>Job total</span>
+              <span>Order total</span>
               <strong>{{ job()!.currency }} {{ job()!.amount }}</strong>
             </div>
             <p-button label="Confirm &amp; Print" icon="pi pi-print" [loading]="printing()" (onClick)="confirmAndPrint()" />
@@ -1098,7 +1098,7 @@ export class DocumentEditorComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.messageService.add({ severity: 'error', summary: 'Could not load this print job.' });
+        this.messageService.add({ severity: 'error', summary: 'Could not load this order.' });
       },
     });
   }
@@ -1226,7 +1226,7 @@ export class DocumentEditorComponent implements OnInit {
 
   removeItem(item: PrintJobItemRow): void {
     this.confirmationService.confirm({
-      message: `Remove "${item.document?.originalName}" from this print job?`,
+      message: `Remove "${item.document?.originalName}" from this order?`,
       header: 'Remove document',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
@@ -1387,7 +1387,7 @@ export class DocumentEditorComponent implements OnInit {
         this.editDraft = { ...DEFAULT_EDIT_STATE };
         this.patchSelectedItem({ editState: null, renderedS3Key: null });
         this.loadPreview();
-        this.messageService.add({ severity: 'success', summary: 'Reverted to original' });
+        this.messageService.add({ severity: 'success', summary: 'Changes undone' });
       },
     });
   }

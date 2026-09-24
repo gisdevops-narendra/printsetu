@@ -18,8 +18,8 @@ import { QrData, QrPanelComponent } from '../../shared/components/qr-panel/qr-pa
         <h1 class="page-title">Shop QR Code</h1>
         <p class="page-subtitle">
           @if (shopName()) { <strong>{{ shopName() }}</strong> &middot; }
-          Customers scan this to reach the upload page for this shop. Regenerating issues a new code without
-          affecting any past order.
+          Customers scan this to reach the upload page for this shop. Making a new code doesn't affect any
+          past order.
         </p>
       </div>
     </div>
@@ -92,15 +92,15 @@ export class QrComponent implements OnInit {
 
   regenerate(): void {
     this.confirmationService.confirm({
-      message: 'Regenerate the QR code? The old printed QR sheet will stop working immediately.',
-      header: 'Confirm regeneration',
+      message: 'Make a new QR code? The old printed QR sign will stop working immediately.',
+      header: 'Make a new QR code?',
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Regenerate',
+      acceptLabel: 'Make a new code',
       rejectLabel: 'Cancel',
       accept: () => {
         this.adminService.regenerateQr(this.shopId).subscribe((qr) => {
           this.qr.set(qr);
-          this.messageService.add({ severity: 'success', summary: 'QR code regenerated' });
+          this.messageService.add({ severity: 'success', summary: 'New QR code ready' });
         });
       },
     });

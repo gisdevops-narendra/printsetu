@@ -11,6 +11,7 @@ import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { PrintJobRow } from '../../core/models/models';
 import { StatusTagComponent } from '../../shared/components/status-tag/status-tag.component';
 import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
+import { printOptionsLabel } from '../../shared/utils/print-options.util';
 
 @Component({
   selector: 'app-history',
@@ -30,7 +31,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     <div class="page-header">
       <div>
         <h1 class="page-title">Print History</h1>
-        <p class="page-subtitle m-0">Every job submitted to your shop, most recent first.</p>
+        <p class="page-subtitle m-0">Every order sent to your shop, most recent first.</p>
       </div>
       <div class="page-actions">
         <p-iconfield>
@@ -45,7 +46,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
           [outlined]="true"
           [disabled]="jobs().length === 0"
           (onClick)="confirmClear()"
-          pTooltip="Permanently deletes completed/cancelled jobs. Jobs still in progress are kept."
+          pTooltip="Permanently deletes completed and cancelled orders. Orders still in progress are kept."
         />
       </div>
     </div>
@@ -65,7 +66,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 8%" pSortableColumn="tokenNumber">Token <p-sortIcon field="tokenNumber" /></th>
+          <th style="width: 8%" pSortableColumn="tokenNumber">Order no. <p-sortIcon field="tokenNumber" /></th>
           <th style="width: 24%">Documents</th>
           <th style="width: 17%; border-left: 1px solid var(--bd-f1f5f9)">Options</th>
           <th style="width: 10%" pSortableColumn="amount">Amount <p-sortIcon field="amount" /></th>
@@ -76,7 +77,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
       </ng-template>
       <ng-template pTemplate="body" let-job>
         <tr>
-          <td data-label="Token"><span class="font-semibold">#{{ job.tokenNumber }}</span></td>
+          <td data-label="Order no."><span class="font-semibold">#{{ job.tokenNumber }}</span></td>
           <td data-label="Documents">
             <div class="item-stack">
               @for (item of job.items; track item.id) {
@@ -89,7 +90,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
           <td class="text-xs" style="border-left: 1px solid var(--bd-f1f5f9)" data-label="Options">
             <div class="item-stack">
               @for (item of job.items; track item.id) {
-                <span>{{ item.paperSize }} · {{ item.colorMode }} · {{ item.sideMode }} ×{{ item.copies }}</span>
+                <span>{{ optionsLabel(item) }}</span>
               }
             </div>
           </td>
@@ -110,6 +111,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
   `,
 })
 export class HistoryComponent implements OnInit {
+  readonly optionsLabel = printOptionsLabel;
   jobs = signal<PrintJobRow[]>([]);
   enrichedJobs = computed(() =>
     this.jobs().map((job) => ({
@@ -140,12 +142,12 @@ export class HistoryComponent implements OnInit {
   confirmClear(): void {
     this.confirmationService.confirm({
       message:
-        'Permanently delete completed and cancelled jobs from your history? Jobs still in progress are kept. This cannot be undone.',
+        'Permanently delete completed and cancelled orders from your history? Orders still in progress are kept. This cannot be undone.',
       header: 'Clear print history',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.shopkeeperService.clearHistory().subscribe((res) => {
-          this.messageService.add({ severity: 'success', summary: `Cleared ${res.cleared} job(s)` });
+          this.messageService.add({ severity: 'success', summary: `Cleared ${res.cleared} order(s)` });
           this.load();
         });
       },

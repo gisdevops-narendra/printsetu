@@ -292,11 +292,11 @@ interface PersistedOrderSession {
                 </span>
                 <h1 class="title title--center">{{ statusCopy(job.status) }}</h1>
                 <div class="token">
-                  <span class="token__label">Your token</span>
+                  <span class="token__label">Your order number</span>
                   <strong class="token__value">#{{ tokenNumber() }}</strong>
                 </div>
                 <app-status-tag [status]="job.status" />
-                <p class="hint">Show or quote this number at the counter for anything about this order.</p>
+                <p class="hint">Show this number at the counter for anything about this order.</p>
               </section>
             }
           }
@@ -1249,7 +1249,7 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
           this.jobStatus.set({ status: job.status });
           this.currentStep.set(2);
           this.startPolling();
-          this.messageService.add({ severity: 'info', summary: 'Resumed your print request' });
+          this.messageService.add({ severity: 'info', summary: 'Your order is still here' });
         },
         error: () => this.clearPersisted(),
       });
@@ -1320,7 +1320,7 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
     this.confirmationService.confirm({
       header: 'Start over?',
       message: this.jobId()
-        ? 'This stops tracking the current order on this phone. The shop still has your request, so keep your token number.'
+        ? 'This stops tracking the current order on this phone. The shop still has your request, so keep your order number.'
         : 'Your current files and print settings will be cleared.',
       icon: 'pi pi-refresh',
       acceptLabel: 'Start over',

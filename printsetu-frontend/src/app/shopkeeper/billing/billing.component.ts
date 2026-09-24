@@ -38,7 +38,7 @@ import { CHANNEL_META, STATE_META, cyclePrice, cycleUnit, downloadBlob, limit, m
           <i class="pi pi-lock"></i>
           <div>
             <strong>Your shop is suspended</strong>
-            <p>Customers who scan your QR code see “This shop is temporarily unavailable”. Only this Billing page is open until your account is reinstated.@if (o.amountDue) { Pay {{ money(o.amountDue.amount, o.amountDue.currency) }} to your administrator and access returns as soon as they record it. }</p>
+            <p>Customers who scan your QR code see “This shop is temporarily unavailable”. Only this Billing page is open until your account is turned back on.@if (o.amountDue) { Pay {{ money(o.amountDue.amount, o.amountDue.currency) }} to your administrator and access returns as soon as they record it. }</p>
           </div>
         </div>
       }
@@ -95,16 +95,16 @@ import { CHANNEL_META, STATE_META, cyclePrice, cycleUnit, downloadBlob, limit, m
                 <div class="track"><span [style.width.%]="pct(o.usage.printsThisMonth, o.plan.maxPrintsPerMonth)" [class.hot]="pct(o.usage.printsThisMonth, o.plan.maxPrintsPerMonth) >= 90"></span></div>
               </div>
               <div>
-                <div class="usage__row"><span>Tokens today</span><strong>{{ o.usage.tokensToday | number }} / {{ limit(o.plan.maxTokensPerDay) }}</strong></div>
+                <div class="usage__row"><span>Orders today</span><strong>{{ o.usage.tokensToday | number }} / {{ limit(o.plan.maxTokensPerDay) }}</strong></div>
                 <div class="track"><span [style.width.%]="pct(o.usage.tokensToday, o.plan.maxTokensPerDay)" [class.hot]="pct(o.usage.tokensToday, o.plan.maxTokensPerDay) >= 90"></span></div>
               </div>
               <div>
-                <div class="usage__row"><span>Print agent devices</span><strong>{{ o.usage.printers }} / {{ limit(o.plan.maxPrinters) }}</strong></div>
+                <div class="usage__row"><span>Computers connected to a printer</span><strong>{{ o.usage.printers }} / {{ limit(o.plan.maxPrinters) }}</strong></div>
                 <div class="track"><span [style.width.%]="pct(o.usage.printers, o.plan.maxPrinters)" [class.hot]="pct(o.usage.printers, o.plan.maxPrinters) >= 100"></span></div>
               </div>
             </div>
             <ul class="feat">
-              <li [class.off]="!o.plan.analyticsAccess"><i class="pi" [ngClass]="o.plan.analyticsAccess ? 'pi-check' : 'pi-times'"></i> Sales analytics</li>
+              <li [class.off]="!o.plan.analyticsAccess"><i class="pi" [ngClass]="o.plan.analyticsAccess ? 'pi-check' : 'pi-times'"></i> Sales reports</li>
               <li [class.off]="!o.plan.prioritySupport"><i class="pi" [ngClass]="o.plan.prioritySupport ? 'pi-check' : 'pi-times'"></i> Priority support</li>
               @for (h of o.plan.highlights; track h) { <li><i class="pi pi-check"></i> {{ h }}</li> }
             </ul>
@@ -114,8 +114,8 @@ import { CHANNEL_META, STATE_META, cyclePrice, cycleUnit, downloadBlob, limit, m
           <section class="pf-card">
             <header class="pf-card__head"><h3 class="pf-eyebrow">Preferences</h3></header>
             <div class="pref">
-              <div><strong>Auto-renew</strong><p>{{ o.subscription.autoRenew ? 'A renewal invoice is created when your period ends.' : 'Your plan expires at the end of the period.' }}</p></div>
-              <p-toggleswitch [ngModel]="o.subscription.autoRenew" (ngModelChange)="setAutoRenew($event)" [ngModelOptions]="{ standalone: true }" aria-label="Auto-renew" [disabled]="o.access.state === 'CANCELLED'" />
+              <div><strong>Renew automatically</strong><p>{{ o.subscription.autoRenew ? 'A renewal invoice is created when your period ends.' : 'Your plan expires at the end of the period.' }}</p></div>
+              <p-toggleswitch [ngModel]="o.subscription.autoRenew" (ngModelChange)="setAutoRenew($event)" [ngModelOptions]="{ standalone: true }" aria-label="Renew automatically" [disabled]="o.access.state === 'CANCELLED'" />
             </div>
             <div class="pref pref--col">
               <div><strong>Reminders and billing alerts</strong><p>How we contact you about renewals and payments.</p></div>
@@ -497,7 +497,7 @@ export class ShopBillingComponent implements OnInit {
   setAutoRenew(v: boolean): void {
     this.billing.myPreferences({ autoRenew: v }).subscribe((o) => {
       this.apply(o);
-      this.messages.add({ severity: 'success', summary: v ? 'Auto-renew is on' : 'Auto-renew is off' });
+      this.messages.add({ severity: 'success', summary: v ? 'Your plan will renew automatically' : 'Your plan will not renew automatically' });
     });
   }
 

@@ -10,13 +10,13 @@ import { ShopHeaderComponent } from './shop-header.component';
 const BILLING: ShellNavItem = { label: 'Billing', icon: 'pi pi-credit-card', route: '/shop/billing' };
 
 const FULL_NAV: ShellNavItem[] = [
-  { label: 'Print Queue', icon: 'pi pi-inbox', route: '/shop/queue' },
+  { label: 'Print Orders', icon: 'pi pi-inbox', route: '/shop/queue' },
   { label: 'History', icon: 'pi pi-history', route: '/shop/history' },
   { label: 'Notifications', icon: 'pi pi-bell', route: '/shop/notifications' },
   { label: 'Shop Profile', icon: 'pi pi-building', route: '/shop/profile' },
   { label: 'Pricing', icon: 'pi pi-tag', route: '/shop/pricing' },
   { label: 'QR Code', icon: 'pi pi-qrcode', route: '/shop/qr' },
-  { label: 'Print Agent', icon: 'pi pi-desktop', route: '/shop/print-agent' },
+  { label: 'Printer App', icon: 'pi pi-desktop', route: '/shop/print-agent' },
   BILLING,
 ];
 

@@ -6,6 +6,7 @@ import {
   PrinterRow,
   PrintJobRow,
   ReportSummary,
+  ShopDashboard,
   Shop,
   UserRow,
 } from '../models/models';
@@ -63,6 +64,12 @@ export class AdminService {
   // ---- Reports ----
   summary() {
     return this.http.get<ReportSummary>(`${BASE}/admin/reports/summary`);
+  }
+  /** `from`/`to` are inclusive YYYY-MM-DD days; `shopId` narrows it to one shop. */
+  shopDashboard(from: string, to: string, shopId?: string | null) {
+    return this.http.get<ShopDashboard>(`${BASE}/admin/reports/shops`, {
+      params: { from, to, ...(shopId ? { shopId } : {}) },
+    });
   }
   printHistory(shopId?: string, page = 1, pageSize = 50) {
     return this.http.get<{ items: PrintJobRow[]; total: number }>(`${BASE}/admin/print-history`, {

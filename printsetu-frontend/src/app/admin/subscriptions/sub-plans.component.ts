@@ -51,7 +51,7 @@ const BLANK: Form = {
           <button type="button" role="tab" [class.is-on]="cycle() === c.value" [attr.aria-selected]="cycle() === c.value" (click)="cycle.set(c.value)">{{ c.label }}</button>
         }
       </div>
-      <label class="check"><input type="checkbox" [ngModel]="showRetired()" (ngModelChange)="showRetired.set($event)" /> Show retired plans</label>
+      <label class="check"><input type="checkbox" [ngModel]="showRetired()" (ngModelChange)="showRetired.set($event)" /> Show discontinued plans</label>
       <button type="button" class="pf-btn pf-btn--primary push" (click)="openEditor()"><i class="pi pi-plus"></i> New plan</button>
     </div>
 
@@ -71,7 +71,7 @@ const BLANK: Form = {
             <header class="plan__head">
               <div>
                 <h3>{{ p.name }}</h3>
-                @if (!p.isActive) { <span class="badge badge--muted">Retired</span> }
+                @if (!p.isActive) { <span class="badge badge--muted">Discontinued</span> }
               </div>
               <span class="count" [title]="p.shopCount + ' shops on this plan'"><i class="pi pi-building"></i> {{ p.shopCount }}</span>
             </header>
@@ -90,9 +90,9 @@ const BLANK: Form = {
 
             <ul class="features">
               <li><i class="pi pi-print"></i><span><b>{{ limit(p.maxPrintsPerMonth) }}</b> prints / month</span></li>
-              <li><i class="pi pi-ticket"></i><span><b>{{ limit(p.maxTokensPerDay) }}</b> tokens / day</span></li>
-              <li><i class="pi pi-desktop"></i><span><b>{{ limit(p.maxPrinters) }}</b> print agent {{ p.maxPrinters === 1 ? 'device' : 'devices' }}</span></li>
-              <li [class.off]="!p.analyticsAccess"><i class="pi" [ngClass]="p.analyticsAccess ? 'pi-check' : 'pi-times'"></i><span>Sales analytics</span></li>
+              <li><i class="pi pi-ticket"></i><span><b>{{ limit(p.maxTokensPerDay) }}</b> orders / day</span></li>
+              <li><i class="pi pi-desktop"></i><span><b>{{ limit(p.maxPrinters) }}</b> {{ p.maxPrinters === 1 ? 'computer' : 'computers' }} with a printer</span></li>
+              <li [class.off]="!p.analyticsAccess"><i class="pi" [ngClass]="p.analyticsAccess ? 'pi-check' : 'pi-times'"></i><span>Sales reports</span></li>
               <li [class.off]="!p.prioritySupport"><i class="pi" [ngClass]="p.prioritySupport ? 'pi-check' : 'pi-times'"></i><span>Priority support</span></li>
               @for (h of p.highlights; track h) { <li><i class="pi pi-check"></i><span>{{ h }}</span></li> }
             </ul>
@@ -122,10 +122,10 @@ const BLANK: Form = {
             <div class="rule__body">
               <strong>Upgrade</strong>
               <div class="pf-seg" role="tablist" aria-label="Upgrade timing">
-                <button type="button" role="tab" [class.is-on]="r.upgradeTiming === 'IMMEDIATE_PRORATED'" (click)="setRule('upgradeTiming', 'IMMEDIATE_PRORATED')">Immediately, prorated</button>
+                <button type="button" role="tab" [class.is-on]="r.upgradeTiming === 'IMMEDIATE_PRORATED'" (click)="setRule('upgradeTiming', 'IMMEDIATE_PRORATED')">Immediately, pay for days left</button>
                 <button type="button" role="tab" [class.is-on]="r.upgradeTiming === 'NEXT_CYCLE'" (click)="setRule('upgradeTiming', 'NEXT_CYCLE')">Next renewal</button>
               </div>
-              <p>{{ r.upgradeTiming === 'IMMEDIATE_PRORATED' ? 'The new plan starts now. The shop is charged the price difference for the days left in the cycle.' : 'The shop stays on its current plan until the next renewal, then moves to the new one.' }}</p>
+              <p>{{ r.upgradeTiming === 'IMMEDIATE_PRORATED' ? 'The new plan starts now. The shop is charged the price difference for the days left in the billing period.' : 'The shop stays on its current plan until the next renewal, then moves to the new one.' }}</p>
             </div>
           </div>
           <div class="rule">
@@ -133,7 +133,7 @@ const BLANK: Form = {
             <div class="rule__body">
               <strong>Downgrade</strong>
               <div class="pf-seg" role="tablist" aria-label="Downgrade timing">
-                <button type="button" role="tab" [class.is-on]="r.downgradeTiming === 'END_OF_CYCLE'" (click)="setRule('downgradeTiming', 'END_OF_CYCLE')">End of billing cycle</button>
+                <button type="button" role="tab" [class.is-on]="r.downgradeTiming === 'END_OF_CYCLE'" (click)="setRule('downgradeTiming', 'END_OF_CYCLE')">End of billing period</button>
                 <button type="button" role="tab" [class.is-on]="r.downgradeTiming === 'IMMEDIATE'" (click)="setRule('downgradeTiming', 'IMMEDIATE')">Immediately</button>
               </div>
               <p>{{ r.downgradeTiming === 'END_OF_CYCLE' ? 'The shop keeps what it paid for until the cycle ends, then moves to the cheaper plan. No refund is due.' : 'The cheaper plan starts now. No refund or credit is given for the unused days.' }}</p>
@@ -199,15 +199,15 @@ const BLANK: Form = {
               <input id="pl-p" name="prints" type="number" inputmode="numeric" min="1" [(ngModel)]="form.maxPrintsPerMonth" placeholder="Unlimited" />
             </div>
             <div class="field">
-              <label for="pl-t">Tokens / day</label>
+              <label for="pl-t">Orders / day</label>
               <input id="pl-t" name="tokens" type="number" inputmode="numeric" min="1" [(ngModel)]="form.maxTokensPerDay" placeholder="Unlimited" />
             </div>
             <div class="field">
-              <label for="pl-d">Print agent devices</label>
+              <label for="pl-d">Computers connected to a printer</label>
               <input id="pl-d" name="devices" type="number" inputmode="numeric" min="1" [(ngModel)]="form.maxPrinters" placeholder="Unlimited" />
             </div>
           </div>
-          <div class="toggle"><p-toggleswitch inputId="pl-an" [(ngModel)]="form.analyticsAccess" [ngModelOptions]="{ standalone: true }" /><label for="pl-an">Sales analytics access</label></div>
+          <div class="toggle"><p-toggleswitch inputId="pl-an" [(ngModel)]="form.analyticsAccess" [ngModelOptions]="{ standalone: true }" /><label for="pl-an">Sales reports</label></div>
           <div class="toggle"><p-toggleswitch inputId="pl-ps" [(ngModel)]="form.prioritySupport" [ngModelOptions]="{ standalone: true }" /><label for="pl-ps">Priority support</label></div>
         </fieldset>
 
@@ -215,7 +215,7 @@ const BLANK: Form = {
           <label for="pl-hi">Extra selling points <small>one per line</small></label>
           <textarea id="pl-hi" name="highlights" rows="3" [(ngModel)]="form.highlights" placeholder="Email reminders&#10;QR ordering page"></textarea>
         </div>
-        <div class="toggle"><p-toggleswitch inputId="pl-on" [(ngModel)]="form.isActive" [ngModelOptions]="{ standalone: true }" /><label for="pl-on">Active <small>retired plans cannot be assigned to shops but keep their history</small></label></div>
+        <div class="toggle"><p-toggleswitch inputId="pl-on" [(ngModel)]="form.isActive" [ngModelOptions]="{ standalone: true }" /><label for="pl-on">Active <small>discontinued plans cannot be given to new shops but keep their history</small></label></div>
       </form>
       <ng-template #footer>
         <button type="button" class="pf-btn" (click)="editorOpen = false" [disabled]="saving()">Cancel</button>
@@ -660,7 +660,7 @@ export class SubPlansComponent implements OnInit {
 
   toggleActive(p: SubscriptionPlan): void {
     this.billing.setPlanActive(p.id, !p.isActive).subscribe(() => {
-      this.messages.add({ severity: 'success', summary: p.isActive ? `${p.name} retired` : `${p.name} is active again` });
+      this.messages.add({ severity: 'success', summary: p.isActive ? `${p.name} discontinued` : `${p.name} is active again` });
       this.load();
     });
   }
@@ -668,7 +668,7 @@ export class SubPlansComponent implements OnInit {
   remove(p: SubscriptionPlan): void {
     this.confirm.confirm({
       header: `Delete ${p.name}?`,
-      message: 'This can’t be undone. A plan that shops or invoices still use can only be retired, not deleted.',
+      message: 'This can’t be undone. A plan that shops or invoices still use can only be discontinued, not deleted.',
       icon: 'pi pi-trash',
       acceptLabel: 'Delete',
       rejectLabel: 'Keep',

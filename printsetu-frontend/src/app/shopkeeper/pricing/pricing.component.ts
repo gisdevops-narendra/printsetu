@@ -12,6 +12,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { PricingRate, PricingTier } from '../../core/models/models';
+import { COLOR_LABELS, PAPER_LABELS, SIDE_LABELS, printOptionsLabel } from '../../shared/utils/print-options.util';
 
 @Component({
   selector: 'app-shop-pricing',
@@ -31,8 +32,7 @@ import { PricingRate, PricingTier } from '../../core/models/models';
   template: `
     <h1 class="page-title">Pricing</h1>
     <p class="page-subtitle">
-      Set your own shop's print rates. Rates are versioned — changing a rate never alters the
-      price already locked into past orders.
+      Set your own shop's print prices. Changing a price only affects new orders.
     </p>
 
     <div class="surface-card-flat p-4 mb-4">
@@ -40,15 +40,15 @@ import { PricingRate, PricingTier } from '../../core/models/models';
       <div class="rate-form">
         <div class="rate-form__field">
           <label class="text-sm">Paper size</label>
-          <p-select [options]="paperSizes" [(ngModel)]="form.paperSize" [disabled]="!!editingId()" styleClass="w-full" appendTo="body" />
+          <p-select [options]="paperOptions" optionLabel="label" optionValue="value" [(ngModel)]="form.paperSize" [disabled]="!!editingId()" styleClass="w-full" appendTo="body" />
         </div>
         <div class="rate-form__field">
-          <label class="text-sm">Color mode</label>
-          <p-select [options]="colorModes" [(ngModel)]="form.colorMode" [disabled]="!!editingId()" styleClass="w-full" appendTo="body" />
+          <label class="text-sm">Color</label>
+          <p-select [options]="colorOptions" optionLabel="label" optionValue="value" [(ngModel)]="form.colorMode" [disabled]="!!editingId()" styleClass="w-full" appendTo="body" />
         </div>
         <div class="rate-form__field">
-          <label class="text-sm">Side mode</label>
-          <p-select [options]="sideModes" [(ngModel)]="form.sideMode" [disabled]="!!editingId()" styleClass="w-full" appendTo="body" />
+          <label class="text-sm">Sides</label>
+          <p-select [options]="sideOptions" optionLabel="label" optionValue="value" [(ngModel)]="form.sideMode" [disabled]="!!editingId()" styleClass="w-full" appendTo="body" />
         </div>
         <div class="rate-form__field">
           <label class="text-sm">Price per page (₹)</label>
@@ -87,19 +87,19 @@ import { PricingRate, PricingTier } from '../../core/models/models';
         <tr>
           <th style="width: 16%" pSortableColumn="paperSize">Paper <p-sortIcon field="paperSize" /></th>
           <th style="width: 16%" pSortableColumn="colorMode">Color <p-sortIcon field="colorMode" /></th>
-          <th style="width: 16%" pSortableColumn="sideMode">Side <p-sortIcon field="sideMode" /></th>
+          <th style="width: 16%" pSortableColumn="sideMode">Sides <p-sortIcon field="sideMode" /></th>
           <th style="width: 16%" pSortableColumn="pricePerPage">Price / page <p-sortIcon field="pricePerPage" /></th>
-          <th style="width: 22%" pSortableColumn="effectiveFrom">Effective from <p-sortIcon field="effectiveFrom" /></th>
+          <th style="width: 22%" pSortableColumn="effectiveFrom">Price since <p-sortIcon field="effectiveFrom" /></th>
           <th style="width: 14%"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-rate>
         <tr>
-          <td data-label="Paper">{{ rate.paperSize }}</td>
-          <td data-label="Color">{{ rate.colorMode }}</td>
-          <td data-label="Side">{{ rate.sideMode }}</td>
+          <td data-label="Paper">{{ paperLabels[rate.paperSize] }}</td>
+          <td data-label="Color">{{ colorLabels[rate.colorMode] }}</td>
+          <td data-label="Sides">{{ sideLabels[rate.sideMode] }}</td>
           <td data-label="Price / page">₹{{ rate.pricePerPage }}</td>
-          <td data-label="Effective from">{{ rate.effectiveFrom | date: 'medium' }}</td>
+          <td data-label="Price since">{{ rate.effectiveFrom | date: 'medium' }}</td>
           <td class="flex gap-2 justify-content-end">
             <p-button
               icon="pi pi-pencil"
@@ -122,7 +122,7 @@ import { PricingRate, PricingTier } from '../../core/models/models';
       <ng-template pTemplate="emptymessage">
         <tr>
           <td colspan="6">
-            <div class="table-empty"><i class="pi pi-tag"></i><span>No pricing configured yet.</span></div>
+            <div class="table-empty"><i class="pi pi-tag"></i><span>No prices set yet.</span></div>
           </td>
         </tr>
       </ng-template>
@@ -130,13 +130,13 @@ import { PricingRate, PricingTier } from '../../core/models/models';
 
     <div class="tier-intro">
       <h3 class="m-0 text-base">
-        Quantity-based rates <span class="text-sm text-color-secondary font-normal">(optional)</span>
+        Lower price for bigger orders <span class="text-sm text-color-secondary font-normal">(optional)</span>
       </h3>
       <p class="m-0 mt-2 text-sm text-color-secondary">
-        Charge a different rate for bigger orders, e.g. A4 B/W: 1–5 pages at ₹2, 6 pages and above at ₹1.
+        Charge less per page for bigger orders, e.g. A4 B&amp;W: 1–5 pages at ₹2, 6 pages and above at ₹1.
         The order's total pages (pages × copies of every document with the same paper, color and sides)
-        picks one range, and every page is charged at that range's rate. A page count no range covers
-        uses the fixed rate above.
+        picks one range, and every page is charged at that range's price. A page count no range covers
+        uses the normal price above.
       </p>
     </div>
 
@@ -145,15 +145,15 @@ import { PricingRate, PricingTier } from '../../core/models/models';
       <div class="rate-form">
         <div class="rate-form__field">
           <label class="text-sm">Paper size</label>
-          <p-select [options]="paperSizes" [(ngModel)]="tierForm.paperSize" [disabled]="!!editingTierId()" styleClass="w-full" appendTo="body" />
+          <p-select [options]="paperOptions" optionLabel="label" optionValue="value" [(ngModel)]="tierForm.paperSize" [disabled]="!!editingTierId()" styleClass="w-full" appendTo="body" />
         </div>
         <div class="rate-form__field">
-          <label class="text-sm">Color mode</label>
-          <p-select [options]="colorModes" [(ngModel)]="tierForm.colorMode" [disabled]="!!editingTierId()" styleClass="w-full" appendTo="body" />
+          <label class="text-sm">Color</label>
+          <p-select [options]="colorOptions" optionLabel="label" optionValue="value" [(ngModel)]="tierForm.colorMode" [disabled]="!!editingTierId()" styleClass="w-full" appendTo="body" />
         </div>
         <div class="rate-form__field">
-          <label class="text-sm">Side mode</label>
-          <p-select [options]="sideModes" [(ngModel)]="tierForm.sideMode" [disabled]="!!editingTierId()" styleClass="w-full" appendTo="body" />
+          <label class="text-sm">Sides</label>
+          <p-select [options]="sideOptions" optionLabel="label" optionValue="value" [(ngModel)]="tierForm.sideMode" [disabled]="!!editingTierId()" styleClass="w-full" appendTo="body" />
         </div>
         <div class="rate-form__field">
           <label class="text-sm">From pages</label>
@@ -181,8 +181,8 @@ import { PricingRate, PricingTier } from '../../core/models/models';
       </div>
       @if (!tierComboHasRate()) {
         <p class="m-0 mt-3 text-sm text-color-secondary">
-          <i class="pi pi-info-circle mr-1"></i>Set a fixed rate for {{ tierForm.paperSize }} / {{ tierForm.colorMode }} /
-          {{ tierForm.sideMode }} first. It's used for any page count your ranges don't cover.
+          <i class="pi pi-info-circle mr-1"></i>Set a normal price for {{ optionsLabel($any(tierForm)) }} first. It's used
+          for any page count your ranges don't cover.
         </p>
       }
     </div>
@@ -195,19 +195,19 @@ import { PricingRate, PricingTier } from '../../core/models/models';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 30%">Paper / color / side</th>
+          <th style="width: 30%">Paper / color / sides</th>
           <th style="width: 20%">Pages in order</th>
           <th style="width: 18%">Price / page</th>
-          <th style="width: 18%">Fixed rate</th>
+          <th style="width: 18%">Normal price</th>
           <th style="width: 14%"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-tier>
         <tr>
-          <td data-label="Paper / color / side">{{ tier.paperSize }} / {{ tier.colorMode }} / {{ tier.sideMode }}</td>
+          <td data-label="Paper / color / sides">{{ optionsLabel(tier) }}</td>
           <td data-label="Pages in order">{{ rangeLabel(tier) }}</td>
           <td data-label="Price / page">₹{{ tier.pricePerPage }}</td>
-          <td data-label="Fixed rate" class="text-color-secondary">
+          <td data-label="Normal price" class="text-color-secondary">
             {{ fixedRateFor(tier) !== null ? '₹' + fixedRateFor(tier) : '—' }}
           </td>
           <td class="flex gap-2 justify-content-end">
@@ -227,7 +227,7 @@ import { PricingRate, PricingTier } from '../../core/models/models';
         <tr>
           <td colspan="5">
             <div class="table-empty">
-              <i class="pi pi-chart-bar"></i><span>No page ranges — every order is charged the fixed rate.</span>
+              <i class="pi pi-chart-bar"></i><span>No page ranges — every order is charged the normal price.</span>
             </div>
           </td>
         </tr>
@@ -288,9 +288,13 @@ export class ShopPricingComponent implements OnInit {
   savingTier = signal(false);
   editingTierId = signal<string | null>(null);
 
-  paperSizes = ['A4', 'A3', 'LETTER', 'LEGAL'];
-  colorModes = ['BW', 'COLOR'];
-  sideModes = ['SIMPLEX', 'DUPLEX'];
+  readonly paperLabels: Record<string, string> = PAPER_LABELS;
+  readonly colorLabels: Record<string, string> = COLOR_LABELS;
+  readonly sideLabels: Record<string, string> = SIDE_LABELS;
+  readonly paperOptions = Object.entries(PAPER_LABELS).map(([value, label]) => ({ value, label }));
+  readonly colorOptions = Object.entries(COLOR_LABELS).map(([value, label]) => ({ value, label }));
+  readonly sideOptions = Object.entries(SIDE_LABELS).map(([value, label]) => ({ value, label }));
+  readonly optionsLabel = printOptionsLabel;
 
   form: { paperSize: string; colorMode: string; sideMode: string; pricePerPage: number | null } = {
     paperSize: 'A4',
@@ -368,7 +372,7 @@ export class ShopPricingComponent implements OnInit {
 
   confirmDelete(rate: PricingRate): void {
     this.confirmationService.confirm({
-      message: `Remove the ${rate.paperSize} / ${rate.colorMode} / ${rate.sideMode} rate? Customers will no longer be able to select this combination until a new rate is set, and its page ranges are removed too.`,
+      message: `Remove the ${printOptionsLabel(rate)} price? Customers can't choose this option until you set a new price, and its page ranges are removed too.`,
       header: 'Confirm',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
@@ -463,7 +467,7 @@ export class ShopPricingComponent implements OnInit {
 
   confirmDeleteTier(tier: PricingTier): void {
     this.confirmationService.confirm({
-      message: `Remove the ${this.rangeLabel(tier)} pages range for ${tier.paperSize} / ${tier.colorMode} / ${tier.sideMode}? Orders in that range will be charged the fixed rate.`,
+      message: `Remove the ${this.rangeLabel(tier)} pages range for ${printOptionsLabel(tier)}? Orders in that range will be charged the normal price.`,
       header: 'Confirm',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {

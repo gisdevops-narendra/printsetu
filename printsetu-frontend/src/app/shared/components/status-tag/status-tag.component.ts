@@ -6,7 +6,7 @@ import { PrintJobStatus } from '../../../core/models/models';
 type Severity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
 
 const STATUS_META: Record<PrintJobStatus, { label: string; severity: Severity }> = {
-  CREATED: { label: 'Created', severity: 'secondary' },
+  CREATED: { label: 'New', severity: 'secondary' },
   PRINT_ELIGIBLE: { label: 'Ready to Print', severity: 'info' },
   QUEUED: { label: 'Pending', severity: 'info' },
   PRINTING: { label: 'Printing', severity: 'warn' },
@@ -16,7 +16,7 @@ const STATUS_META: Record<PrintJobStatus, { label: string; severity: Severity }>
   DELETED: { label: 'Printed', severity: 'success' },
   PRINT_FAILED: { label: 'Print Failed', severity: 'danger' },
   AGENT_OFFLINE: { label: 'Printer Offline', severity: 'danger' },
-  PRINT_UNKNOWN: { label: 'Needs Review', severity: 'warn' },
+  PRINT_UNKNOWN: { label: 'Check if printed', severity: 'warn' },
   CANCELLED: { label: 'Cancelled', severity: 'secondary' },
 };
 

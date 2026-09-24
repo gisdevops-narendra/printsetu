@@ -112,7 +112,9 @@ export class DocumentsService {
     const document = await this.prisma.document.findUnique({ where: { id: documentId } });
     if (!document) throw new AppNotFoundException('Document not found.');
     if (claims.sessionId !== document.sessionId || claims.shopId !== document.shopId) {
-      throw new ShopAccessDeniedException('Status token does not grant access to this document.');
+      throw new ShopAccessDeniedException(
+        "This link has expired. Please scan the shop's QR code again.",
+      );
     }
     return document;
   }
@@ -133,7 +135,9 @@ export class DocumentsService {
 
   private async requireOwnSession(sessionId: string, shopId: string, claims?: StatusTokenClaims) {
     if (claims && claims.sessionId !== sessionId) {
-      throw new ShopAccessDeniedException('Status token does not grant access to this session.');
+      throw new ShopAccessDeniedException(
+        "This link has expired. Please scan the shop's QR code again.",
+      );
     }
     const session = await this.prisma.printSession.findUnique({ where: { id: sessionId } });
     if (!session || session.shopId !== shopId) {
@@ -149,7 +153,7 @@ export class DocumentsService {
       throw new ShopAccessDeniedException('This document does not belong to your shop.');
     }
     if (document.status === DocumentStatus.DELETED) {
-      throw new AppNotFoundException('Document has been deleted per retention policy.');
+      throw new AppNotFoundException('This file was removed automatically after printing.');
     }
     const url = await this.storage.getSignedDownloadUrl(document.s3Key, 120);
     return { url, expiresInSeconds: 120 };

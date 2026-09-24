@@ -23,14 +23,18 @@ export class StatusTokenGuard implements CanActivate {
       (request.body && request.body.statusToken);
 
     if (!token || typeof token !== 'string') {
-      throw new UnauthenticatedException('Missing status token.');
+      throw new UnauthenticatedException(
+        "This link has expired. Please scan the shop's QR code again.",
+      );
     }
     try {
       const secret = this.config.get('security', { infer: true }).statusTokenSecret;
       request.statusToken = verifyToken<StatusTokenClaims>(token, secret);
       return true;
     } catch {
-      throw new UnauthenticatedException('Invalid or expired status token.');
+      throw new UnauthenticatedException(
+        "This link has expired. Please scan the shop's QR code again.",
+      );
     }
   }
 }

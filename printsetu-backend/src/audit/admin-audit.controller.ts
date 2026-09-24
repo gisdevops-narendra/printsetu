@@ -34,6 +34,11 @@ export class AdminAuditController {
         orderBy: { createdAt: 'desc' },
         take,
         skip,
+        // Names for the Activity Log page, so it can say who did what to which shop.
+        include: {
+          actor: { select: { name: true, email: true } },
+          shop: { select: { name: true } },
+        },
       }),
       this.prisma.auditLog.count({ where }),
     ]);

@@ -78,9 +78,7 @@ export class AgentPackageService {
     const bundleDir = this.bundleDir(spec);
     if (!fs.existsSync(path.join(bundleDir, spec.binary))) {
       this.logger.error(`Print Agent ${os} bundle not found at ${bundleDir}`);
-      throw new AppNotFoundException(
-        `The ${os === 'linux' ? 'Linux' : 'Windows'} Print Agent installer has not been built on this server yet. Please contact support.`,
-      );
+      throw new AppNotFoundException("The download isn't ready yet. Please contact support.");
     }
   }
 

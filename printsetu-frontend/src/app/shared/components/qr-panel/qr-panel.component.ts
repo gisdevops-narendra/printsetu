@@ -92,7 +92,7 @@ export interface QrData {
               <h2 class="card__title">Need a new code?</h2>
               <p class="note">The old printed sign stops working immediately. Past orders are not affected.</p>
             </div>
-            <button type="button" class="btn btn--danger" (click)="regenerate.emit()"><i class="pi pi-refresh"></i> Regenerate</button>
+            <button type="button" class="btn btn--danger" (click)="regenerate.emit()"><i class="pi pi-refresh"></i> Make a new code</button>
           </section>
         } @else {
           <p class="note note--center">Sign damaged or misused? Ask your administrator to issue a new code.</p>

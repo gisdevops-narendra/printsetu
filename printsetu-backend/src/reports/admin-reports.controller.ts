@@ -3,6 +3,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/request-context';
 import { ReportsService } from './reports.service';
+import { ShopDashboardService } from './shop-dashboard.service';
 import { PrintJobsService } from '../print/print-jobs.service';
 
 @Controller('admin')
@@ -10,12 +11,26 @@ import { PrintJobsService } from '../print/print-jobs.service';
 export class AdminReportsController {
   constructor(
     private readonly reportsService: ReportsService,
+    private readonly shopDashboard: ShopDashboardService,
     private readonly printJobsService: PrintJobsService,
   ) {}
 
   @Get('reports/summary')
   summary() {
     return this.reportsService.summary();
+  }
+
+  /**
+   * Shop-wise dashboard; `from`/`to` are inclusive YYYY-MM-DD days (default:
+   * this month to date). `shopId` narrows every figure to one shop.
+   */
+  @Get('reports/shops')
+  shopSummary(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('shopId') shopId?: string,
+  ) {
+    return this.shopDashboard.shopSummary(from, to, shopId || undefined);
   }
 
   @Get('print-history')
@@ -29,7 +44,10 @@ export class AdminReportsController {
 
   /** Clears finished (DELETED/CANCELLED) history rows; all shops unless shopId is given. */
   @Delete('print-history')
-  clearPrintHistory(@Query('shopId') shopId: string | undefined, @CurrentUser() user: AuthenticatedUser) {
+  clearPrintHistory(
+    @Query('shopId') shopId: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.printJobsService.clearHistory(user.id, shopId);
   }
 

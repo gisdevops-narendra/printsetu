@@ -260,6 +260,8 @@ export interface AuditLogRow {
   entityType: string;
   entityId: string | null;
   createdAt: string;
+  actor?: { name: string; email: string } | null;
+  shop?: { name: string } | null;
 }
 
 export interface ReportSummary {
@@ -271,6 +273,50 @@ export interface ReportSummary {
   pendingJobs: number;
   totalDocuments: number;
   totalRevenue: string;
+}
+
+// ---------- Admin dashboard: shop-wise summary ----------
+
+export interface JobStatusCounts {
+  pending: number;
+  printing: number;
+  printed: number;
+  failed: number;
+  cancelled: number;
+}
+
+export interface ShopDashboardRow {
+  shopId: string;
+  name: string;
+  shopCode: string;
+  city: string;
+  shopStatus: string;
+  /** Taking orders right now (Online/Offline switch or schedule). */
+  online: boolean;
+  agentStatus: 'ONLINE' | 'OFFLINE' | 'NONE';
+  jobs: number;
+  revenue: number;
+  pagesBw: number;
+  pagesColor: number;
+  statusCounts: JobStatusCounts;
+  subscription: {
+    plan: string;
+    status: string;
+    cycle: string;
+    currentPeriodEnd: string;
+    expiringSoon: boolean;
+  } | null;
+}
+
+export interface ShopDashboard {
+  range: { from: string; to: string; timeZone: string };
+  /** The shop every figure is narrowed to, or null for all shops. */
+  shopId: string | null;
+  /** Every shop, for the shop picker (whatever shopId is). */
+  shopOptions: { shopId: string; name: string; city: string }[];
+  totals: { jobs: number; revenue: number; pagesBw: number; pagesColor: number; statusCounts: JobStatusCounts };
+  daily: { date: string; jobs: number; revenue: number }[];
+  shops: ShopDashboardRow[];
 }
 
 // ---------- Shop profile (owner's own view) ----------

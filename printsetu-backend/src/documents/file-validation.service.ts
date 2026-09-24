@@ -33,9 +33,7 @@ export class FileValidationService {
     });
 
     if (!match) {
-      throw new UnsupportedDocumentException(
-        'Only PDF, JPG and PNG files are supported in this release.',
-      );
+      throw new UnsupportedDocumentException('Only PDF, JPG and PNG files can be printed.');
     }
     return match.mime;
   }

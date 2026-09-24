@@ -60,13 +60,13 @@ interface DemoAccount {
         <div class="brand__body">
           <h2 class="brand__headline">Print, without the wait.</h2>
           <p class="brand__desc">
-            PrintSetu connects customers and print shops. Scan a code, upload a file, and it lands in the shop's queue, ready to print.
+            PrintSetu connects customers and print shops. Scan a code, upload a file, and it lands in the shop's print orders, ready to print.
           </p>
 
           <ul class="points">
             <li><i class="pi pi-qrcode"></i><span>Customers upload from their phone with a QR code</span></li>
-            <li><i class="pi pi-inbox"></i><span>A live queue with previews and quick edits</span></li>
-            <li><i class="pi pi-print"></i><span>Jobs reach your printer automatically</span></li>
+            <li><i class="pi pi-inbox"></i><span>Live print orders with previews and quick edits</span></li>
+            <li><i class="pi pi-print"></i><span>Orders go to your printer automatically</span></li>
           </ul>
 
           <div class="visual" aria-hidden="true">
@@ -91,7 +91,7 @@ interface DemoAccount {
           @if (mode() === 'login') {
             <header class="sheet__head">
               <h1 class="sheet__title">Welcome back</h1>
-              <p class="sheet__sub">Sign in to manage your print queue.</p>
+              <p class="sheet__sub">Sign in to manage your print orders.</p>
             </header>
 
             <form (ngSubmit)="submit()" novalidate class="form" [class.is-busy]="loading()">

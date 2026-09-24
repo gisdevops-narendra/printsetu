@@ -33,7 +33,7 @@ export class DocumentsRepository {
     });
     if (result.count === 0) {
       throw new DocumentProcessingConflictException(
-        `Document is not in ${opts.from} state (concurrent update or duplicate attempt).`,
+        'This file was just updated. Refresh the page.',
       );
     }
     return this.prisma.document.findUniqueOrThrow({ where: { id: opts.documentId } });

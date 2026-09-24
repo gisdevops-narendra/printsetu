@@ -30,7 +30,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     <div class="page-header">
       <div>
         <h1 class="page-title">Users</h1>
-        <p class="page-subtitle m-0">Shop user accounts. Each is created when a shop registers from the sign-in page; there is one admin for the whole platform. Credentials are managed by Keycloak.</p>
+        <p class="page-subtitle m-0">Shop user accounts. Each is created when a shop registers from the sign-in page; there is one admin for the whole platform. Passwords are handled by the sign-in system.</p>
       </div>
       <div class="page-actions">
         <p-iconfield>

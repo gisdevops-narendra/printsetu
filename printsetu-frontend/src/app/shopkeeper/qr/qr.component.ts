@@ -14,7 +14,7 @@ import { QrData, QrPanelComponent } from '../../shared/components/qr-panel/qr-pa
       <div>
         <h1 class="page-title">Shop QR Code</h1>
         <p class="page-subtitle">
-          Print the counter sign and customers can scan it to send their documents straight to your queue.
+          Print the counter sign and customers can scan it to send their documents straight to your Print Orders.
         </p>
       </div>
     </div>
