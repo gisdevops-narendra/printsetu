@@ -7,6 +7,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopsComponent } from './shops.component';
 import { AdminService } from '../../core/services/admin.service';
 import { Shop } from '../../core/models/models';
+import { provideEnglishTranslations } from '../../../testing/english-translations';
 
 describe('ShopsComponent (SRS §6 admin shop management)', () => {
   let fixture: ComponentFixture<ShopsComponent>;
@@ -41,6 +42,7 @@ describe('ShopsComponent (SRS §6 admin shop management)', () => {
         provideRouter([]),
         MessageService,
         ConfirmationService,
+        provideEnglishTranslations(),
         { provide: AdminService, useValue: adminService },
       ],
     }).compileComponents();

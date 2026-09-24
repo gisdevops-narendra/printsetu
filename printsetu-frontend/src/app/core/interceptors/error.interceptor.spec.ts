@@ -3,6 +3,7 @@ import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { MessageService } from 'primeng/api';
 import { errorInterceptor } from './error.interceptor';
+import { provideEnglishTranslations } from '../../../testing/english-translations';
 
 describe('errorInterceptor (SRS §17.3 { code, message } -> toast)', () => {
   let http: HttpClient;
@@ -15,6 +16,7 @@ describe('errorInterceptor (SRS §17.3 { code, message } -> toast)', () => {
         provideHttpClient(withInterceptors([errorInterceptor])),
         provideHttpClientTesting(),
         MessageService,
+        provideEnglishTranslations(),
       ],
     });
     http = TestBed.inject(HttpClient);
@@ -81,6 +83,20 @@ describe('errorInterceptor (SRS §17.3 { code, message } -> toast)', () => {
     httpMock
       .expectOne('/api/shop/profile')
       .flush({ code: 'UNAUTHENTICATED', message: 'Missing or invalid authentication.' }, { status: 401, statusText: 'Unauthorized' });
+  });
+
+  it('leaves an unknown shop code to the customer page, which shows its own message', (done) => {
+    spyOn(messageService, 'add');
+    http.get('/api/public/shops/doesnotexist').subscribe({
+      error: (err) => {
+        expect(err.status).toBe(404);
+        expect(messageService.add).not.toHaveBeenCalled();
+        done();
+      },
+    });
+    httpMock
+      .expectOne('/api/public/shops/doesnotexist')
+      .flush({ code: 'NOT_FOUND', message: 'This QR code is not active.' }, { status: 404, statusText: 'Not Found' });
   });
 
   it('explains a lost connection instead of showing the raw HTTP failure', (done) => {

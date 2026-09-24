@@ -1,9 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
+import { provideHttpClient } from '@angular/common/http';
+import { provideRouter } from '@angular/router';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { NotificationsComponent } from './notifications.component';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { NotificationRow } from '../../core/models/models';
+import { provideEnglishTranslations } from '../../../testing/english-translations';
 
 describe('NotificationsComponent (SRS §20 in-app notification feed)', () => {
   let fixture: ComponentFixture<NotificationsComponent>;
@@ -43,6 +47,11 @@ describe('NotificationsComponent (SRS §20 in-app notification feed)', () => {
       imports: [NotificationsComponent],
       providers: [
         provideNoopAnimations(),
+        provideHttpClient(),
+        provideRouter([]),
+        ConfirmationService,
+        MessageService,
+        provideEnglishTranslations(),
         { provide: ShopkeeperService, useValue: shopkeeperService },
       ],
     }).compileComponents();
@@ -62,7 +71,7 @@ describe('NotificationsComponent (SRS §20 in-app notification feed)', () => {
       jasmine.objectContaining({ label: 'Document uploaded', severity: 'info' }),
     );
     expect(component.meta('PRINT_QUEUED')).toEqual(
-      jasmine.objectContaining({ label: 'Print queued', severity: 'info' }),
+      jasmine.objectContaining({ label: 'Pending', severity: 'info' }),
     );
     expect(component.meta('PRINT_COMPLETED')).toEqual(
       jasmine.objectContaining({ label: 'Print completed', severity: 'success' }),

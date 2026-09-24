@@ -178,6 +178,7 @@ export class PrintJobsService {
   /**
    * Unfinished jobs, plus jobs printed in the last few minutes so the shopkeeper
    * sees each one finish (Pending -> Printing -> Printed) before it leaves the queue.
+   * Failed jobs stay too: the shop resolves them by pressing PRINT again.
    */
   async shopQueue(shopId: string) {
     const recentlyPrinted = new Date(Date.now() - RECENTLY_PRINTED_MS);
@@ -193,6 +194,7 @@ export class PrintJobsService {
                 PrintJobStatus.PRINTING,
                 PrintJobStatus.AGENT_OFFLINE,
                 PrintJobStatus.PRINT_UNKNOWN,
+                PrintJobStatus.PRINT_FAILED,
               ],
             },
           },
@@ -539,8 +541,23 @@ export class PrintJobsService {
       throw new Error('AGENT_OFFLINE'); // triggers BullMQ retry/backoff
     }
 
+    this.agentConnections.pushJob(job.printerId, await this.agentJobPayload(job));
+  }
+
+  /**
+   * What the Print Agent receives for a job — shared by the WebSocket push
+   * (dispatchToAgent) and the polling fallback (GET /agent/jobs/next), so a
+   * job prints the same way however the agent is connected: the shop's
+   * edited render when there is one, and a print-ready copy of PDFs.
+   */
+  async agentJobPayload(
+    job: Prisma.PrintJobGetPayload<{
+      include: { items: { include: { document: true } }; printer: true };
+    }>,
+  ) {
+    const items = [...job.items].sort((a, b) => a.printOrder - b.printOrder);
     const documents = await Promise.all(
-      job.items.map(async (item) => {
+      items.map(async (item) => {
         // An edited render may be a different format than the upload (the
         // canvas editor can export PNG for a JPEG document), so describe the
         // file actually being sent.
@@ -567,12 +584,12 @@ export class PrintJobsService {
       }),
     );
 
-    this.agentConnections.pushJob(job.printerId, {
+    return {
       jobId: job.id,
       documents,
       attemptId: `${job.id}:${job.attemptCount}`,
       printerName: job.printer?.osPrinterName ?? null,
-    });
+    };
   }
 
   /**
@@ -585,10 +602,16 @@ export class PrintJobsService {
     try {
       const printReady = await makePdfPrintReady(await this.storage.getObject(sourceKey));
       if (!printReady) return sourceKey;
-      await this.storage.putObject({ key: targetKey, body: printReady, contentType: 'application/pdf' });
+      await this.storage.putObject({
+        key: targetKey,
+        body: printReady,
+        contentType: 'application/pdf',
+      });
       return targetKey;
     } catch (error) {
-      this.logger.warn(`Could not prepare ${sourceKey} for printing, sending it as stored: ${(error as Error).message}`);
+      this.logger.warn(
+        `Could not prepare ${sourceKey} for printing, sending it as stored: ${(error as Error).message}`,
+      );
       return sourceKey;
     }
   }
@@ -610,9 +633,24 @@ export class PrintJobsService {
     const to = map[dto.status];
     if (!to) throw new InvalidPrintOptionException('Unrecognized agent status.');
 
-    // ACCEPTED/PRINTING both land on PRINTING; the second call is a no-op if already there.
-    const from = job.status === to ? null : job.status;
+    let current = job.status;
     let updated = job;
+    // The polling fallback (GET /agent/jobs/next) also hands out AGENT_OFFLINE jobs — that is how an
+    // agent without a live connection gets work. An agent reporting progress on one is evidently back
+    // online, so the job returns to QUEUED first; AGENT_OFFLINE -> PRINTING is not a legal step.
+    if (current === PrintJobStatus.AGENT_OFFLINE && to !== PrintJobStatus.PRINT_FAILED) {
+      updated = await this.repo.transition({
+        jobId,
+        from: PrintJobStatus.AGENT_OFFLINE,
+        to: PrintJobStatus.QUEUED,
+        agentAttemptId: dto.agentAttemptId,
+        message: 'Printer App picked the order up.',
+      });
+      current = PrintJobStatus.QUEUED;
+    }
+
+    // ACCEPTED/PRINTING both land on PRINTING; the second call is a no-op if already there.
+    const from = current === to ? null : current;
     if (from) {
       updated = await this.repo.transition({
         jobId,
@@ -654,13 +692,29 @@ export class PrintJobsService {
       );
     }
     const to = dto.outcome === 'PRINTED' ? PrintJobStatus.PRINTED : PrintJobStatus.PRINT_FAILED;
-    const updated = await this.repo.transition({
+    let updated = await this.repo.transition({
       jobId,
       from: PrintJobStatus.PRINT_UNKNOWN,
       to,
       message: dto.message ?? 'Manually reconciled by shopkeeper',
       data: to === PrintJobStatus.PRINTED ? { printedAt: new Date() } : {},
     });
+    // Same follow-up as when the agent itself reports the outcome (reportAgentStatus): a printed
+    // order goes on to retention so its documents get deleted; a failed one records why.
+    if (to === PrintJobStatus.PRINTED) {
+      await this.notifications.record(shopId, jobId, 'PRINT_COMPLETED');
+      updated = await this.repo.transition({
+        jobId,
+        from: PrintJobStatus.PRINTED,
+        to: PrintJobStatus.RETENTION_PENDING,
+      });
+    } else {
+      await this.notifications.record(shopId, jobId, 'PRINT_FAILED');
+      await this.prisma.printJob.update({
+        where: { id: jobId },
+        data: { failureReason: dto.message ?? 'Marked as not printed by the shop' },
+      });
+    }
     await this.audit.log({
       shopId,
       action: 'PRINT_JOB_RECONCILED',

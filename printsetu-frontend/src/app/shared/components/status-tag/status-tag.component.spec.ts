@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { StatusTagComponent } from './status-tag.component';
+import { provideEnglishTranslations } from '../../../../testing/english-translations';
 
 describe('StatusTagComponent', () => {
   function render(status: string) {
@@ -11,7 +12,7 @@ describe('StatusTagComponent', () => {
   }
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [StatusTagComponent] });
+    TestBed.configureTestingModule({ imports: [StatusTagComponent], providers: [provideEnglishTranslations()] });
   });
 
   it('renders a friendly label for a known status', () => {

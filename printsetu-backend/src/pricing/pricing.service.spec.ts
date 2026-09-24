@@ -14,7 +14,9 @@ describe('PricingService (SRS §10 versioned pricing)', () => {
       update: jest.Mock;
       create: jest.Mock;
       findFirst: jest.Mock;
+      count: jest.Mock;
     };
+    printSettings: { updateMany: jest.Mock };
     pricingTier: {
       findMany: jest.Mock;
       findFirst: jest.Mock;
@@ -34,7 +36,9 @@ describe('PricingService (SRS §10 versioned pricing)', () => {
           .mockImplementation(({ data }) => Promise.resolve({ id: 'new-rate', ...data })),
         update: jest.fn().mockResolvedValue({}),
         findFirst: jest.fn(),
+        count: jest.fn().mockResolvedValue(1),
       },
+      printSettings: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
       pricingTier: {
         findMany: jest.fn().mockResolvedValue([]),
         findFirst: jest.fn(),
@@ -129,6 +133,27 @@ describe('PricingService (SRS §10 versioned pricing)', () => {
         active: true,
       },
       data: { active: false },
+    });
+    expect(prisma.printSettings.updateMany).not.toHaveBeenCalled(); // other rates remain
+  });
+
+  it('switches pricing off when the last active rate is removed', async () => {
+    prisma.pricing.findFirst.mockResolvedValue({
+      id: 'rate-1',
+      paperSize: 'A4',
+      colorMode: 'BW',
+      sideMode: 'SIMPLEX',
+    });
+    prisma.pricing.count.mockResolvedValue(0);
+
+    await service.deactivate('shop-1', 'rate-1');
+
+    expect(prisma.pricing.count).toHaveBeenCalledWith({
+      where: { shopId: 'shop-1', active: true },
+    });
+    expect(prisma.printSettings.updateMany).toHaveBeenCalledWith({
+      where: { shopId: 'shop-1' },
+      data: { pricingEnabled: false },
     });
   });
 

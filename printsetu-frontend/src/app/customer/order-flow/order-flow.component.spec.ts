@@ -7,19 +7,19 @@ import {
 } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, provideRouter } from '@angular/router';
+import { provideTranslateService } from '@ngx-translate/core';
+import { providePrimeNG } from 'primeng/config';
 import { of, throwError } from 'rxjs';
-import { MessageService } from 'primeng/api';
-import { FileUpload } from 'primeng/fileupload';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { OrderFlowComponent } from './order-flow.component';
 import { CustomerService } from '../../core/services/customer.service';
-import { DocumentInfo, UploadResponse } from '../../core/models/models';
+import { DocumentInfo, QuoteResponse, UploadResponse } from '../../core/models/models';
 
-describe('OrderFlowComponent (SRS §5/§8/§9 customer QR -> upload -> options -> confirm -> status; multi-document + reload-resilience extension)', () => {
+describe('OrderFlowComponent (customer QR -> upload & options -> review -> done/status; multi-document + reload-resilience)', () => {
   let fixture: ComponentFixture<OrderFlowComponent>;
   let component: OrderFlowComponent;
   let customerService: jasmine.SpyObj<CustomerService>;
-  const fuStub = { clear: () => undefined } as unknown as FileUpload;
 
   const uploadResponse: UploadResponse = {
     documentId: 'doc-1',
@@ -34,8 +34,37 @@ describe('OrderFlowComponent (SRS §5/§8/§9 customer QR -> upload -> options -
     status: 'UPLOADED',
   };
 
-  function fileEvent(...files: File[]): any {
-    return { files: files.length ? files : [new File(['x'], 'resume.pdf', { type: 'application/pdf' })] };
+  const quote = (overrides: Partial<QuoteResponse> = {}): QuoteResponse => ({
+    quoteId: 'q1',
+    items: [{ documentId: 'doc-1', pageCount: 2, billablePages: 2, amount: '4.00' }],
+    amount: '4.00',
+    priced: true,
+    currency: 'INR',
+    expiresAt: '',
+    ...overrides,
+  });
+
+  const processedDoc = (overrides: Record<string, unknown> = {}) =>
+    ({
+      id: 'doc-1',
+      originalName: 'resume.pdf',
+      mimeType: 'application/pdf',
+      status: 'PROCESSED',
+      pageCount: 2,
+      colorPages: 0,
+      ...overrides,
+    }) as unknown as DocumentInfo;
+
+  /** What a file <input> change event looks like to onFilesChosen. */
+  function chooseFiles(...files: File[]): void {
+    const input = { files: files.length ? files : [new File(['x'], 'resume.pdf', { type: 'application/pdf' })], value: 'C:\\fakepath\\x' };
+    component.onFilesChosen({ target: input } as unknown as Event);
+  }
+
+  function resolveShopWith(extra: Record<string, unknown> = {}): void {
+    customerService.resolveShop.and.returnValue(
+      of({ shopCode: 'demoShopQR001', shopName: 'PrintSetu Demo Shop', city: 'Ahmedabad', available: true, unavailableMessage: null, ...extra }),
+    );
   }
 
   beforeEach(async () => {
@@ -49,16 +78,18 @@ describe('OrderFlowComponent (SRS §5/§8/§9 customer QR -> upload -> options -
       'confirm',
       'status',
     ]);
-    customerService.resolveShop.and.returnValue(
-      of({ shopCode: 'demoShopQR001', shopName: 'PrintSetu Demo Shop', city: 'Ahmedabad', available: true, unavailableMessage: null }),
-    );
+    resolveShopWith();
 
     await TestBed.configureTestingModule({
       imports: [OrderFlowComponent],
       providers: [
         provideNoopAnimations(),
         provideHttpClient(),
+        provideRouter([]),
+        provideTranslateService(),
+        providePrimeNG(),
         MessageService,
+        ConfirmationService,
         { provide: CustomerService, useValue: customerService },
         {
           provide: ActivatedRoute,
@@ -72,14 +103,12 @@ describe('OrderFlowComponent (SRS §5/§8/§9 customer QR -> upload -> options -
   });
 
   afterEach(() => {
-    // Defensive cleanup: several tests start setInterval-based polling and
-    // don't reach a terminal status, so make sure no interval survives to
-    // fire against a later test's (differently configured) spies.
+    // Several tests start interval polling that never reaches a final status.
     component.ngOnDestroy();
     localStorage.clear();
   });
 
-  it('resolves the shop on init and renders step 0', () => {
+  it('resolves the shop on init and shows the upload step', () => {
     fixture.detectChanges();
     expect(component.shopName()).toBe('PrintSetu Demo Shop');
     expect(component.resolvingShop()).toBe(false);
@@ -93,112 +122,157 @@ describe('OrderFlowComponent (SRS §5/§8/§9 customer QR -> upload -> options -
     expect(component.resolvingShop()).toBe(false);
   });
 
-  describe('multi-document upload -> async analysis polling (SRS §9 pipeline, extended to N documents)', () => {
-    beforeEach(() => {
-      fixture.detectChanges(); // resolves shop
-    });
+  it('shows the shop as unavailable and does not restore anything when it is not taking orders', () => {
+    resolveShopWith({ available: false, unavailableMessage: 'This shop is temporarily unavailable.' });
+    localStorage.setItem('printsetu.order.demoShopQR001', JSON.stringify({ sessionId: 'session-1', sessionToken: 'session-token' }));
+    fixture.detectChanges();
+    expect(component.shopUnavailable()).toBeTruthy();
+    expect(customerService.sessionDocuments).not.toHaveBeenCalled();
+  });
 
-    it('uploads a file, storing the session and adding it to the upload list without jumping to Options', fakeAsync(() => {
+  describe('multi-document upload -> analysis polling -> pricing', () => {
+    beforeEach(() => fixture.detectChanges());
+
+    it('uploads a file, storing the session and adding it to the list without leaving the upload step', fakeAsync(() => {
       customerService.upload.and.returnValue(of(uploadResponse));
-      customerService.sessionDocuments.and.returnValue(of([{ ...uploadResponse, id: 'doc-1' } as unknown as DocumentInfo]));
+      customerService.sessionDocuments.and.returnValue(of([{ ...processedDoc(), status: 'UPLOADED' } as DocumentInfo]));
 
-      component.onFilesSelected(fileEvent(), fuStub);
+      chooseFiles();
       tick();
 
       expect(component.uploading()).toBe(false);
       expect(component.sessionId()).toBe('session-1');
       expect(component.uploads().length).toBe(1);
       expect(component.uploads()[0].status).toBe('UPLOADED');
-      expect(component.currentStep()).toBe(0); // still on Upload, not Options
-      expect(component.canContinueToOptions()).toBe(false);
+      expect(component.currentStep()).toBe(0);
+      expect(component.canContinue()).toBe(false);
+      expect(localStorage.getItem('printsetu.order.demoShopQR001')).toContain('session-1');
 
-      discardPeriodicTasks(); // still UPLOADED -> analysis polling is running
+      discardPeriodicTasks();
     }));
 
-    it('uploads a second file reusing the session id from the first', fakeAsync(() => {
+    it('uploads a second file reusing the session id from the first, with the same defaults (A4, B&W, double-sided)', fakeAsync(() => {
       customerService.upload.and.returnValues(
         of(uploadResponse),
         of({ ...uploadResponse, documentId: 'doc-2', originalName: 'photo.jpg', mimeType: 'image/jpeg' }),
       );
-      customerService.sessionDocuments.and.returnValue(of([{ ...uploadResponse, id: 'doc-1' } as unknown as DocumentInfo]));
+      customerService.sessionDocuments.and.returnValue(of([]));
 
       const files = [
         new File(['x'], 'resume.pdf', { type: 'application/pdf' }),
         new File(['y'], 'photo.jpg', { type: 'image/jpeg' }),
       ];
-      component.onFilesSelected(fileEvent(...files), fuStub);
+      chooseFiles(...files);
       tick();
 
+      expect(customerService.upload).toHaveBeenCalledWith('demoShopQR001', files[0], undefined);
       expect(customerService.upload).toHaveBeenCalledWith('demoShopQR001', files[1], 'session-1');
       expect(component.uploads().length).toBe(2);
-      // A photo defaults to COLOR, unlike a PDF which defaults to BW.
-      expect(component.uploads()[1].options.colorMode).toBe('COLOR');
-
-      discardPeriodicTasks(); // still UPLOADED -> analysis polling is running
-    }));
-
-    it('merges polled session-document status until every document is processed', fakeAsync(() => {
-      customerService.upload.and.returnValue(of(uploadResponse));
-      customerService.sessionDocuments.and.returnValue(
-        of([
-          {
-            id: 'doc-1',
-            originalName: 'resume.pdf',
-            mimeType: 'application/pdf',
-            status: 'PROCESSED',
-            pageCount: 3,
-            colorPages: 1,
-            colorDetectionConfidence: 'HIGH',
-          } as unknown as DocumentInfo,
-        ]),
-      );
-
-      component.onFilesSelected(fileEvent(), fuStub);
-      tick();
-      expect(component.canContinueToOptions()).toBe(false); // upload response itself is still UPLOADED
-
-      tick(2000); // DOC_STATUS_POLL_MS — first poll picks up the processed result
-      expect(component.uploads()[0].status).toBe('PROCESSED');
-      expect(component.canContinueToOptions()).toBe(true);
+      expect(component.uploads()[1].options).toEqual({ paperSize: 'A4', colorMode: 'BW', sideMode: 'DUPLEX', copies: 1 });
 
       discardPeriodicTasks();
     }));
 
-    it('marks a document ANALYSIS_FAILED inline without blocking the others', fakeAsync(() => {
-      customerService.upload.and.returnValue(of(uploadResponse));
-      customerService.sessionDocuments.and.returnValue(
-        of([{ id: 'doc-1', originalName: 'resume.pdf', mimeType: 'application/pdf', status: 'ANALYSIS_FAILED' } as unknown as DocumentInfo]),
-      );
+    it('rejects files other than PDF, JPG or PNG without uploading them', fakeAsync(() => {
+      chooseFiles(new File(['x'], 'notes.docx'));
+      tick();
+      expect(customerService.upload).not.toHaveBeenCalled();
+      expect(component.uploadError()).toBeTruthy();
+    }));
 
-      component.onFilesSelected(fileEvent(), fuStub);
+    it('merges polled document status and prices the files once analysed', fakeAsync(() => {
+      customerService.upload.and.returnValue(of(uploadResponse));
+      customerService.sessionDocuments.and.returnValue(of([processedDoc({ pageCount: 3 })]));
+      customerService.quote.and.returnValue(of(quote()));
+
+      chooseFiles();
+      tick();
+      expect(component.canContinue()).toBe(false); // upload response itself is still UPLOADED
+
+      tick(2000); // first document-status poll
+      expect(component.uploads()[0].status).toBe('PROCESSED');
+      expect(customerService.quote).toHaveBeenCalledWith(
+        [{ documentId: 'doc-1', paperSize: 'A4', colorMode: 'BW', sideMode: 'DUPLEX', copies: 1 }],
+        'session-token',
+      );
+      expect(component.canContinue()).toBe(true);
+
+      discardPeriodicTasks();
+    }));
+
+    it('marks a document ANALYSIS_FAILED inline and does not allow continuing with it', fakeAsync(() => {
+      customerService.upload.and.returnValue(of(uploadResponse));
+      customerService.sessionDocuments.and.returnValue(of([processedDoc({ status: 'ANALYSIS_FAILED' })]));
+
+      chooseFiles();
       tick();
       tick(2000);
 
       expect(component.uploads()[0].status).toBe('ANALYSIS_FAILED');
-      expect(component.canContinueToOptions()).toBe(false);
+      expect(component.canContinue()).toBe(false);
 
       discardPeriodicTasks();
     }));
 
-    it('records a per-file error and continues without throwing when one upload fails', fakeAsync(() => {
+    it('records a per-file error and continues when one upload fails', fakeAsync(() => {
       customerService.upload.and.returnValue(throwError(() => new Error('upload failed')));
 
-      component.onFilesSelected(fileEvent(), fuStub);
+      chooseFiles();
       tick();
 
       expect(component.uploading()).toBe(false);
-      expect(component.uploadError()).toContain('resume.pdf');
+      expect(component.uploadError()).toBeTruthy();
       expect(component.uploads().length).toBe(0);
     }));
 
-    it('ignores an upload event with no file selected', fakeAsync(() => {
-      component.onFilesSelected({ files: [] } as any, fuStub);
+    it('ignores a change event with no file selected', fakeAsync(() => {
+      component.onFilesChosen({ target: { files: [], value: '' } } as unknown as Event);
       tick();
       expect(customerService.upload).not.toHaveBeenCalled();
     }));
   });
 
-  describe('per-document options -> quote -> confirm -> status polling', () => {
+  it('defaults to single-sided when the shop only prices single-sided for A4 B&W', fakeAsync(() => {
+    resolveShopWith({ pricingEnabled: true, pricedOptions: [{ paperSize: 'A4', colorMode: 'BW', sideMode: 'SIMPLEX' }] });
+    fixture.detectChanges();
+    customerService.upload.and.returnValue(of(uploadResponse));
+    customerService.sessionDocuments.and.returnValue(of([]));
+
+    chooseFiles();
+    tick();
+
+    expect(component.uploads()[0].options.sideMode).toBe('SIMPLEX');
+    discardPeriodicTasks();
+  }));
+
+  it('switches sides when the chosen colour is only offered on the other side', fakeAsync(() => {
+    resolveShopWith({
+      pricingEnabled: true,
+      pricedOptions: [
+        { paperSize: 'A4', colorMode: 'BW', sideMode: 'SIMPLEX' },
+        { paperSize: 'A4', colorMode: 'BW', sideMode: 'DUPLEX' },
+        { paperSize: 'A4', colorMode: 'COLOR', sideMode: 'SIMPLEX' },
+      ],
+    });
+    fixture.detectChanges();
+    customerService.upload.and.returnValue(of(uploadResponse));
+    customerService.sessionDocuments.and.returnValue(of([]));
+    customerService.quote.and.returnValue(of(quote()));
+    chooseFiles();
+    tick();
+    const doc = component.uploads()[0];
+    expect(doc.options.sideMode).toBe('DUPLEX');
+
+    component.setOption(doc, 'colorMode', 'COLOR');
+    expect(doc.options.sideMode).toBe('SIMPLEX');
+
+    component.setOption(doc, 'colorMode', 'BW');
+    expect(doc.options.sideMode).toBe('SIMPLEX'); // still offered, so the customer's side choice stays
+    tick(250);
+    discardPeriodicTasks();
+  }));
+
+  describe('options -> quote -> review -> confirm -> status polling', () => {
     beforeEach(() => {
       fixture.detectChanges();
       component.uploads.set([
@@ -217,9 +291,7 @@ describe('OrderFlowComponent (SRS §5/§8/§9 customer QR -> upload -> options -
     });
 
     it('recalculate() builds one quote item per processed document', () => {
-      customerService.quote.and.returnValue(
-        of({ quoteId: 'q1', items: [{ documentId: 'doc-1', pageCount: 2, billablePages: 2, amount: '4.00' }], amount: '4.00', currency: 'INR', expiresAt: '' }),
-      );
+      customerService.quote.and.returnValue(of(quote()));
       component.recalculate();
       expect(customerService.quote).toHaveBeenCalledWith(
         [{ documentId: 'doc-1', paperSize: 'A4', colorMode: 'BW', sideMode: 'SIMPLEX', copies: 1 }],
@@ -227,10 +299,68 @@ describe('OrderFlowComponent (SRS §5/§8/§9 customer QR -> upload -> options -
       );
       expect(component.quote()?.amount).toBe('4.00');
       expect(component.quoting()).toBe(false);
+      expect(component.showPrices()).toBe(true);
     });
 
-    it('confirm() moves to the status step, stores the token number and starts polling the job', fakeAsync(() => {
-      component.quote.set({ quoteId: 'q1', items: [{ documentId: 'doc-1', pageCount: 2, billablePages: 2, amount: '4.00' }], amount: '4.00', currency: 'INR', expiresAt: '' });
+    it('hides prices when the shop has pricing off', () => {
+      customerService.quote.and.returnValue(of(quote({ priced: false, amount: '0.00' })));
+      component.recalculate();
+      expect(component.showPrices()).toBe(false);
+    });
+
+    it('changing an option re-prices once the taps settle', fakeAsync(() => {
+      customerService.quote.and.returnValue(of(quote()));
+      const doc = component.uploads()[0];
+      component.setOption(doc, 'colorMode', 'COLOR');
+      component.stepCopies(doc, 1);
+      expect(component.quoting()).toBe(true);
+      tick(250);
+      expect(customerService.quote).toHaveBeenCalledTimes(1);
+      expect(customerService.quote.calls.mostRecent().args[0][0]).toEqual(
+        jasmine.objectContaining({ colorMode: 'COLOR', copies: 2 }),
+      );
+    }));
+
+    it('drops the old quote when re-pricing fails, so the customer cannot confirm options they no longer see', fakeAsync(() => {
+      customerService.quote.and.returnValue(of(quote()));
+      component.recalculate();
+      expect(component.canContinue()).toBe(true);
+
+      customerService.quote.and.returnValue(throwError(() => new Error('not offered')));
+      component.setOption(component.uploads()[0], 'paperSize', 'A3');
+      tick(250);
+
+      expect(component.quote()).toBeNull();
+      expect(component.quoting()).toBe(false);
+      expect(component.canContinue()).toBe(false);
+      component.goToReview();
+      expect(component.currentStep()).toBe(0);
+    }));
+
+    it('keeps copies between 1 and 999', () => {
+      const doc = component.uploads()[0];
+      component.stepCopies(doc, -1);
+      expect(doc.options.copies).toBe(1);
+      const input = { value: '5000' } as HTMLInputElement;
+      component.setCopies(doc, input);
+      expect(doc.options.copies).toBe(999);
+      expect(input.value).toBe('999');
+    });
+
+    it('only moves to review once a quote is in, and back again', () => {
+      component.goToReview();
+      expect(component.currentStep()).toBe(0);
+      customerService.quote.and.returnValue(of(quote()));
+      component.recalculate();
+      component.goToReview();
+      expect(component.currentStep()).toBe(1);
+      expect(component.reviewLines().length).toBe(1);
+      component.goBack();
+      expect(component.currentStep()).toBe(0);
+    });
+
+    it('confirm() moves to the done step, stores the order number and starts polling', fakeAsync(() => {
+      component.quote.set(quote());
       customerService.confirm.and.returnValue(
         of({ jobId: 'job-1', tokenNumber: 42, status: 'PRINT_ELIGIBLE', statusToken: 'job-token', amount: '4.00', currency: 'INR' }),
       );
@@ -238,7 +368,7 @@ describe('OrderFlowComponent (SRS §5/§8/§9 customer QR -> upload -> options -
 
       component.confirm();
 
-      expect(component.currentStep()).toBe(3);
+      expect(component.currentStep()).toBe(2);
       expect(component.jobId()).toBe('job-1');
       expect(component.tokenNumber()).toBe(42);
       expect(component.jobStatus()?.status).toBe('PRINT_ELIGIBLE');
@@ -247,22 +377,19 @@ describe('OrderFlowComponent (SRS §5/§8/§9 customer QR -> upload -> options -
       discardPeriodicTasks();
     }));
 
-    it('stops polling and clears persisted state once the job reaches a terminal status', fakeAsync(() => {
-      component.quote.set({ quoteId: 'q1', items: [{ documentId: 'doc-1', pageCount: 2, billablePages: 2, amount: '4.00' }], amount: '4.00', currency: 'INR', expiresAt: '' });
+    it('stops polling and clears saved state once the order is printed', fakeAsync(() => {
+      component.quote.set(quote());
       customerService.confirm.and.returnValue(
         of({ jobId: 'job-1', tokenNumber: 42, status: 'PRINT_ELIGIBLE', statusToken: 'job-token', amount: '4.00', currency: 'INR' }),
       );
-
       let call = 0;
       const statuses = ['PRINT_ELIGIBLE', 'QUEUED', 'PRINTED'];
       customerService.status.and.callFake(() => of({ status: statuses[Math.min(call++, statuses.length - 1)] } as any));
 
       component.confirm();
       expect(component.jobStatus()?.status).toBe('PRINT_ELIGIBLE');
-
       tick(4000);
       expect(component.jobStatus()?.status).toBe('QUEUED');
-
       tick(4000);
       expect(component.jobStatus()?.status).toBe('PRINTED');
       expect(localStorage.getItem('printsetu.order.demoShopQR001')).toBeNull();
@@ -272,76 +399,78 @@ describe('OrderFlowComponent (SRS §5/§8/§9 customer QR -> upload -> options -
       expect(customerService.status.calls.count()).toBe(callsAtTerminal);
     }));
 
-    it('confirm() resets the confirming flag on failure without advancing the step', () => {
-      component.quote.set({ quoteId: 'q1', items: [{ documentId: 'doc-1', pageCount: 2, billablePages: 2, amount: '4.00' }], amount: '4.00', currency: 'INR', expiresAt: '' });
-      customerService.confirm.and.returnValue(throwError(() => new Error('quote expired')));
+    it('keeps following a failed order, so a reprint by the shop shows up as printed', fakeAsync(() => {
+      component.quote.set(quote());
+      customerService.confirm.and.returnValue(
+        of({ jobId: 'job-1', tokenNumber: 42, status: 'PRINT_ELIGIBLE', statusToken: 'job-token', amount: '4.00', currency: 'INR' }),
+      );
+      let call = 0;
+      const statuses = ['PRINT_FAILED', 'QUEUED', 'PRINTED'];
+      customerService.status.and.callFake(() => of({ status: statuses[Math.min(call++, statuses.length - 1)] } as any));
 
       component.confirm();
+      expect(component.jobStatus()?.status).toBe('PRINT_FAILED');
+      expect(localStorage.getItem('printsetu.order.demoShopQR001')).toContain('job-1');
+      tick(8000);
+      expect(component.jobStatus()?.status).toBe('PRINTED');
+      expect(localStorage.getItem('printsetu.order.demoShopQR001')).toBeNull();
+    }));
 
+    it('confirm() resets the confirming flag on failure without advancing', () => {
+      component.quote.set(quote());
+      customerService.confirm.and.returnValue(throwError(() => new Error('quote expired')));
+      component.confirm();
       expect(component.confirming()).toBe(false);
       expect(component.currentStep()).toBe(0);
     });
 
-    it('confirm() is a no-op when there is no quote yet', () => {
+    it('confirm() does nothing when there is no quote yet', () => {
       component.confirm();
       expect(customerService.confirm).not.toHaveBeenCalled();
     });
   });
 
-  describe('reload-resilience (SRS extension: reload must not lose a pending upload or print job)', () => {
-    it('restores an in-progress upload session (no job yet) and jumps to Options once documents are processed', () => {
-      localStorage.setItem(
-        'printsetu.order.demoShopQR001',
-        JSON.stringify({ sessionId: 'session-1', sessionToken: 'session-token' }),
-      );
-      customerService.sessionDocuments.and.returnValue(
-        of([
-          {
-            id: 'doc-1',
-            originalName: 'resume.pdf',
-            mimeType: 'application/pdf',
-            status: 'PROCESSED',
-            pageCount: 2,
-            colorPages: 0,
-          } as unknown as DocumentInfo,
-        ]),
-      );
-      customerService.quote.and.returnValue(
-        of({ quoteId: 'q1', items: [{ documentId: 'doc-1', pageCount: 2, billablePages: 2, amount: '4.00' }], amount: '4.00', currency: 'INR', expiresAt: '' }),
-      );
+  describe('reload-resilience', () => {
+    it('restores an in-progress upload session and prices the processed files', () => {
+      localStorage.setItem('printsetu.order.demoShopQR001', JSON.stringify({ sessionId: 'session-1', sessionToken: 'session-token' }));
+      customerService.sessionDocuments.and.returnValue(of([processedDoc()]));
+      customerService.quote.and.returnValue(of(quote()));
 
       fixture.detectChanges();
 
       expect(customerService.sessionDocuments).toHaveBeenCalledWith('session-1', 'session-token');
       expect(component.sessionId()).toBe('session-1');
       expect(component.uploads().length).toBe(1);
-      expect(component.currentStep()).toBe(1);
+      expect(component.currentStep()).toBe(0);
+      expect(component.canContinue()).toBe(true);
     });
 
-    it('restores a still-pending print job straight to the status step', fakeAsync(() => {
+    it('forgets a saved session whose documents are gone', () => {
+      localStorage.setItem('printsetu.order.demoShopQR001', JSON.stringify({ sessionId: 'session-1', sessionToken: 'session-token' }));
+      customerService.sessionDocuments.and.returnValue(of([]));
+      fixture.detectChanges();
+      expect(component.sessionId()).toBeNull();
+      expect(localStorage.getItem('printsetu.order.demoShopQR001')).toBeNull();
+    });
+
+    it('restores a still-pending order straight to the done step', fakeAsync(() => {
       localStorage.setItem(
         'printsetu.order.demoShopQR001',
-        JSON.stringify({
-          sessionId: 'session-1',
-          sessionToken: 'session-token',
-          jobId: 'job-1',
-          jobStatusToken: 'job-token',
-          tokenNumber: 42,
-        }),
+        JSON.stringify({ sessionId: 'session-1', sessionToken: 'session-token', jobId: 'job-1', jobStatusToken: 'job-token', tokenNumber: 42 }),
       );
       customerService.status.and.returnValue(of({ status: 'QUEUED' } as any));
 
       fixture.detectChanges();
 
       expect(customerService.status).toHaveBeenCalledWith('job-1', 'job-token');
-      expect(component.currentStep()).toBe(3);
+      expect(component.currentStep()).toBe(2);
       expect(component.tokenNumber()).toBe(42);
       expect(component.jobStatus()?.status).toBe('QUEUED');
 
       discardPeriodicTasks();
     }));
 
-    it('clears persisted state and starts fresh when the restored job already reached a terminal status', () => {
+    it('clears saved state and starts fresh when the restored order is already printed', () => {
       localStorage.setItem(
         'printsetu.order.demoShopQR001',
         JSON.stringify({ sessionId: 'session-1', sessionToken: 'session-token', jobId: 'job-1', jobStatusToken: 'job-token' }),
@@ -354,20 +483,14 @@ describe('OrderFlowComponent (SRS §5/§8/§9 customer QR -> upload -> options -
       expect(localStorage.getItem('printsetu.order.demoShopQR001')).toBeNull();
     });
 
-    it('startNewOrder() lets a customer abandon a restored session/job and upload something else', fakeAsync(() => {
+    it('startNewOrder() lets a customer drop a restored order and upload something else', fakeAsync(() => {
       localStorage.setItem(
         'printsetu.order.demoShopQR001',
-        JSON.stringify({
-          sessionId: 'session-1',
-          sessionToken: 'session-token',
-          jobId: 'job-1',
-          jobStatusToken: 'job-token',
-          tokenNumber: 42,
-        }),
+        JSON.stringify({ sessionId: 'session-1', sessionToken: 'session-token', jobId: 'job-1', jobStatusToken: 'job-token', tokenNumber: 42 }),
       );
       customerService.status.and.returnValue(of({ status: 'QUEUED' } as any));
       fixture.detectChanges();
-      expect(component.currentStep()).toBe(3); // restored to the pending job
+      expect(component.currentStep()).toBe(2);
 
       component.startNewOrder();
 
@@ -385,14 +508,12 @@ describe('OrderFlowComponent (SRS §5/§8/§9 customer QR -> upload -> options -
   it('ngOnDestroy() clears any running poll intervals', fakeAsync(() => {
     fixture.detectChanges();
     customerService.upload.and.returnValue(of(uploadResponse));
-    customerService.sessionDocuments.and.returnValue(
-      of([{ id: 'doc-1', originalName: 'resume.pdf', mimeType: 'application/pdf', status: 'PROCESSING' } as unknown as DocumentInfo]),
-    );
+    customerService.sessionDocuments.and.returnValue(of([processedDoc({ status: 'PROCESSING' })]));
 
-    component.onFilesSelected(fileEvent(), fuStub);
+    chooseFiles();
     tick();
 
     fixture.destroy();
-    tick(10_000); // if the interval weren't cleared, this would keep firing (and fakeAsync would fail on pending timers)
+    tick(10_000); // an interval left running would fail fakeAsync with pending timers
   }));
 });

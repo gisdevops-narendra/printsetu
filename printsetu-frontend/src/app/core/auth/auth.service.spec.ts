@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
+import { provideEnglishTranslations } from '../../../testing/english-translations';
 
 const ACCESS_TOKEN_KEY = 'printsetu.accessToken';
 const REFRESH_TOKEN_KEY = 'printsetu.refreshToken';
@@ -33,6 +34,7 @@ describe('AuthService (SRS §18 token storage/session)', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: Router, useValue: router },
+        provideEnglishTranslations(),
       ],
     });
     httpMock = TestBed.inject(HttpTestingController);

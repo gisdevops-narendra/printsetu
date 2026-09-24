@@ -11,6 +11,8 @@ import { t } from '../i18n/i18n';
  * Except:
  *  - the /auth endpoints (sign-in, registration, token refresh): the login
  *    screen shows those inline, and a refresh is handled by AuthService;
+ *  - the customer page's shop lookup (/public/shops): it shows its own
+ *    "invalid QR code" message in the customer's language;
  *  - 401 Unauthenticated: an expired access token is renewed and the request
  *    retried by authInterceptor, and a truly ended session simply returns to
  *    the sign-in screen, so there is nothing for the user to act on.
@@ -60,7 +62,7 @@ function errorDetail(message: string | undefined, code: string | undefined, stat
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const messageService = inject(MessageService);
   const subscriptionStatus = inject(SubscriptionStatusService);
-  const handledInline = req.url.includes('/auth/');
+  const handledInline = req.url.includes('/auth/') || req.url.includes('/public/shops/');
 
   return next(req).pipe(
     catchError((error: unknown) => {

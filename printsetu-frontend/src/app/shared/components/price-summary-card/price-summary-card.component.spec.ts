@@ -1,10 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { PriceSummaryCardComponent } from './price-summary-card.component';
+import { provideEnglishTranslations } from '../../../../testing/english-translations';
 
 describe('PriceSummaryCardComponent', () => {
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [PriceSummaryCardComponent] });
+    TestBed.configureTestingModule({ imports: [PriceSummaryCardComponent], providers: [provideEnglishTranslations()] });
   });
 
   it('renders every summary line label and value', () => {

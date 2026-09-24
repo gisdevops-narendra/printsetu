@@ -26,7 +26,8 @@ import { LanguagePickerComponent } from '../../shared/components/app-header/lang
 const STATUS_POLL_MS = 4000;
 const DOC_STATUS_POLL_MS = 2000;
 const QUOTE_DEBOUNCE_MS = 250;
-const TERMINAL_JOB_STATUSES: PrintJobStatus[] = ['PRINTED', 'RETENTION_PENDING', 'DELETED', 'PRINT_FAILED', 'CANCELLED'];
+// PRINT_FAILED is not final: the shop can press PRINT again, so keep following the order.
+const TERMINAL_JOB_STATUSES: PrintJobStatus[] = ['PRINTED', 'RETENTION_PENDING', 'DELETED', 'CANCELLED'];
 
 interface DocOptions {
   paperSize: PaperSize;
@@ -104,7 +105,7 @@ interface PersistedOrderSession {
             }
           </div>
           <p class="progress__label">
-            {{ 'order.step_of' | translate: { current: currentStep() + 1, total: stepItems.length } }}<strong>{{ stepItems[currentStep()].label }}</strong>
+            {{ 'order.step_of' | translate: { current: currentStep() + 1, total: stepItems.length } }} <strong>{{ stepItems[currentStep()].label }}</strong>
           </p>
           }
         </div>
@@ -1415,11 +1416,16 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
   private defaultOptionsFor(_mimeType: string): DocOptions {
     const paperSize: PaperSize = 'A4';
     const colorMode: ColorMode = 'BW';
-    const priced = (sideMode: SideMode) =>
-      this.pricedOptions === null ||
-      this.pricedOptions.some((o) => o.paperSize === paperSize && o.colorMode === colorMode && o.sideMode === sideMode);
-    const sideMode: SideMode = priced('DUPLEX') || !priced('SIMPLEX') ? 'DUPLEX' : 'SIMPLEX';
+    const sideMode: SideMode = this.isPriced(paperSize, colorMode, 'DUPLEX') || !this.isPriced(paperSize, colorMode, 'SIMPLEX') ? 'DUPLEX' : 'SIMPLEX';
     return { paperSize, colorMode, sideMode, copies: 1 };
+  }
+
+  /** Whether the shop has a price for this combination (everything counts as offered when pricing is off). */
+  private isPriced(paperSize: PaperSize, colorMode: ColorMode, sideMode: SideMode): boolean {
+    return (
+      this.pricedOptions === null ||
+      this.pricedOptions.some((o) => o.paperSize === paperSize && o.colorMode === colorMode && o.sideMode === sideMode)
+    );
   }
 
   private mergeSessionDocuments(docs: DocumentInfo[]): void {
@@ -1531,6 +1537,14 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
   setOption<K extends keyof DocOptions>(doc: UploadEntry, key: K, value: DocOptions[K]): void {
     if (doc.options[key] === value) return;
     doc.options[key] = value;
+    // A paper/colour the shop only offers on one side: switch sides rather than leave an unpriced choice.
+    if (key !== 'sideMode' && key !== 'copies') {
+      const { paperSize, colorMode, sideMode } = doc.options;
+      const other: SideMode = sideMode === 'DUPLEX' ? 'SIMPLEX' : 'DUPLEX';
+      if (!this.isPriced(paperSize, colorMode, sideMode) && this.isPriced(paperSize, colorMode, other)) {
+        doc.options.sideMode = other;
+      }
+    }
     this.scheduleRecalc();
   }
 
@@ -1587,7 +1601,11 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
         this.quoting.set(false);
       },
       error: () => {
-        if (seq === this.quoteSeq) this.quoting.set(false);
+        if (seq !== this.quoteSeq) return;
+        // Never keep the previous quote: it no longer matches the options on screen,
+        // and confirming it would print something other than what the customer chose.
+        this.quote.set(null);
+        this.quoting.set(false);
       },
     });
   }

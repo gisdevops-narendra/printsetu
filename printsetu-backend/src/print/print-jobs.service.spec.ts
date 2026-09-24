@@ -340,7 +340,13 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
           colorMode: 'BW',
           sideMode: 'SIMPLEX',
           copies: 1,
-          document: { id: 'doc-1', shopId: 'shop-1', originalName: 'a.pdf', mimeType: 'application/pdf', s3Key: 'shop-1/doc-1/a.pdf' },
+          document: {
+            id: 'doc-1',
+            shopId: 'shop-1',
+            originalName: 'a.pdf',
+            mimeType: 'application/pdf',
+            s3Key: 'shop-1/doc-1/a.pdf',
+          },
         },
       ],
     };
@@ -348,8 +354,15 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
     it('prints a print-ready copy of a PDF whose on-screen text would not print', async () => {
       const pdf = await PDFDocument.create();
       const page = pdf.addPage();
-      const ap = pdf.context.register(pdf.context.stream('', { Type: 'XObject', Subtype: 'Form', BBox: [0, 0, 100, 20] }));
-      const annot = pdf.context.obj({ Type: 'Annot', Subtype: 'FreeText', Rect: [50, 700, 150, 720], AP: { N: ap } });
+      const ap = pdf.context.register(
+        pdf.context.stream('', { Type: 'XObject', Subtype: 'Form', BBox: [0, 0, 100, 20] }),
+      );
+      const annot = pdf.context.obj({
+        Type: 'Annot',
+        Subtype: 'FreeText',
+        Rect: [50, 700, 150, 720],
+        AP: { N: ap },
+      });
       page.node.set(PDFName.of('Annots'), pdf.context.obj([pdf.context.register(annot)]));
       storage.getObject.mockResolvedValue(Buffer.from(await pdf.save()));
       prisma.printJob.findUniqueOrThrow.mockResolvedValue(pdfJob);
@@ -358,9 +371,14 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
 
       expect(storage.getObject).toHaveBeenCalledWith('shop-1/doc-1/a.pdf');
       expect(storage.putObject).toHaveBeenCalledWith(
-        expect.objectContaining({ key: 'shop-1/doc-1/print-ready/item-1.pdf', contentType: 'application/pdf' }),
+        expect.objectContaining({
+          key: 'shop-1/doc-1/print-ready/item-1.pdf',
+          contentType: 'application/pdf',
+        }),
       );
-      expect(storage.getSignedDownloadUrl).toHaveBeenCalledWith('shop-1/doc-1/print-ready/item-1.pdf');
+      expect(storage.getSignedDownloadUrl).toHaveBeenCalledWith(
+        'shop-1/doc-1/print-ready/item-1.pdf',
+      );
       const printed = await PDFDocument.load(storage.putObject.mock.calls[0][0].body);
       const flags = printed.getPage(0).node.lookup(PDFName.of('Annots')) as any;
       expect((flags.lookup(0).lookup(PDFName.of('F')) as PDFNumber).asNumber() & 4).toBe(4);
@@ -429,5 +447,145 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
         expect.objectContaining({ printerName: null }),
       );
     });
+  });
+
+  describe('reportAgentStatus — Printer App progress reports', () => {
+    let repo: { transition: jest.Mock };
+    let notifications: { record: jest.Mock };
+
+    beforeEach(() => {
+      repo = {
+        transition: jest
+          .fn()
+          .mockImplementation(({ jobId, to }) => Promise.resolve({ id: jobId, status: to })),
+      };
+      notifications = { record: jest.fn().mockResolvedValue(undefined) };
+      service = new PrintJobsService(
+        prisma as any,
+        repo as any,
+        storage as any,
+        agentConnections as any,
+        notifications as any,
+        { log: jest.fn().mockResolvedValue(undefined) } as any, // AuditService
+        pricingService as any,
+        {} as any,
+        {} as any,
+        { assertShopCanPrint: jest.fn(), assertCustomerCanOrder: jest.fn() } as any,
+      );
+    });
+
+    const jobIn = (status: string) =>
+      prisma.printJob.findUnique.mockResolvedValue({
+        id: 'job-1',
+        shopId: 'shop-1',
+        printerId: 'printer-1',
+        status,
+      });
+
+    it('accepts a job the polling fallback handed out while it was AGENT_OFFLINE (back to QUEUED, then PRINTING)', async () => {
+      jobIn('AGENT_OFFLINE');
+
+      const res = await service.reportAgentStatus('job-1', 'printer-1', {
+        status: 'ACCEPTED',
+        agentAttemptId: 'job-1:1',
+      });
+
+      expect(repo.transition.mock.calls.map(([o]) => `${o.from}->${o.to}`)).toEqual([
+        'AGENT_OFFLINE->QUEUED',
+        'QUEUED->PRINTING',
+      ]);
+      expect(res.status).toBe('PRINTING');
+    });
+
+    it('still lets an AGENT_OFFLINE job be reported failed directly', async () => {
+      jobIn('AGENT_OFFLINE');
+
+      await service.reportAgentStatus('job-1', 'printer-1', {
+        status: 'PRINT_FAILED',
+        agentAttemptId: 'job-1:1',
+        message: 'jam',
+      });
+
+      expect(repo.transition.mock.calls.map(([o]) => `${o.from}->${o.to}`)).toEqual([
+        'AGENT_OFFLINE->PRINT_FAILED',
+      ]);
+      expect(notifications.record).toHaveBeenCalledWith('shop-1', 'job-1', 'PRINT_FAILED');
+    });
+
+    it('treats a repeated PRINTING report as a no-op', async () => {
+      jobIn('PRINTING');
+      await service.reportAgentStatus('job-1', 'printer-1', {
+        status: 'PRINTING',
+        agentAttemptId: 'job-1:1',
+      });
+      expect(repo.transition).not.toHaveBeenCalled();
+    });
+
+    it('refuses a report from a different printer', async () => {
+      jobIn('QUEUED');
+      await expect(
+        service.reportAgentStatus('job-1', 'printer-2', {
+          status: 'ACCEPTED',
+          agentAttemptId: 'job-1:1',
+        }),
+      ).rejects.toThrow(AppNotFoundException);
+    });
+
+    it('a shop confirming an uncertain print as printed sends it on to document cleanup', async () => {
+      prisma.printJob.findUnique.mockResolvedValue({
+        id: 'job-1',
+        shopId: 'shop-1',
+        status: 'PRINT_UNKNOWN',
+      });
+
+      const res = await service.reconcile('job-1', 'shop-1', { outcome: 'PRINTED' });
+
+      expect(repo.transition.mock.calls.map(([o]) => `${o.from}->${o.to}`)).toEqual([
+        'PRINT_UNKNOWN->PRINTED',
+        'PRINTED->RETENTION_PENDING',
+      ]);
+      expect(notifications.record).toHaveBeenCalledWith('shop-1', 'job-1', 'PRINT_COMPLETED');
+      expect(res.status).toBe('RETENTION_PENDING');
+    });
+
+    it('a shop marking an uncertain print as failed records the failure (and it can be printed again)', async () => {
+      prisma.printJob.findUnique.mockResolvedValue({
+        id: 'job-1',
+        shopId: 'shop-1',
+        status: 'PRINT_UNKNOWN',
+      });
+
+      const res = await service.reconcile('job-1', 'shop-1', { outcome: 'PRINT_FAILED' });
+
+      expect(res.status).toBe('PRINT_FAILED');
+      expect(notifications.record).toHaveBeenCalledWith('shop-1', 'job-1', 'PRINT_FAILED');
+      expect(prisma.printJob.update).toHaveBeenCalledWith({
+        where: { id: 'job-1' },
+        data: { failureReason: 'Marked as not printed by the shop' },
+      });
+    });
+
+    it('only uncertain orders can be reconciled', async () => {
+      prisma.printJob.findUnique.mockResolvedValue({
+        id: 'job-1',
+        shopId: 'shop-1',
+        status: 'PRINTING',
+      });
+      await expect(service.reconcile('job-1', 'shop-1', { outcome: 'PRINTED' })).rejects.toThrow(
+        InvalidPrintOptionException,
+      );
+    });
+  });
+
+  it('Print Orders keeps failed orders so the shop can press PRINT again', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    (prisma.printJob as any).findMany = findMany;
+
+    await service.shopQueue('shop-1');
+
+    const open = findMany.mock.calls[0][0].where.OR[0].status.in;
+    expect(open).toEqual(
+      expect.arrayContaining(['PRINT_ELIGIBLE', 'AGENT_OFFLINE', 'PRINT_UNKNOWN', 'PRINT_FAILED']),
+    );
   });
 });
