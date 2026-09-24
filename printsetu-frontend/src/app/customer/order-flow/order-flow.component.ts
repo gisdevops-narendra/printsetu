@@ -231,7 +231,7 @@ interface PersistedOrderSession {
                           @if (lineFor(u.documentId); as line) {
                             <div class="file__price">
                               <span>{{ 'order.to_print' | translate: { pages: ('common.count.pages' | translateCount: line.billablePages) } }}</span>
-                              <strong>{{ money(line.amount) }}</strong>
+                              @if (showPrices()) { <strong>{{ money(line.amount) }}</strong> }
                             </div>
                           }
                         </div>
@@ -272,19 +272,23 @@ interface PersistedOrderSession {
                         <span class="rline__meta">{{ line.summary }}</span>
                         <button type="button" class="text-link text-link--small" (click)="editDoc(line.documentId)">{{ 'common.edit' | translate }}</button>
                       </div>
-                      <strong class="rline__amount">{{ money(line.amount) }}</strong>
+                      @if (showPrices()) { <strong class="rline__amount">{{ money(line.amount) }}</strong> }
                     </div>
                   }
-                  <div class="rtotal">
-                    <span>{{ 'common.total' | translate }}</span>
-                    <strong>{{ money(q.amount) }}</strong>
-                  </div>
+                  @if (showPrices()) {
+                    <div class="rtotal">
+                      <span>{{ 'common.total' | translate }}</span>
+                      <strong>{{ money(q.amount) }}</strong>
+                    </div>
+                  }
                 </section>
 
-                <div class="notice notice--info">
-                  <i class="pi pi-info-circle"></i>
-                  <span>{{ 'order.no_online_payment_pay_at_the' | translate }}</span>
-                </div>
+                @if (showPrices()) {
+                  <div class="notice notice--info">
+                    <i class="pi pi-info-circle"></i>
+                    <span>{{ 'order.no_online_payment_pay_at_the' | translate }}</span>
+                  </div>
+                }
               } @else {
                 <div class="center-block"><p-progressSpinner strokeWidth="4" /></div>
               }
@@ -320,7 +324,9 @@ interface PersistedOrderSession {
                     {{ 'order.ready' | translate: { files: ('common.count.files' | translateCount: processedUploads().length) } }}
                     @if (pendingCount() > 0) { <span class="summary__pending">{{ 'order.checking' | translate: { pendingCount: pendingCount() } }}</span> }
                   </span>
-                  @if (quote(); as q) {
+                  @if (!showPrices()) {
+                    <!-- pricing off: no total to show -->
+                  } @else if (quote(); as q) {
                     <strong class="summary__total" [class.is-stale]="quoting()">{{ money(q.amount) }}</strong>
                   } @else if (quoting()) {
                     <p-progressSpinner strokeWidth="8" [style]="{ width: '18px', height: '18px' }" />
@@ -337,8 +343,12 @@ interface PersistedOrderSession {
           <footer class="actionbar">
             <div class="wrap">
               <div class="summary">
-                <span class="summary__label">{{ 'common.total' | translate }}</span>
-                <strong class="summary__total">{{ money(q.amount) }}</strong>
+                @if (showPrices()) {
+                  <span class="summary__label">{{ 'common.total' | translate }}</span>
+                  <strong class="summary__total">{{ money(q.amount) }}</strong>
+                } @else {
+                  <span class="summary__label">{{ 'order.ready' | translate: { files: ('common.count.files' | translateCount: q.items.length) } }}</span>
+                }
               </div>
               <button type="button" class="btn btn--primary" [disabled]="confirming()" (click)="confirm()">
                 @if (confirming()) { <i class="pi pi-spin pi-spinner"></i> {{ 'order.sending' | translate }} } @else { <i class="pi pi-check"></i> {{ 'order.confirm_order' | translate }} }
@@ -1157,11 +1167,14 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
   readonly colorLabels = COLOR_LABELS;
   colorModes: ColorMode[] = ['BW', 'COLOR'];
   sideModes: SideMode[] = ['SIMPLEX', 'DUPLEX'];
-  /** Option combinations the shop has a price for; null until known. */
+  /** Option combinations the shop has a price for; null until known or when pricing is off (all offered). */
   private pricedOptions: { paperSize: PaperSize; colorMode: ColorMode; sideMode: SideMode }[] | null = null;
 
   quoting = signal(false);
   quote = signal<QuoteResponse | null>(null);
+  /** The shop's pricing switch (off by default); the latest quote's own flag wins once there is one. */
+  private pricingEnabled = signal(false);
+  showPrices = computed(() => this.quote()?.priced ?? this.pricingEnabled());
   private quoteSeq = 0;
   private recalcTimer?: ReturnType<typeof setTimeout>;
   private processedKey = '';
@@ -1216,6 +1229,7 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
     this.customerService.resolveShop(this.shopCode).subscribe({
       next: (res) => {
         this.shopName.set(res.shopName);
+        this.pricingEnabled.set(res.pricingEnabled ?? false);
         this.pricedOptions = res.pricedOptions ?? null;
         this.resolvingShop.set(false);
         if (res.available === false) {

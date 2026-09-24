@@ -84,7 +84,7 @@ export class PrintJobsService {
     }
     if (quote.expiresAt.getTime() < Date.now()) {
       throw new InvalidPrintOptionException(
-        'The price has expired. Please check your order again.',
+        'This order took too long to confirm. Please check your order again.',
       );
     }
     if (quote.items.length === 0) {
@@ -110,6 +110,7 @@ export class PrintJobsService {
           shopId,
           quoteId: quote.id,
           amount: quote.amount,
+          priced: quote.priced,
           currency: quote.currency,
           status: PrintJobStatus.CREATED,
           idempotencyKey: `quote:${quote.id}`,
@@ -168,6 +169,7 @@ export class PrintJobsService {
       status,
       statusToken,
       amount: eligible.amount.toFixed(2),
+      priced: eligible.priced,
       currency: eligible.currency,
     };
   }
@@ -341,6 +343,15 @@ export class PrintJobsService {
     }
   }
 
+  /**
+   * Editor changes reprice only an order that was priced, and only while the
+   * shop still has pricing on. Otherwise amounts are left as they are and no
+   * rate is required for the new options.
+   */
+  private async shouldReprice(job: { priced: boolean }, shopId: string): Promise<boolean> {
+    return job.priced && (await this.pricingService.isPricingEnabled(shopId));
+  }
+
   private async recomputeJobAmount(tx: Prisma.TransactionClient, jobId: string) {
     const items = await tx.printJobItem.findMany({ where: { printJobId: jobId } });
     const amount = items.reduce((sum, item) => sum + Number(item.amount), 0);
@@ -382,13 +393,15 @@ export class PrintJobsService {
       );
     }
 
+    const reprice = await this.shouldReprice(job, shopId);
     await this.prisma.$transaction(async (tx) => {
       await tx.printJobItem.delete({ where: { id: itemId } });
       await tx.document.update({
         where: { id: item.documentId },
         data: { status: DocumentStatus.PROCESSED },
       });
-      await this.repriceCombos(tx, jobId, shopId, [item]);
+      if (reprice) await this.repriceCombos(tx, jobId, shopId, [item]);
+      // Keep the total in step with the remaining items (still 0 for an unpriced order).
       await this.recomputeJobAmount(tx, jobId);
     });
     return this.getForShop(jobId, shopId);
@@ -410,8 +423,11 @@ export class PrintJobsService {
     const sideMode = dto.sideMode ?? item.sideMode;
     const copies = dto.copies ?? item.copies;
 
-    // Fail before writing anything if the new combination has no rate.
-    await this.pricingService.getActiveRateOrThrow(shopId, paperSize, colorMode, sideMode);
+    const reprice = await this.shouldReprice(job, shopId);
+    // Fail before writing anything if a priced order's new combination has no rate.
+    if (reprice) {
+      await this.pricingService.getActiveRateOrThrow(shopId, paperSize, colorMode, sideMode);
+    }
     const billablePages = item.pageCount * copies;
 
     await this.prisma.$transaction(async (tx) => {
@@ -419,6 +435,7 @@ export class PrintJobsService {
         where: { id: itemId },
         data: { paperSize, colorMode, sideMode, copies, billablePages },
       });
+      if (!reprice) return;
       // Both the item's old and new combination may have changed tier.
       await this.repriceCombos(
         tx,

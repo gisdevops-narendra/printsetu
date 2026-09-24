@@ -123,7 +123,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
           @switch (tab()) {
             @case ('overview') { <app-profile-overview /> }
             @case ('details') { <app-profile-details [shop]="d.shop" (edit)="editing.set(true)" /> }
-            @case ('services') { <app-profile-services /> }
+            @case ('services') { <app-profile-services [pricingEnabled]="d.settings.pricingEnabled" /> }
             @case ('history') { <app-profile-history /> }
             @case ('settings') { <app-profile-settings [settings]="d.settings" [openingHours]="d.shop.openingHours" (editHours)="editing.set(true)" (updated)="data.set($event)" /> }
           }

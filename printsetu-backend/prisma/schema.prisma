@@ -315,6 +315,8 @@ model PrintQuote {
   sessionId          String    @map("session_id")
   amount             Decimal   @db.Decimal(10, 2)
   currency           String    @default("INR")
+  // false when the shop had pricing switched off: amount is 0 and no rate was applied.
+  priced             Boolean   @default(false)
   statusTokenClaimId String    @unique @default(uuid()) @map("status_token_claim_id")
   expiresAt          DateTime  @map("expires_at")
   consumedAt         DateTime? @map("consumed_at")
@@ -364,6 +366,8 @@ model PrintJob {
   quoteId        String?        @unique @map("quote_id")
   amount         Decimal        @db.Decimal(10, 2)
   currency       String         @default("INR")
+  // Copied from the quote: false = ordered while the shop's pricing was off (amount 0, not shown).
+  priced         Boolean        @default(false)
   status         PrintJobStatus @default(CREATED)
   attemptCount   Int            @default(0) @map("attempt_count")
   idempotencyKey String         @unique @map("idempotency_key")
@@ -447,6 +451,10 @@ model PrintSettings {
   // Shopkeeper-controlled (off by default): confirmed customer orders are sent
   // straight to the printer instead of waiting for the shopkeeper's PRINT tap.
   autoAcceptOrders       Boolean  @default(false) @map("auto_accept_orders")
+  // Shopkeeper-controlled (off by default): when off, customers see no rates or
+  // amounts while uploading, every paper/colour/sides option is offered, and
+  // orders are recorded unpriced (amount 0, PrintJob.priced = false).
+  pricingEnabled         Boolean  @default(false) @map("pricing_enabled")
   // Shopkeeper-controlled "Online / Offline" switch (on by default): when off,
   // customers who scan the QR see the shop as temporarily unavailable, e.g.
   // during a lunch break or a printer fault. Independent of the subscription.

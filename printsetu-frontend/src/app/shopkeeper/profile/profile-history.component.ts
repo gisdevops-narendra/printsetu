@@ -83,7 +83,7 @@ const PAGE = 8;
                 <span class="row__name" [title]="names(j)">{{ firstName(j) }}@if (j.items.length > 1) { <em>{{ 'profile.more' | translate: { items: j.items.length - 1 } }}</em> }</span>
                 <span class="row__meta">{{ j.createdAt | appDate: 'MMM d, h:mm a' }} &middot; {{ 'common.count.pages' | translateCount: pages(j) }}</span>
               </div>
-              <span class="row__amount">{{ money(j.amount) }}</span>
+              <span class="row__amount">{{ j.priced ? money(j.amount) : '—' }}</span>
               <app-status-tag [status]="j.status" />
             </li>
           }

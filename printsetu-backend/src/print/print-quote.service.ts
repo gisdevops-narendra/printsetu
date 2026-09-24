@@ -92,18 +92,24 @@ export class PrintQuoteService {
       });
     }
 
+    // Pricing off (the default): no rate is looked up, so every option is
+    // accepted and the order is recorded unpriced with a zero amount.
+    const priced = await this.pricingService.isPricingEnabled(claims.shopId);
+
     const pagesByCombo = new Map<string, number>();
     for (const { line, billablePages } of lines) {
       pagesByCombo.set(comboKey(line), (pagesByCombo.get(comboKey(line)) ?? 0) + billablePages);
     }
     const rateByCombo = new Map<string, ResolvedRate>();
-    for (const { line } of lines) {
-      const key = comboKey(line);
-      if (rateByCombo.has(key)) continue;
-      rateByCombo.set(
-        key,
-        await this.pricingService.resolveRate(claims.shopId, line, pagesByCombo.get(key)!),
-      );
+    if (priced) {
+      for (const { line } of lines) {
+        const key = comboKey(line);
+        if (rateByCombo.has(key)) continue;
+        rateByCombo.set(
+          key,
+          await this.pricingService.resolveRate(claims.shopId, line, pagesByCombo.get(key)!),
+        );
+      }
     }
 
     const items: QuoteItemCalc[] = [];
@@ -111,8 +117,8 @@ export class PrintQuoteService {
 
     for (const { line, pageCount, billablePages } of lines) {
       const key = comboKey(line);
-      const rate = rateByCombo.get(key)!;
-      const amount = rate.pricePerPage * billablePages;
+      const rate = rateByCombo.get(key);
+      const amount = rate ? rate.pricePerPage * billablePages : 0;
       totalAmount += amount;
 
       items.push({
@@ -124,17 +130,24 @@ export class PrintQuoteService {
         pageCount,
         billablePages,
         amount,
-        pricingSnapshot: {
-          pricingId: rate.pricingId,
-          pricePerPage: rate.pricePerPage.toFixed(2),
-          basePricePerPage: rate.basePricePerPage.toFixed(2),
-          paperSize: line.paperSize,
-          colorMode: line.colorMode,
-          sideMode: line.sideMode,
-          effectiveFrom: rate.effectiveFrom,
-          comboBillablePages: pagesByCombo.get(key)!,
-          tier: rate.tier,
-        },
+        pricingSnapshot: rate
+          ? {
+              pricingId: rate.pricingId,
+              pricePerPage: rate.pricePerPage.toFixed(2),
+              basePricePerPage: rate.basePricePerPage.toFixed(2),
+              paperSize: line.paperSize,
+              colorMode: line.colorMode,
+              sideMode: line.sideMode,
+              effectiveFrom: rate.effectiveFrom,
+              comboBillablePages: pagesByCombo.get(key)!,
+              tier: rate.tier,
+            }
+          : {
+              priced: false,
+              paperSize: line.paperSize,
+              colorMode: line.colorMode,
+              sideMode: line.sideMode,
+            },
       });
     }
 
@@ -142,6 +155,7 @@ export class PrintQuoteService {
       data: {
         sessionId: claims.sessionId,
         amount: totalAmount,
+        priced,
         currency: 'INR',
         expiresAt: new Date(Date.now() + QUOTE_TTL_SECONDS * 1000),
         items: { create: items },
@@ -158,6 +172,7 @@ export class PrintQuoteService {
         amount: item.amount.toFixed(2),
       })),
       amount: totalAmount.toFixed(2),
+      priced,
       currency: quote.currency,
       expiresAt: quote.expiresAt.toISOString(),
     };

@@ -86,7 +86,7 @@ export class ShopkeeperService {
     return this.http.delete<ShopProfileResponse>(`${BASE}/shop/profile/${kind}`).pipe(this.publish);
   }
 
-  updateSettings(dto: { autoAcceptOrders?: boolean; acceptingOrders?: boolean; autoSchedule?: boolean; notificationPrefs?: Partial<NotificationPrefs>; defaultPrinterId?: string }) {
+  updateSettings(dto: { autoAcceptOrders?: boolean; pricingEnabled?: boolean; acceptingOrders?: boolean; autoSchedule?: boolean; notificationPrefs?: Partial<NotificationPrefs>; defaultPrinterId?: string }) {
     return this.http.patch<ShopProfileResponse>(`${BASE}/shop/settings`, dto).pipe(this.publish);
   }
 

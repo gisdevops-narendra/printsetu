@@ -16,7 +16,7 @@ describe('PrintQuoteService (SRS §17.1 price quote example, generalized to mult
     printJobItem: { findFirst: jest.Mock };
     printQuote: { create: jest.Mock };
   };
-  let pricingService: { resolveRate: jest.Mock };
+  let pricingService: { resolveRate: jest.Mock; isPricingEnabled: jest.Mock };
 
   const claims = { shopId: 'shop-1', sessionId: 'session-1', exp: 9999999999 };
   const baseDocument = {
@@ -54,6 +54,7 @@ describe('PrintQuoteService (SRS §17.1 price quote example, generalized to mult
       },
     };
     pricingService = {
+      isPricingEnabled: jest.fn().mockResolvedValue(true),
       resolveRate: jest.fn().mockResolvedValue({
         pricingId: 'rate-1',
         effectiveFrom: new Date(),
@@ -112,6 +113,20 @@ describe('PrintQuoteService (SRS §17.1 price quote example, generalized to mult
     expect(result.items).toHaveLength(2);
     // 20 billable pages + 1 billable page, at ₹2.00/page = ₹42.00
     expect(result.amount).toBe('42.00');
+  });
+
+  it('with pricing off, looks up no rate and records an unpriced zero-amount quote', async () => {
+    pricingService.isPricingEnabled.mockResolvedValue(false);
+
+    const result = await service.createQuote({ items: [item] }, claims);
+
+    expect(pricingService.resolveRate).not.toHaveBeenCalled();
+    expect(result.priced).toBe(false);
+    expect(result.amount).toBe('0.00');
+    expect(result.items[0].billablePages).toBe(20);
+    expect(prisma.printQuote.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ priced: false, amount: 0 }) }),
+    );
   });
 
   it('rejects when the status token does not match the document/shop', async () => {

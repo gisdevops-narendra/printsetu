@@ -144,6 +144,8 @@ export interface QuoteResponse {
   quoteId: string;
   items: QuoteItemResponse[];
   amount: string;
+  /** false when the shop has pricing off: amounts are 0 and must not be shown. */
+  priced: boolean;
   currency: string;
   expiresAt: string;
 }
@@ -197,6 +199,8 @@ export interface PrintJobRow {
   shopId: string;
   printerId: string | null;
   amount: string;
+  /** false = ordered while the shop's pricing was off; show no amount. */
+  priced: boolean;
   currency: string;
   status: PrintJobStatus;
   attemptCount: number;
@@ -363,6 +367,8 @@ export interface ShopAvailabilityInfo {
 
 export interface ShopSettingsInfo {
   autoAcceptOrders: boolean;
+  /** Show rates and amounts to customers while they upload (off by default). */
+  pricingEnabled: boolean;
   /** Whether new customer orders are accepted right now (schedule and manual breaks applied). */
   acceptingOrders: boolean;
   /** Go Online / Offline automatically on the shop's opening hours. */

@@ -20,8 +20,10 @@ export class CustomerService {
       shopCode: string;
       shopName: string;
       city: string;
-      /** Paper / colour / sides combinations the shop has a price for. */
-      pricedOptions?: { paperSize: PaperSize; colorMode: ColorMode; sideMode: SideMode }[];
+      /** Whether the shop shows prices; when false every option is offered and no amount is shown. */
+      pricingEnabled?: boolean;
+      /** With pricing on, the paper / colour / sides combinations the shop has a price for. */
+      pricedOptions?: { paperSize: PaperSize; colorMode: ColorMode; sideMode: SideMode }[] | null;
       /** false when the shop is suspended, overdue or over its plan limit. */
       available: boolean;
       unavailableMessage: string | null;

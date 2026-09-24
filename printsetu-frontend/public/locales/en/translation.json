@@ -356,7 +356,7 @@
     "normal_price": "Normal price",
     "no_page_ranges_every_order_is": "No page ranges — every order is charged the normal price.",
     "rate_saved": "Rate saved",
-    "remove_the_price_customers_cant_choose": "Remove the {{rate}} price? Customers can't choose this option until you set a new price, and its page ranges are removed too.",
+    "remove_the_price_customers_cant_choose": "Remove the {{rate}} price? While prices are shown, customers can't choose this option until you set a new price. Its page ranges are removed too.",
     "rate_removed": "Rate removed",
     "and_above": "{{minPages}} and above",
     "enter_from_pages_and_a_price": "Enter \"From pages\" and a price per page",
@@ -364,7 +364,13 @@
     "page_range_updated": "Page range updated",
     "page_range_added": "Page range added",
     "remove_the_pages_range_for_orders": "Remove the {{tier}} pages range for {{tier2}}? Orders in that range will be charged the normal price.",
-    "page_range_removed": "Page range removed"
+    "page_range_removed": "Page range removed",
+    "show_prices_to_customers": "Show prices to customers",
+    "prices_on_help": "On: customers see the rate and total while uploading, and orders are charged at the prices below.",
+    "prices_off_help": "Off: customers see no prices, can choose any paper, color and sides, and orders are not priced. Your prices below are kept for when you turn this on.",
+    "prices_turned_on": "Prices are now shown to customers",
+    "prices_turned_off": "Prices are now hidden from customers",
+    "set_a_price_first": "Set at least one price below before turning this on."
   },
   "notifications": {
     "document_and_print_job_events_for": "Document and print-job events for your shop, most recent first.",
@@ -445,7 +451,7 @@
     "from_per_page": "{{services}} · from {{cheapest}} per page",
     "manage_rates": "Manage rates",
     "no_rates_set_yet": "No rates set yet",
-    "add_a_price_for_each_paper": "Add a price for each paper size, colour and sides option to start accepting orders.",
+    "add_a_price_for_each_paper": "Add a price for each paper size, color and sides option. Customers only see prices once you turn on “Show prices to customers”.",
     "add_rates": "Add rates",
     "not_offered": "Not offered",
     "prices_are_per_page_changing_a": "Prices are per page. Changing a rate never alters orders that were already placed.",
@@ -554,7 +560,8 @@
     "chart_aria_earnings": "Daily earnings for the last {{days}} days",
     "chart_aria_prints": "Daily prints for the last {{days}} days",
     "breakdown_aria": "Of {{total}} print requests: {{breakdown}}",
-    "seen_ago": "Seen {{ago}}"
+    "seen_ago": "Seen {{ago}}",
+    "prices_hidden_from_customers": "Prices are hidden from customers. Turn on “Show prices to customers” on the Pricing page to show them."
   },
   "billing": {
     "your_plan_usage_and_invoices": "Your plan, usage and invoices.",

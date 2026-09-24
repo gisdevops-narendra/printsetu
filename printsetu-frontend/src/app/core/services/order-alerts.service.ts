@@ -140,7 +140,7 @@ export class OrderAlertsService {
     const first = jobs[0];
     const docs = jobs.reduce((n, j) => n + j.items.length, 0);
     const title = jobs.length === 1 ? t('app.new_print_request', { tokenNumber: first.tokenNumber }) : t('app.new_print_requests', { jobs: jobs.length });
-    const detail = jobs.length === 1 ? `${tn('common.count.documents', docs)} · ₹${first.amount}` : t('app.tokens', { join: jobs.map((j) => '#' + j.tokenNumber).join(', ') });
+    const detail = jobs.length === 1 ? `${tn('common.count.documents', docs)}${first.priced ? ` · ₹${first.amount}` : ''}` : t('app.tokens', { join: jobs.map((j) => '#' + j.tokenNumber).join(', ') });
     this.messageService.add({ severity: 'info', summary: title, detail, life: 9000 });
     if (this.prefs.newOrderSound) this.chime();
     this.desktop(title, detail);

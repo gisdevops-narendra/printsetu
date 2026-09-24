@@ -106,6 +106,7 @@ export class ShopProfileService {
       },
       settings: {
         autoAcceptOrders: settings?.autoAcceptOrders ?? false,
+        pricingEnabled: settings?.pricingEnabled ?? false,
         // Whether new orders are being accepted right now (schedule and overrides applied).
         acceptingOrders: availability.online,
         autoSchedule: settings?.autoSchedule ?? false,
@@ -218,6 +219,13 @@ export class ShopProfileService {
   async updateSettings(shopId: string, actorUserId: string, dto: UpdateShopSettingsDto) {
     const data: Prisma.PrintSettingsUpdateInput = {};
     if (dto.autoAcceptOrders !== undefined) data.autoAcceptOrders = dto.autoAcceptOrders;
+    if (dto.pricingEnabled !== undefined) {
+      // With pricing on, a customer can only choose options that have a rate, so at least one must exist.
+      if (dto.pricingEnabled && !(await this.prisma.pricing.count({ where: { shopId, active: true } }))) {
+        throw new InvalidPrintOptionException('Set at least one price before turning pricing on.');
+      }
+      data.pricingEnabled = dto.pricingEnabled;
+    }
     if (dto.acceptingOrders !== undefined || dto.autoSchedule !== undefined) {
       Object.assign(data, await this.onlineChanges(shopId, dto));
     }
@@ -239,6 +247,7 @@ export class ShopProfileService {
         create: {
           shopId,
           autoAcceptOrders: dto.autoAcceptOrders ?? false,
+          pricingEnabled: dto.pricingEnabled ?? false,
           acceptingOrders: (data.acceptingOrders as boolean | undefined) ?? true,
           autoSchedule: (data.autoSchedule as boolean | undefined) ?? false,
           scheduleOverride: (data.scheduleOverride as boolean | null | undefined) ?? null,

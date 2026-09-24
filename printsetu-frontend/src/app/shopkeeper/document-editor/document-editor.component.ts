@@ -111,7 +111,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
                   <div class="doc-card__text">
                     <span class="doc-card__name" [title]="item.document?.originalName">{{ item.document?.originalName }}</span>
                     <span class="doc-card__meta">
-                      {{ item.paperSize }} &middot; {{ item.colorMode === 'COLOR' ? ('common.color' | translate) : 'B/W' }} &middot; &times;{{ item.copies }} &middot; {{ job()!.currency }} {{ item.amount }}
+                      {{ item.paperSize }} &middot; {{ item.colorMode === 'COLOR' ? ('common.color' | translate) : 'B/W' }} &middot; &times;{{ item.copies }}@if (job()!.priced) { &middot; {{ job()!.currency }} {{ item.amount }} }
                       @if (item.renderedS3Key) {
                         <span class="edited-tag"><i class="pi pi-pencil"></i> {{ 'editor.edited' | translate }}</span>
                       }
@@ -278,10 +278,12 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
             }
           </div>
           <div class="print-bar__total">
-            <div class="total">
-              <span>{{ 'editor.order_total' | translate }}</span>
-              <strong>{{ job()!.currency }} {{ job()!.amount }}</strong>
-            </div>
+            @if (job()!.priced) {
+              <div class="total">
+                <span>{{ 'editor.order_total' | translate }}</span>
+                <strong>{{ job()!.currency }} {{ job()!.amount }}</strong>
+              </div>
+            }
             <p-button [label]="'editor.confirm_print' | translate" icon="pi pi-print" [loading]="printing()" (onClick)="confirmAndPrint()" />
           </div>
         </footer>

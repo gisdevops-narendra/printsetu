@@ -102,7 +102,7 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
               }
             </div>
           </td>
-          <td [attr.data-label]="'common.amount' | translate">{{ job.currency }} {{ job.amount }}</td>
+          <td [attr.data-label]="'common.amount' | translate">{{ job.priced ? job.currency + ' ' + job.amount : '—' }}</td>
           <td [attr.data-label]="'common.status' | translate"><app-status-tag [status]="job.status" /></td>
           <td [attr.data-label]="'common.created' | translate">{{ job.createdAt | appDate: 'medium' }}</td>
         </tr>

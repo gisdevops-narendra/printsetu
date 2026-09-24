@@ -10,6 +10,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { TooltipModule } from 'primeng/tooltip';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { PricingRate, PricingTier } from '../../core/models/models';
@@ -31,12 +32,21 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
     IconFieldModule,
     InputIconModule,
     TooltipModule,
+    ToggleSwitchModule,
   ],
   template: `
     <h1 class="page-title">{{ 'common.pricing' | translate }}</h1>
     <p class="page-subtitle">
       {{ 'pricing.set_your_own_shops_print_prices' | translate }}
     </p>
+
+    <div class="surface-card-flat p-4 mb-4 pricing-switch">
+      <div class="pricing-switch__text">
+        <label for="pricing-enabled">{{ 'pricing.show_prices_to_customers' | translate }}</label>
+        <p>{{ (pricingEnabled() ? 'pricing.prices_on_help' : 'pricing.prices_off_help') | translate }}</p>
+      </div>
+      <p-toggleswitch inputId="pricing-enabled" [ngModel]="pricingEnabled()" (ngModelChange)="onPricingToggle($event)" [disabled]="savingSwitch() || pricingEnabled() === null" />
+    </div>
 
     <div class="surface-card-flat p-4 mb-4">
       <h3 class="mt-0 mb-3 text-base">{{ editingId() ? ('pricing.update_rate' | translate) : ('pricing.set_a_new_rate' | translate) }}</h3>
@@ -237,6 +247,26 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
     `
       /* One row of four fields + button on wide screens; 2-up on phones; the
          fields always fill their column instead of hugging their content. */
+      .pricing-switch {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+      .pricing-switch__text {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .pricing-switch__text label {
+        font-weight: 600;
+      }
+      .pricing-switch__text p {
+        margin: 0.25rem 0 0;
+        font-size: 0.875rem;
+        color: var(--p-text-muted-color);
+      }
+      .pricing-switch p-toggleswitch {
+        flex: none;
+      }
       .rate-form {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
@@ -318,9 +348,47 @@ export class ShopPricingComponent implements OnInit {
     private readonly confirmationService: ConfirmationService,
   ) {}
 
+  /** The shop's "show prices to customers" switch; null until the profile loads. */
+  pricingEnabled = signal<boolean | null>(null);
+  savingSwitch = signal(false);
+
   ngOnInit(): void {
     this.load();
     this.loadTiers();
+    this.loadPricingSwitch();
+  }
+
+  /** Removing the last rate turns pricing off on the server, so re-read it after rate changes. */
+  private loadPricingSwitch(): void {
+    this.shopkeeperService.profile().subscribe((res) => this.pricingEnabled.set(res.settings.pricingEnabled));
+  }
+
+  onPricingToggle(on: boolean): void {
+    if (on && this.rates().length === 0) {
+      // Re-render the switch back to off.
+      this.pricingEnabled.set(true);
+      queueMicrotask(() => this.pricingEnabled.set(false));
+      this.messageService.add({ severity: 'warn', summary: t('pricing.set_a_price_first'), life: 5000 });
+      return;
+    }
+    this.savingSwitch.set(true);
+    this.shopkeeperService.updateSettings({ pricingEnabled: on }).subscribe({
+      next: (res) => {
+        this.pricingEnabled.set(res.settings.pricingEnabled);
+        this.savingSwitch.set(false);
+        this.messageService.add({
+          severity: 'success',
+          summary: t(on ? 'pricing.prices_turned_on' : 'pricing.prices_turned_off'),
+        });
+      },
+      error: () => {
+        // The error interceptor shows the message; put the switch back.
+        const current = this.pricingEnabled();
+        this.pricingEnabled.set(null);
+        queueMicrotask(() => this.pricingEnabled.set(current));
+        this.savingSwitch.set(false);
+      },
+    });
   }
 
   load(): void {
@@ -381,6 +449,7 @@ export class ShopPricingComponent implements OnInit {
           if (this.editingId() === rate.id) this.cancelEdit();
           this.load();
           this.loadTiers();
+          this.loadPricingSwitch();
         });
       },
     });

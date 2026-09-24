@@ -22,6 +22,9 @@ export class UpdateShopSettingsDto {
   /** Send confirmed customer orders straight to the printer. Off by default. */
   @IsOptional() @IsBoolean() autoAcceptOrders?: boolean;
 
+  /** Show rates and amounts to customers while they upload. Off by default. */
+  @IsOptional() @IsBoolean() pricingEnabled?: boolean;
+
   /**
    * The shop's Online / Offline switch: false pauses new customer orders.
    * While autoSchedule is on, this sets a temporary override instead

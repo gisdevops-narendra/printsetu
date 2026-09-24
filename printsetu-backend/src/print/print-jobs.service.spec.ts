@@ -12,7 +12,11 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
     document: { update: jest.Mock };
     $transaction: jest.Mock;
   };
-  let pricingService: { getActiveRateOrThrow: jest.Mock; resolveRate: jest.Mock };
+  let pricingService: {
+    getActiveRateOrThrow: jest.Mock;
+    resolveRate: jest.Mock;
+    isPricingEnabled: jest.Mock;
+  };
   let storage: { getSignedDownloadUrl: jest.Mock };
   let agentConnections: { isConnected: jest.Mock; pushJob: jest.Mock };
 
@@ -20,6 +24,7 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
     id: 'job-1',
     shopId: 'shop-1',
     status: 'PRINT_ELIGIBLE',
+    priced: true,
     items: [
       {
         id: 'item-1',
@@ -68,6 +73,7 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
     };
     pricingService = {
       getActiveRateOrThrow: jest.fn().mockResolvedValue({ pricePerPage: 2 }),
+      isPricingEnabled: jest.fn().mockResolvedValue(true),
       resolveRate: jest.fn().mockResolvedValue({ pricePerPage: 2, hasTiers: false, tier: null }),
     };
     storage = { getSignedDownloadUrl: jest.fn().mockResolvedValue('https://signed.example/file') };
@@ -180,6 +186,26 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
   });
 
   describe('updateItemSettings', () => {
+    it('changes an unpriced order without needing a rate or repricing', async () => {
+      prisma.printJob.findUnique.mockResolvedValue({ ...eligibleJob, priced: false });
+
+      await service.updateItemSettings('job-1', 'shop-1', 'item-1', { colorMode: 'COLOR' });
+
+      expect(pricingService.getActiveRateOrThrow).not.toHaveBeenCalled();
+      expect(pricingService.resolveRate).not.toHaveBeenCalled();
+      expect(prisma.printJobItem.update).toHaveBeenCalledTimes(1);
+      expect(prisma.printJob.update).not.toHaveBeenCalled();
+    });
+
+    it('does not reprice a priced order once the shop has turned pricing off', async () => {
+      pricingService.isPricingEnabled.mockResolvedValue(false);
+
+      await service.updateItemSettings('job-1', 'shop-1', 'item-1', { copies: 3 });
+
+      expect(pricingService.getActiveRateOrThrow).not.toHaveBeenCalled();
+      expect(pricingService.resolveRate).not.toHaveBeenCalled();
+    });
+
     it('reprices the item against the active rate and rolls the change into the job total', async () => {
       const updatedItem1 = { ...eligibleJob.items[0], copies: 3, billablePages: 15 };
       prisma.printJobItem.findMany.mockResolvedValue([updatedItem1, eligibleJob.items[1]]);

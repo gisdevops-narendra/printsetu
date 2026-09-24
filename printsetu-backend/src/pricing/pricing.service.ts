@@ -65,6 +65,15 @@ export class PricingService {
     });
   }
 
+  /** Whether the shop has switched pricing on (off by default). */
+  async isPricingEnabled(shopId: string): Promise<boolean> {
+    const settings = await this.prisma.printSettings.findUnique({
+      where: { shopId },
+      select: { pricingEnabled: true },
+    });
+    return settings?.pricingEnabled ?? false;
+  }
+
   listHistoryForShop(shopId: string) {
     return this.prisma.pricing.findMany({
       where: { shopId },
@@ -130,6 +139,10 @@ export class PricingService {
         },
         data: { active: false },
       });
+      // With no rate left a priced shop would offer nothing, so pricing switches off.
+      if ((await tx.pricing.count({ where: { shopId, active: true } })) === 0) {
+        await tx.printSettings.updateMany({ where: { shopId }, data: { pricingEnabled: false } });
+      }
     });
   }
 

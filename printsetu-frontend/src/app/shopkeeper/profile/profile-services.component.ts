@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, Input, OnInit, computed, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -32,6 +32,10 @@ interface Column {
         </div>
         <a routerLink="/shop/pricing" class="pf-btn pf-btn--primary"><i class="pi pi-pencil"></i> {{ 'profile.manage_rates' | translate }}</a>
       </header>
+
+      @if (!pricingEnabled) {
+        <p class="note"><i class="pi pi-eye-slash"></i> {{ 'profile.prices_hidden_from_customers' | translate }}</p>
+      }
 
       @if (loading()) {
         <div class="pf-skeleton" style="height: 12rem"></div>
@@ -243,6 +247,9 @@ interface Column {
   ],
 })
 export class ProfileServicesComponent implements OnInit {
+  /** The shop's "show prices to customers" switch (off by default). */
+  @Input() pricingEnabled = false;
+
   readonly columns: Column[] = [
     { key: 'bw-1', color: 'BW', side: 'SIMPLEX', title: 'B&W', get sub() { return t('profile.single_sided'); } },
     { key: 'bw-2', color: 'BW', side: 'DUPLEX', title: 'B&W', get sub() { return t('profile.double_sided'); } },
