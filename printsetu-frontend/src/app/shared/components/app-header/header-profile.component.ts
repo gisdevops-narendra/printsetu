@@ -1,17 +1,19 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HdrDropdownComponent } from './hdr-dropdown.component';
 import { HeaderMenuItem } from './header.models';
 import { ThemeService } from '../../../core/services/theme.service';
+import { LANGUAGES, LanguageService } from '../../../core/i18n/language.service';
 
 /** Avatar + name button that opens the account menu (links + sign out). */
 @Component({
   selector: 'app-header-profile',
   standalone: true,
-  imports: [CommonModule, RouterLink, HdrDropdownComponent],
+  imports: [TranslatePipe, CommonModule, RouterLink, HdrDropdownComponent],
   template: `
-    <app-hdr-dropdown label="Account menu" triggerClass="profile-btn" width="17rem">
+    <app-hdr-dropdown [label]="'shared.account_menu' | translate" triggerClass="profile-btn" width="17rem">
       <span trigger class="who">
         <span class="avatar">{{ initials() }}</span>
         <span class="who__text">
@@ -36,11 +38,25 @@ import { ThemeService } from '../../../core/services/theme.service';
       <div class="menu menu--foot">
         <button type="button" class="menu__item" role="switch" [attr.aria-checked]="theme.dark()" (click)="theme.toggle()">
           <i class="pi" [class.pi-moon]="!theme.dark()" [class.pi-sun]="theme.dark()"></i>
-          <span class="menu__grow">Dark mode</span>
-          <span class="pill" [class.pill--on]="theme.dark()">{{ theme.dark() ? 'On' : 'Off' }}</span>
+          <span class="menu__grow">{{ 'shared.dark_mode' | translate }}</span>
+          <span class="pill" [class.pill--on]="theme.dark()">{{ theme.dark() ? ('shared.on' | translate) : ('shared.off' | translate) }}</span>
         </button>
+        <label class="menu__item">
+          <i class="pi pi-globe"></i>
+          <span class="menu__grow">{{ 'shared.language' | translate }}</span>
+          <select
+            class="menu__select"
+            [attr.aria-label]="'shared.language' | translate"
+            [value]="language.current()"
+            (change)="language.set($any($event.target).value)"
+          >
+            @for (l of languages; track l.code) {
+              <option [value]="l.code" [selected]="l.code === language.current()">{{ l.nativeName }}</option>
+            }
+          </select>
+        </label>
         <button type="button" class="menu__item menu__item--danger" data-close (click)="logout.emit()">
-          <i class="pi pi-sign-out"></i>Sign out
+          <i class="pi pi-sign-out"></i>{{ 'shared.sign_out' | translate }}
         </button>
       </div>
     </app-hdr-dropdown>
@@ -132,6 +148,15 @@ import { ThemeService } from '../../../core/services/theme.service';
       .menu--foot {
         border-top: 1px solid var(--hdr-border);
       }
+      .menu__select {
+        border: 1px solid var(--hdr-border);
+        border-radius: 8px;
+        background: var(--hdr-surface);
+        color: inherit;
+        font: inherit;
+        font-size: 0.8125rem;
+        padding: 0.2rem 0.4rem;
+      }
       .menu__item {
         display: flex;
         align-items: center;
@@ -185,6 +210,8 @@ import { ThemeService } from '../../../core/services/theme.service';
 })
 export class HeaderProfileComponent {
   readonly theme = inject(ThemeService);
+  readonly language = inject(LanguageService);
+  readonly languages = LANGUAGES;
   @Input() name = '';
   @Input() email = '';
   @Input() roleLabel = '';

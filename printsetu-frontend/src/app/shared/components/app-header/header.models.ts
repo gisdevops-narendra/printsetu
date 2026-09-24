@@ -1,3 +1,4 @@
+import { t, intlLocale } from '../../../core/i18n/i18n';
 /** One row in a header notification dropdown (bell). */
 export interface HeaderAlert {
   id: string;
@@ -21,13 +22,13 @@ export interface HeaderMenuItem {
 export function timeAgo(iso: string, now = Date.now()): string {
   const diff = Math.max(0, now - new Date(iso).getTime());
   const min = Math.floor(diff / 60_000);
-  if (min < 1) return 'just now';
-  if (min < 60) return `${min}m ago`;
+  if (min < 1) return t('shared.just_now');
+  if (min < 60) return t('shared.m_ago', { min });
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
+  if (hr < 24) return t('shared.h_ago', { hr });
   const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}d ago`;
-  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  if (day < 7) return t('shared.d_ago', { day });
+  return new Date(iso).toLocaleDateString(intlLocale(), { day: '2-digit', month: 'short' });
 }
 
 const SEEN_PREFIX = 'printsetu.alertsSeenAt.';

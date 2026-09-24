@@ -1,4 +1,5 @@
 import { Component, HostListener, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
@@ -6,6 +7,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { AgentOs, DetectedPrinter, PrinterRow } from '../../core/models/models';
 import { copyText, downloadUrl, timeAgo } from '../../shared/utils/browser.util';
+import { t as tr } from '../../core/i18n/i18n';
+import { TranslateCountPipe } from '../../core/i18n/translate-count.pipe';
 
 type AgentState = 'loading' | 'error' | 'none' | 'online' | 'offline';
 
@@ -14,7 +17,7 @@ const TICK_MS = 10_000;
 /** How long to wait for an agent to answer a "re-scan printers" request before re-reading the list. */
 const RESCAN_SETTLE_MS = 3000;
 
-const OS_LABEL: Record<AgentOs, string> = { windows: 'Windows', linux: 'Linux' };
+const OS_LABEL: Record<AgentOs, string> = { get windows() { return tr('printerApp.windows'); }, get linux() { return tr('printerApp.linux'); } };
 
 /** Best guess at the OS of the computer this page is open on, to preselect the right download. */
 function detectOs(): AgentOs {
@@ -37,17 +40,17 @@ interface Faq {
 @Component({
   selector: 'app-print-agent',
   standalone: true,
-  imports: [CommonModule, RouterLink, ProgressSpinnerModule],
+  imports: [TranslateCountPipe, TranslatePipe, CommonModule, RouterLink, ProgressSpinnerModule],
   template: `
     <div class="page-header">
       <div>
-        <h1 class="page-title">Printer App</h1>
-        <p class="page-subtitle">The small program that lets PrintSetu send orders to your printer.</p>
+        <h1 class="page-title">{{ 'printerApp.printer_app' | translate }}</h1>
+        <p class="page-subtitle">{{ 'printerApp.the_small_program_that_lets_printsetu' | translate }}</p>
       </div>
       <div class="live">
         <span class="live__dot" [class.is-paused]="state() === 'error'"></span>
-        <span class="live__text">{{ state() === 'error' ? 'Not updating' : 'Live · updated ' + updatedAgo() }}</span>
-        <button type="button" class="live__refresh" (click)="refresh(true)" [disabled]="refreshing()" aria-label="Refresh now">
+        <span class="live__text">{{ state() === 'error' ? ('printerApp.not_updating' | translate) : ('printerApp.live_updated_ago' | translate: { ago: updatedAgo() }) }}</span>
+        <button type="button" class="live__refresh" (click)="refresh(true)" [disabled]="refreshing()" [attr.aria-label]="'printerApp.refresh_now' | translate">
           <i class="pi pi-refresh" [class.pi-spin]="refreshing()"></i>
         </button>
       </div>
@@ -57,9 +60,9 @@ interface Faq {
       <div class="mobile-note">
         <i class="pi pi-desktop"></i>
         <div>
-          <strong>Set this up on a computer</strong>
-          <p>The Printer App installs on the Windows or Linux computer that is connected to your printer. Open this page there, or send yourself the link.</p>
-          <button type="button" class="link-btn" (click)="copyPageLink()"><i class="pi pi-copy"></i> Copy link to this page</button>
+          <strong>{{ 'printerApp.set_this_up_on_a_computer' | translate }}</strong>
+          <p>{{ 'printerApp.the_printer_app_installs_on_the' | translate }}</p>
+          <button type="button" class="link-btn" (click)="copyPageLink()"><i class="pi pi-copy"></i> {{ 'printerApp.copy_link_to_this_page' | translate }}</button>
         </div>
       </div>
     }
@@ -70,48 +73,47 @@ interface Faq {
         @case ('loading') {
           <div class="hero__icon"><p-progressSpinner strokeWidth="6" [style]="{ width: '24px', height: '24px' }" /></div>
           <div class="hero__body">
-            <h2 class="hero__title">Checking your printer…</h2>
-            <p class="hero__text">This only takes a moment.</p>
+            <h2 class="hero__title">{{ 'printerApp.checking_your_printer' | translate }}</h2>
+            <p class="hero__text">{{ 'printerApp.this_only_takes_a_moment' | translate }}</p>
           </div>
         }
         @case ('error') {
           <div class="hero__icon"><i class="pi pi-exclamation-circle"></i></div>
           <div class="hero__body">
-            <h2 class="hero__title">Couldn't check your printer</h2>
-            <p class="hero__text">We couldn't reach PrintSetu just now. Your print orders are unaffected.</p>
+            <h2 class="hero__title">{{ 'printerApp.couldnt_check_your_printer' | translate }}</h2>
+            <p class="hero__text">{{ 'printerApp.we_couldnt_reach_printsetu_just_now' | translate }}</p>
           </div>
-          <button type="button" class="btn btn--solid" (click)="refresh(true)">Try again</button>
+          <button type="button" class="btn btn--solid" (click)="refresh(true)">{{ 'common.try_again' | translate }}</button>
         }
         @case ('none') {
           <div class="hero__icon"><i class="pi pi-desktop"></i></div>
           <div class="hero__body">
-            <h2 class="hero__title">Connect your printer</h2>
-            <p class="hero__text">Install the Printer App on the computer that is connected to your printer. It takes about a minute, and there are no codes to enter.</p>
+            <h2 class="hero__title">{{ 'printerApp.connect_your_printer' | translate }}</h2>
+            <p class="hero__text">{{ 'printerApp.install_the_printer_app_on_the' | translate }}</p>
           </div>
           <button type="button" class="btn btn--solid" (click)="download()" [disabled]="downloading()">
-            <i class="pi" [ngClass]="downloading() ? 'pi-spin pi-spinner' : 'pi-download'"></i> Download for {{ osLabel() }}
+            <i class="pi" [ngClass]="downloading() ? 'pi-spin pi-spinner' : 'pi-download'"></i> {{ 'printerApp.download_for' | translate: { osLabel: osLabel() } }}
           </button>
         }
         @case ('online') {
           <div class="hero__icon"><i class="pi pi-check-circle"></i></div>
           <div class="hero__body">
-            <h2 class="hero__title">Printer connected</h2>
+            <h2 class="hero__title">{{ 'printerApp.printer_connected' | translate }}</h2>
             <p class="hero__text">
-              {{ online().length }} {{ online().length === 1 ? 'printer is' : 'printers are' }} online &middot; last seen {{ lastSeenLabel() }}.
-              New orders are sent to the printer you choose below.
+              {{ (online().length === 1 ? 'printerApp.connected_summary.one' : 'printerApp.connected_summary.other') | translate: { count: online().length, lastSeen: lastSeenLabel() } }}
             </p>
           </div>
         }
         @case ('offline') {
           <div class="hero__icon"><i class="pi pi-exclamation-triangle"></i></div>
           <div class="hero__body">
-            <h2 class="hero__title">Printer offline</h2>
+            <h2 class="hero__title">{{ 'printerApp.printer_offline' | translate }}</h2>
             <p class="hero__text">
-              We last heard from your Printer App {{ lastSeenLabel() }}. Orders wait in Print Orders and print as soon as it reconnects.
+              {{ 'printerApp.we_last_heard_from_your_printer' | translate: { lastSeenLabel: lastSeenLabel() } }}
             </p>
           </div>
           <button type="button" class="btn btn--solid" (click)="openFaq(0)">
-            <i class="pi pi-wrench"></i> Fix it
+            <i class="pi pi-wrench"></i> {{ 'printerApp.fix_it' | translate }}
           </button>
         }
       }
@@ -122,11 +124,11 @@ interface Faq {
       <section class="card area-setup">
         <header class="card__head">
           <h2 class="card__title">
-            @if (state() === 'online') { Set up another computer } @else { Set up in 3 steps }
+            @if (state() === 'online') { {{ 'printerApp.set_up_another_computer' | translate }} } @else { {{ 'printerApp.set_up_in_3_steps' | translate }} }
           </h2>
           @if (state() === 'online') {
             <button type="button" class="link-btn" (click)="setupExpanded.set(!showSetup())" [attr.aria-expanded]="showSetup()">
-              {{ showSetup() ? 'Hide' : 'Show' }}
+              {{ showSetup() ? ('printerApp.hide' | translate) : ('printerApp.show' | translate) }}
             </button>
           }
         </header>
@@ -136,8 +138,8 @@ interface Faq {
             <li class="step" [class.is-done]="step1Done()">
               <span class="step__badge">@if (step1Done()) { <i class="pi pi-check"></i> } @else { 1 }</span>
               <div class="step__body">
-                <h3>Download the Printer App</h3>
-                <div class="os-switch" role="radiogroup" aria-label="Computer type">
+                <h3>{{ 'printerApp.download_the_printer_app' | translate }}</h3>
+                <div class="os-switch" role="radiogroup" [attr.aria-label]="'printerApp.computer_type' | translate">
                   @for (o of osOptions; track o) {
                     <button type="button" role="radio" class="os-switch__opt" [class.is-active]="os() === o" [attr.aria-checked]="os() === o" (click)="os.set(o)">
                       <i class="pi" [ngClass]="o === 'windows' ? 'pi-microsoft' : 'pi-server'"></i> {{ osLabels[o] }}
@@ -145,12 +147,12 @@ interface Faq {
                   }
                 </div>
                 <p>
-                  @if (os() === 'windows') { A small installer for Windows 10 and 11, about a minute to set up. }
-                  @else { For Ubuntu, Debian, Mint, Fedora and other Linux computers that print through CUPS. }
+                  @if (os() === 'windows') { {{ 'printerApp.a_small_installer_for_windows_10' | translate }} }
+                  @else { {{ 'printerApp.for_ubuntu_debian_mint_fedora_and' | translate }} }
                 </p>
                 <button type="button" class="btn btn--primary" (click)="download()" [disabled]="downloading()">
                   <i class="pi" [ngClass]="downloading() ? 'pi-spin pi-spinner' : 'pi-download'"></i>
-                  {{ step1Done() ? 'Download again' : 'Download for ' + osLabel() }}
+                  {{ step1Done() ? ('printerApp.download_again' | translate) : ('printerApp.download_for' | translate: { osLabel: osLabel() }) }}
                 </button>
               </div>
             </li>
@@ -158,33 +160,33 @@ interface Faq {
               <li class="step" [class.is-done]="step23Done()">
                 <span class="step__badge">@if (step23Done()) { <i class="pi pi-check"></i> } @else { 2 }</span>
                 <div class="step__body">
-                  <h3>Run <code>Install.bat</code></h3>
-                  <p>Open the downloaded file, extract it, then double-click <code>Install.bat</code> on the computer that is connected to your printer.</p>
+                  <h3 [innerHTML]="'printerApp.run_install_bat' | translate"></h3>
+                  <p [innerHTML]="'printerApp.windows_step_run' | translate"></p>
                 </div>
               </li>
               <li class="step" [class.is-done]="step23Done()">
                 <span class="step__badge">@if (step23Done()) { <i class="pi pi-check"></i> } @else { 3 }</span>
                 <div class="step__body">
-                  <h3>Click &ldquo;Yes&rdquo; when Windows asks</h3>
-                  <p>That lets it install quietly in the background.</p>
+                  <h3>{{ 'printerApp.click_yes_when_windows_asks' | translate }}</h3>
+                  <p>{{ 'printerApp.that_lets_it_install_quietly_in' | translate }}</p>
                 </div>
               </li>
             } @else {
               <li class="step" [class.is-done]="step23Done()">
                 <span class="step__badge">@if (step23Done()) { <i class="pi pi-check"></i> } @else { 2 }</span>
                 <div class="step__body">
-                  <h3>Extract it</h3>
-                  <p>Right-click the downloaded file and choose <em>Extract Here</em>. That creates a <code>PrintSetu-Print-Agent</code> folder.</p>
+                  <h3>{{ 'printerApp.extract_it' | translate }}</h3>
+                  <p [innerHTML]="'printerApp.linux_step_extract' | translate"></p>
                 </div>
               </li>
               <li class="step" [class.is-done]="step23Done()">
                 <span class="step__badge">@if (step23Done()) { <i class="pi pi-check"></i> } @else { 3 }</span>
                 <div class="step__body">
-                  <h3>Run the installer in a Terminal</h3>
-                  <p>Open a Terminal in that folder, run the command below and enter your password when asked.</p>
+                  <h3>{{ 'printerApp.run_the_installer_in_a_terminal' | translate }}</h3>
+                  <p>{{ 'printerApp.open_a_terminal_in_that_folder' | translate }}</p>
                   <div class="cmd">
                     <code>{{ linuxInstallCmd }}</code>
-                    <button type="button" class="link-btn" (click)="copyInstallCmd()"><i class="pi pi-copy"></i> Copy</button>
+                    <button type="button" class="link-btn" (click)="copyInstallCmd()"><i class="pi pi-copy"></i> {{ 'common.copy' | translate }}</button>
                   </div>
                 </div>
               </li>
@@ -192,21 +194,21 @@ interface Faq {
             <li class="step step--last" [class.is-done]="online().length > 0" [class.is-waiting]="online().length === 0 && step1Done()">
               <span class="step__badge">@if (online().length > 0) { <i class="pi pi-check"></i> } @else { <i class="pi pi-wifi"></i> }</span>
               <div class="step__body">
-                <h3>{{ online().length > 0 ? 'Connected' : 'Waiting for your printer…' }}</h3>
-                <p>{{ online().length > 0 ? 'Your computer showed up here on its own. Choose which printer to print on under Your printers.' : "You don't need to do anything here. This page updates by itself once the Printer App connects." }}</p>
+                <h3>{{ online().length > 0 ? ('printerApp.connected' | translate) : ('printerApp.waiting_for_your_printer' | translate) }}</h3>
+                <p>{{ online().length > 0 ? ('printerApp.your_computer_showed_up_here_on' | translate) : "You don't need to do anything here. This page updates by itself once the Printer App connects." }}</p>
               </div>
             </li>
           </ol>
-          <p class="fineprint"><i class="pi pi-info-circle"></i> It runs quietly in the background, starts with the computer, and restarts itself if it is ever interrupted.</p>
+          <p class="fineprint"><i class="pi pi-info-circle"></i> {{ 'printerApp.it_runs_quietly_in_the_background' | translate }}</p>
         }
       </section>
 
       <!-- ================= Printers ================= -->
         <section class="card area-printers">
           <header class="card__head">
-            <h2 class="card__title">Your printers</h2>
+            <h2 class="card__title">{{ 'printerApp.your_printers' | translate }}</h2>
             @if (printers().length > 0) {
-              <span class="count">{{ online().length }}/{{ printers().length }} online</span>
+              <span class="count">{{ 'printerApp.online' | translate: { online: online().length, printers: printers().length } }}</span>
             }
           </header>
 
@@ -216,8 +218,8 @@ interface Faq {
           } @else if (printers().length === 0) {
             <div class="empty">
               <span class="empty__icon"><i class="pi pi-print"></i></span>
-              <strong>No printer connected yet</strong>
-              <p>Once the Printer App is installed, your printer appears here automatically.</p>
+              <strong>{{ 'printerApp.no_printer_connected_yet' | translate }}</strong>
+              <p>{{ 'printerApp.once_the_printer_app_is_installed' | translate }}</p>
             </div>
           } @else {
             <ul class="plist">
@@ -228,7 +230,7 @@ interface Faq {
                     <span class="printer__name" [title]="p.printerName">{{ p.printerName }}</span>
                     <span class="printer__meta">
                       @if (p.capabilitiesJson?.hostname) {
-                        <span class="printer__driver" [title]="p.capabilitiesJson!.hostname!">On {{ p.capabilitiesJson!.hostname }}</span>
+                        <span class="printer__driver" [title]="p.capabilitiesJson!.hostname!">{{ 'printerApp.on' | translate: { hostname: p.capabilitiesJson!.hostname } }}</span>
                       } @else if (p.driverName) {
                         <span class="printer__driver" [title]="p.driverName">{{ p.driverName }}</span>
                       }
@@ -236,15 +238,15 @@ interface Faq {
                   </div>
                   <div class="printer__side">
                     <span class="pill"><span class="pill__dot"></span>{{ statusLabel(p.status) }}</span>
-                    <span class="printer__seen">{{ p.lastHeartbeatAt ? 'Seen ' + ago(p.lastHeartbeatAt) : 'Never connected' }}</span>
+                    <span class="printer__seen">{{ p.lastHeartbeatAt ? ('printerApp.seen_ago' | translate: { ago: ago(p.lastHeartbeatAt) }) : ('printerApp.never_connected' | translate) }}</span>
                   </div>
-                  <button type="button" class="printer__remove" (click)="confirmRemove(p)" [attr.aria-label]="'Remove ' + p.printerName">
+                  <button type="button" class="printer__remove" (click)="confirmRemove(p)" [attr.aria-label]="'printerApp.remove_printer_aria' | translate: { name: p.printerName }">
                     <i class="pi pi-trash"></i>
                   </button>
 
                   <div class="target">
                     @if (detected(p); as list) {
-                      <label class="target__label" [for]="'target-' + p.id">Print to</label>
+                      <label class="target__label" [for]="'target-' + p.id">{{ 'printerApp.print_to' | translate }}</label>
                       <div class="target__row">
                         <select
                           class="target__select"
@@ -254,10 +256,10 @@ interface Faq {
                         >
                           <option value="" [selected]="!p.osPrinterName">{{ defaultOptionLabel(list) }}</option>
                           @for (d of list; track d.name) {
-                            <option [value]="d.name" [selected]="p.osPrinterName === d.name">{{ d.name }}{{ d.isDefault ? ' (default)' : '' }}</option>
+                            <option [value]="d.name" [selected]="p.osPrinterName === d.name">{{ d.isDefault ? ('printerApp.default_printer_option' | translate: { name: d.name }) : d.name }}</option>
                           }
                           @if (p.osPrinterName && !hasPrinter(list, p.osPrinterName)) {
-                            <option [value]="p.osPrinterName" selected>{{ p.osPrinterName }} (not found)</option>
+                            <option [value]="p.osPrinterName" selected>{{ 'printerApp.not_found' | translate: { osPrinterName: p.osPrinterName } }}</option>
                           }
                         </select>
                         <button
@@ -265,8 +267,8 @@ interface Faq {
                           class="target__rescan"
                           (click)="rescan(p)"
                           [disabled]="rescanningId() === p.id || p.status !== 'ONLINE'"
-                          [title]="p.status === 'ONLINE' ? 'Look for printers again' : 'The Printer App must be online to look for printers'"
-                          aria-label="Look for printers again"
+                          [title]="p.status === 'ONLINE' ? ('printerApp.look_for_printers_again' | translate) : ('printerApp.the_printer_app_must_be_online' | translate)"
+                          [attr.aria-label]="'printerApp.look_for_printers_again' | translate"
                         >
                           <i class="pi" [ngClass]="rescanningId() === p.id || savingId() === p.id ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
                         </button>
@@ -274,12 +276,12 @@ interface Faq {
                       @if (targetWarning(p, list); as warning) {
                         <p class="target__note target__note--warn"><i class="pi pi-exclamation-triangle"></i> {{ warning }}</p>
                       } @else {
-                        <p class="target__note">{{ list.length }} {{ list.length === 1 ? 'printer' : 'printers' }} found on this computer.</p>
+                        <p class="target__note">{{ 'printerApp.found_on_this_computer' | translate: { printers: ('common.count.printers' | translateCount: list.length) } }}</p>
                       }
                     } @else if (p.status === 'ONLINE') {
-                      <p class="target__note"><i class="pi pi-spin pi-spinner"></i> Looking for printers on this computer…</p>
+                      <p class="target__note"><i class="pi pi-spin pi-spinner"></i> {{ 'printerApp.looking_for_printers_on_this_computer' | translate }}</p>
                     } @else {
-                      <p class="target__note">Printers on this computer appear here once the Printer App connects.</p>
+                      <p class="target__note">{{ 'printerApp.printers_on_this_computer_appear_here' | translate }}</p>
                     }
                   </div>
                 </li>
@@ -289,9 +291,9 @@ interface Faq {
         </section>
 
         <section class="card area-faq">
-          <header class="card__head"><h2 class="card__title">Troubleshooting</h2></header>
+          <header class="card__head"><h2 class="card__title">{{ 'printerApp.troubleshooting' | translate }}</h2></header>
           <div class="faq">
-            @for (f of faqs; track f.q; let i = $index) {
+            @for (f of faqs(); track f.q; let i = $index) {
               <div class="faq__item" [class.is-open]="faqOpen() === i">
                 <button type="button" class="faq__q" (click)="openFaq(faqOpen() === i ? null : i)" [attr.aria-expanded]="faqOpen() === i">
                   <span>{{ f.q }}</span>
@@ -303,7 +305,7 @@ interface Faq {
                       @for (s of f.steps; track s) { <li>{{ s }}</li> }
                     </ol>
                     @if (f.queueLink) {
-                      <a routerLink="/shop/queue" class="link-btn"><i class="pi pi-inbox"></i> Open Print Orders</a>
+                      <a routerLink="/shop/queue" class="link-btn"><i class="pi pi-inbox"></i> {{ 'printerApp.open_print_orders' | translate }}</a>
                     }
                   </div>
                 }
@@ -1077,44 +1079,45 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
   private tickHandle?: ReturnType<typeof setInterval>;
   private previousState: AgentState | null = null;
 
-  readonly faqs: Faq[] = [
+  // Rebuilt when the language changes (tr() reads the active language).
+  readonly faqs = computed<Faq[]>(() => [
     {
-      q: 'My printer shows Offline',
+      get q() { return tr('printerApp.my_printer_shows_offline'); },
       steps: [
-        'Check that the computer with the printer is switched on and connected to the internet.',
-        'Check that the printer itself is on and has paper.',
-        'Restart the computer. The Printer App starts on its own.',
-        'Still offline? Download the Printer App again and run Install.bat once more.',
+        tr('printerApp.check_that_the_computer_with_the'),
+        tr('printerApp.check_that_the_printer_itself_is'),
+        tr('printerApp.restart_the_computer_the_printer_app'),
+        tr('printerApp.still_offline_download_the_printer_app'),
       ],
     },
     {
-      q: 'My printer is not in the list',
+      get q() { return tr('printerApp.my_printer_is_not_in_the'); },
       steps: [
-        'Check that the printer is switched on and connected to the computer running the Printer App.',
-        'Check that it can print a test page from that computer (Windows: Settings > Printers & scanners; Linux: Settings > Printers).',
-        'Click the refresh button next to the printer list to look again.',
-        'On Linux, run "lpstat -e" in a Terminal: the printer must be listed there. If the command is missing, install CUPS with "sudo apt install cups cups-client".',
+        tr('printerApp.check_that_the_printer_is_switched'),
+        tr('printerApp.check_that_it_can_print_a'),
+        tr('printerApp.click_the_refresh_button_next_to'),
+        tr('printerApp.on_linux_run_lpstat_e_in'),
       ],
     },
     {
-      q: 'Windows blocked the installer',
+      get q() { return tr('printerApp.windows_blocked_the_installer'); },
       steps: [
-        'Right-click Install.bat and choose Run as administrator.',
-        'If Windows shows a warning, choose More info, then Run anyway.',
-        'When Windows asks for permission, click Yes.',
+        tr('printerApp.right_click_install_bat_and_choose'),
+        tr('printerApp.if_windows_shows_a_warning_choose'),
+        tr('printerApp.when_windows_asks_for_permission_click'),
       ],
     },
     {
-      q: 'An order was sent but nothing printed',
+      get q() { return tr('printerApp.an_order_was_sent_but_nothing'); },
       steps: [
-        'Open Print Orders and look at the order status. It shows whether it was sent, printing or failed.',
-        'Check that the right printer is chosen under Print to on this page.',
-        'Check that the printer has paper and ink, and no error light.',
-        'If the printer was offline, the order prints as soon as it reconnects.',
+        tr('printerApp.open_print_orders_and_look_at'),
+        tr('printerApp.check_that_the_right_printer_is'),
+        tr('printerApp.check_that_the_printer_has_paper'),
+        tr('printerApp.if_the_printer_was_offline_the'),
       ],
       queueLink: true,
     },
-  ];
+  ]);
 
   online = computed(() => this.printers().filter((p) => p.status === 'ONLINE'));
 
@@ -1139,7 +1142,7 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
     const t = this.lastUpdated();
     if (t === null) return '—';
     const s = Math.max(0, Math.round((this.now() - t) / 1000));
-    return s < 8 ? 'just now' : s < 60 ? `${s}s ago` : `${Math.round(s / 60)} min ago`;
+    return s < 8 ? tr('printerApp.just_now') : s < 60 ? tr('printerApp.s_ago', { value: s }) : tr('printerApp.min_ago', { value: Math.round(s / 60) });
   });
 
   step1Done = computed(() => this.downloaded() || this.printers().length > 0);
@@ -1218,9 +1221,9 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
     this.previousState = current;
     if (before === null || before === current) return;
     if (current === 'online' && (before === 'offline' || before === 'none')) {
-      this.messageService.add({ severity: 'success', summary: 'Printer connected', detail: 'New orders will print automatically.' });
+      this.messageService.add({ severity: 'success', get summary() { return tr('printerApp.printer_connected'); }, get detail() { return tr('printerApp.new_orders_will_print_automatically'); } });
     } else if (current === 'offline' && before === 'online') {
-      this.messageService.add({ severity: 'warn', summary: 'Printer went offline', detail: 'Orders will wait until it reconnects.' });
+      this.messageService.add({ severity: 'warn', get summary() { return tr('printerApp.printer_went_offline'); }, get detail() { return tr('printerApp.orders_will_wait_until_it_reconnects'); } });
     }
   }
 
@@ -1236,11 +1239,11 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
         this.downloaded.set(true);
         this.messageService.add({
           severity: 'success',
-          summary: 'Download started',
+          get summary() { return tr('printerApp.download_started'); },
           detail:
             os === 'linux'
-              ? `Extract the downloaded file and run "${this.linuxInstallCmd}" in that folder to finish setup.`
-              : 'Open the downloaded file and run Install.bat to finish setup.',
+              ? tr('printerApp.extract_the_downloaded_file_and_run', { linuxInstallCmd: this.linuxInstallCmd })
+              : tr('printerApp.open_the_downloaded_file_and_run'),
         });
         this.refresh();
       },
@@ -1250,7 +1253,7 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
 
   async copyInstallCmd(): Promise<void> {
     const ok = await copyText(this.linuxInstallCmd);
-    this.messageService.add(ok ? { severity: 'success', summary: 'Command copied' } : { severity: 'warn', summary: "Couldn't copy" });
+    this.messageService.add(ok ? { severity: 'success', get summary() { return tr('printerApp.command_copied'); } } : { severity: 'warn', get summary() { return tr('printerApp.couldnt_copy'); } });
   }
 
   /** Printers the agent reported on its computer, or null if it hasn't reported yet. */
@@ -1264,19 +1267,19 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
 
   defaultOptionLabel(list: DetectedPrinter[]): string {
     const osDefault = list.find((d) => d.isDefault);
-    return osDefault ? `Computer's default printer (${osDefault.name})` : "Computer's default printer";
+    return osDefault ? tr('printerApp.computers_default_printer', { name: osDefault.name }) : tr('printerApp.computers_default_printer_2');
   }
 
   /** Mirrors the agent's own printer resolution (job-processor.ts) so the shopkeeper sees a failure coming. */
   targetWarning(p: PrinterRow, list: DetectedPrinter[]): string | null {
-    if (list.length === 0) return 'No printers found on this computer. Install or connect the printer there, then refresh.';
+    if (list.length === 0) return tr('printerApp.no_printers_found_on_this_computer');
     if (p.osPrinterName) {
       return this.hasPrinter(list, p.osPrinterName)
         ? null
-        : `"${p.osPrinterName}" is no longer on this computer. Orders will fail until you choose another printer.`;
+        : tr('printerApp.is_no_longer_on_this_computer', { osPrinterName: p.osPrinterName });
     }
     if (list.length > 1 && !list.some((d) => d.isDefault)) {
-      return 'This computer has no default printer. Choose a printer so orders know where to go.';
+      return tr('printerApp.this_computer_has_no_default_printer');
     }
     return null;
   }
@@ -1291,8 +1294,8 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
         this.savingId.set(null);
         this.messageService.add({
           severity: 'success',
-          summary: 'Printer saved',
-          detail: osPrinterName ? `Orders will print on ${osPrinterName}.` : "Orders will print on the computer's default printer.",
+          get summary() { return tr('printerApp.printer_saved'); },
+          detail: osPrinterName ? tr('printerApp.orders_will_print_on', { osPrinterName }) : tr('printerApp.orders_will_print_on_the_computers'),
         });
       },
       error: () => {
@@ -1309,7 +1312,7 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
       next: ({ requested }) => {
         if (!requested) {
           this.rescanningId.set(null);
-          this.messageService.add({ severity: 'warn', summary: 'Printer App is offline', detail: 'It will report its printers when it reconnects.' });
+          this.messageService.add({ severity: 'warn', get summary() { return tr('printerApp.printer_app_is_offline'); }, get detail() { return tr('printerApp.it_will_report_its_printers_when'); } });
           return;
         }
         setTimeout(() => {
@@ -1324,7 +1327,7 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
   async copyPageLink(): Promise<void> {
     const ok = await copyText(window.location.href);
     this.messageService.add(
-      ok ? { severity: 'success', summary: 'Link copied' } : { severity: 'warn', summary: "Couldn't copy the link" },
+      ok ? { severity: 'success', get summary() { return tr('common.link_copied'); } } : { severity: 'warn', get summary() { return tr('printerApp.couldnt_copy_the_link'); } },
     );
   }
 
@@ -1340,19 +1343,19 @@ export class PrintAgentComponent implements OnInit, OnDestroy {
   }
 
   statusLabel(status: PrinterRow['status']): string {
-    return status === 'ONLINE' ? 'Online' : status === 'OFFLINE' ? 'Offline' : 'Not connected yet';
+    return status === 'ONLINE' ? tr('common.online') : status === 'OFFLINE' ? tr('common.offline') : tr('printerApp.not_connected_yet');
   }
 
   confirmRemove(printer: PrinterRow): void {
     this.confirmationService.confirm({
-      header: 'Remove printer',
-      message: `Remove "${printer.printerName}"? Its Printer App stops receiving orders immediately. You can always install and register a new one.`,
+      get header() { return tr('printerApp.remove_printer'); },
+      get message() { return tr('printerApp.remove_its_printer_app_stops_receiving', { printerName: printer.printerName }); },
       icon: 'pi pi-exclamation-triangle',
-      acceptButtonProps: { severity: 'danger', label: 'Remove' },
+      acceptButtonProps: { severity: 'danger', get label() { return tr('common.remove'); } },
       accept: () => {
         this.shopkeeperService.removePrinter(printer.id).subscribe({
           next: () => {
-            this.messageService.add({ severity: 'success', summary: 'Printer removed' });
+            this.messageService.add({ severity: 'success', get summary() { return tr('printerApp.printer_removed'); } });
             this.refresh();
           },
         });

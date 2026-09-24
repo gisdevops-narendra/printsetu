@@ -1,8 +1,11 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { TranslatePipe } from '@ngx-translate/core';
+import { CommonModule } from '@angular/common';
 import { InvoiceRecord } from '../../core/models/billing.models';
 import { BillingPillComponent } from './billing-pill.component';
 import { PAYMENT_METHODS, cycleLabel, money } from './billing.util';
+import { t } from '../../core/i18n/i18n';
+import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
 
 /**
  * Invoice list used by the admin Payments tab, the per-shop billing drawer and
@@ -12,7 +15,7 @@ import { PAYMENT_METHODS, cycleLabel, money } from './billing.util';
 @Component({
   selector: 'app-invoice-table',
   standalone: true,
-  imports: [CommonModule, DatePipe, BillingPillComponent],
+  imports: [AppDatePipe, TranslatePipe, CommonModule, BillingPillComponent],
   template: `
     @if (invoices.length === 0) {
       <div class="empty"><i class="pi pi-receipt"></i><span>{{ emptyText }}</span></div>
@@ -20,13 +23,13 @@ import { PAYMENT_METHODS, cycleLabel, money } from './billing.util';
       <table class="inv">
         <thead>
           <tr>
-            <th scope="col">Invoice</th>
-            @if (showShop) { <th scope="col">Shop</th> }
-            <th scope="col">Plan &amp; period</th>
-            <th scope="col" class="num">Amount</th>
-            <th scope="col">Date</th>
-            <th scope="col">Status</th>
-            <th scope="col" class="act"><span class="sr">Actions</span></th>
+            <th scope="col">{{ 'common.invoice' | translate }}</th>
+            @if (showShop) { <th scope="col">{{ 'common.shop' | translate }}</th> }
+            <th scope="col">{{ 'billingShared.plan_period' | translate }}</th>
+            <th scope="col" class="num">{{ 'common.amount' | translate }}</th>
+            <th scope="col">{{ 'common.date' | translate }}</th>
+            <th scope="col">{{ 'common.status' | translate }}</th>
+            <th scope="col" class="act"><span class="sr">{{ 'common.actions' | translate }}</span></th>
           </tr>
         </thead>
         <tbody>
@@ -41,30 +44,30 @@ import { PAYMENT_METHODS, cycleLabel, money } from './billing.util';
               }
               <td data-label="Plan">
                 <strong>{{ i.planName }} <em>{{ cycleLabel(i.cycle).toLowerCase() }}</em></strong>
-                <span class="sub">{{ i.periodStart | date: 'd MMM y' }} – {{ i.periodEnd | date: 'd MMM y' }}</span>
+                <span class="sub">{{ i.periodStart | appDate: 'd MMM y' }} – {{ i.periodEnd | appDate: 'd MMM y' }}</span>
               </td>
               <td data-label="Amount" class="num">
                 <strong>{{ money(i.amount, i.currency) }}</strong>
-                @if (+i.refundedAmount > 0) { <span class="sub refund">{{ money(i.refundedAmount, i.currency) }} refunded</span> }
+                @if (+i.refundedAmount > 0) { <span class="sub refund">{{ 'billingShared.refunded' | translate: { refundedAmount: money(i.refundedAmount, i.currency) } }}</span> }
               </td>
               <td data-label="Date">
-                @if (i.paidAt) { <strong>{{ i.paidAt | date: 'd MMM y' }}</strong><span class="sub">paid{{ method(i) ? ' by ' + method(i) : '' }}</span> }
-                @else { <strong>{{ i.dueDate | date: 'd MMM y' }}</strong><span class="sub">due</span> }
+                @if (i.paidAt) { <strong>{{ i.paidAt | appDate: 'd MMM y' }}</strong><span class="sub">{{ method(i) ? ('billingShared.paid_by' | translate: { method: method(i) }) : ('billingShared.paid' | translate) }}</span> }
+                @else { <strong>{{ i.dueDate | appDate: 'd MMM y' }}</strong><span class="sub">{{ 'billingShared.due' | translate }}</span> }
               </td>
               <td data-label="Status">
                 <app-billing-pill [invoice]="i.status" />
-                @if (i.attemptCount > 1 && (i.status === 'OPEN' || i.status === 'FAILED')) { <span class="sub">{{ i.attemptCount }} attempts</span> }
+                @if (i.attemptCount > 1 && (i.status === 'OPEN' || i.status === 'FAILED')) { <span class="sub">{{ 'billingShared.attempts' | translate: { attemptCount: i.attemptCount } }}</span> }
                 @if (i.lastFailure && (i.status === 'OPEN' || i.status === 'FAILED')) { <span class="sub bad">{{ i.lastFailure }}</span> }
               </td>
               <td class="act">
                 <div class="acts">
-                  <button type="button" class="ic" title="Download PDF" aria-label="Download PDF" (click)="pdf.emit(i)"><i class="pi pi-download"></i></button>
-                  <button type="button" class="ic" title="Print" aria-label="Print invoice" (click)="print.emit(i)"><i class="pi pi-print"></i></button>
+                  <button type="button" class="ic" [title]="'common.download_pdf' | translate" [attr.aria-label]="'common.download_pdf' | translate" (click)="pdf.emit(i)"><i class="pi pi-download"></i></button>
+                  <button type="button" class="ic" [title]="'common.print' | translate" [attr.aria-label]="'billingShared.print_invoice' | translate" (click)="print.emit(i)"><i class="pi pi-print"></i></button>
                   @if (canMarkPaid && (i.status === 'OPEN' || i.status === 'FAILED')) {
-                    <button type="button" class="txt" (click)="markPaid.emit(i)"><i class="pi pi-check"></i> Mark paid</button>
+                    <button type="button" class="txt" (click)="markPaid.emit(i)"><i class="pi pi-check"></i> {{ 'billingShared.mark_paid' | translate }}</button>
                   }
                   @if (canRefund && (i.status === 'PAID' || i.status === 'PARTIALLY_REFUNDED')) {
-                    <button type="button" class="txt" (click)="refund.emit(i)"><i class="pi pi-undo"></i> Refund</button>
+                    <button type="button" class="txt" (click)="refund.emit(i)"><i class="pi pi-undo"></i> {{ 'billingShared.refund' | translate }}</button>
                   }
                 </div>
               </td>
@@ -262,7 +265,7 @@ export class InvoiceTableComponent {
   @Input() showShop = false;
   @Input() canMarkPaid = false;
   @Input() canRefund = false;
-  @Input() emptyText = 'No invoices yet.';
+  @Input() emptyText = t('billingShared.no_invoices_yet');
   @Output() pdf = new EventEmitter<InvoiceRecord>();
   @Output() print = new EventEmitter<InvoiceRecord>();
   @Output() markPaid = new EventEmitter<InvoiceRecord>();
@@ -272,7 +275,7 @@ export class InvoiceTableComponent {
   readonly cycleLabel = cycleLabel;
 
   kind(i: InvoiceRecord): string {
-    return { INITIAL: 'First invoice', RENEWAL: 'Renewal', UPGRADE: 'Plan upgrade' }[i.kind] ?? i.kind;
+    return { get INITIAL() { return t('billingShared.first_invoice'); }, get RENEWAL() { return t('billingShared.renewal'); }, get UPGRADE() { return t('billingShared.plan_upgrade'); } }[i.kind] ?? i.kind;
   }
 
   method(i: InvoiceRecord): string {

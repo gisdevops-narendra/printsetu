@@ -1,4 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ScrollActiveTabDirective } from '../../shared/directives/scroll-active-tab.directive';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -12,16 +13,17 @@ import { ProfileHistoryComponent } from './profile-history.component';
 import { ProfileSettingsComponent } from './profile-settings.component';
 import { EditProfileDialogComponent } from './edit-profile-dialog.component';
 import { initials, openStatus } from './profile.util';
+import { t } from '../../core/i18n/i18n';
 
 type Tab = 'overview' | 'details' | 'services' | 'history' | 'settings';
 type ImageKind = 'logo' | 'banner';
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
-  { key: 'overview', label: 'Overview', icon: 'pi-chart-bar' },
-  { key: 'details', label: 'Details', icon: 'pi-id-card' },
-  { key: 'services', label: 'Services & pricing', icon: 'pi-tag' },
-  { key: 'history', label: 'Orders', icon: 'pi-history' },
-  { key: 'settings', label: 'Settings', icon: 'pi-cog' },
+  { key: 'overview', get label() { return t('profile.overview'); }, icon: 'pi-chart-bar' },
+  { key: 'details', get label() { return t('common.details'); }, icon: 'pi-id-card' },
+  { key: 'services', get label() { return t('profile.services_pricing'); }, icon: 'pi-tag' },
+  { key: 'history', get label() { return t('common.orders'); }, icon: 'pi-history' },
+  { key: 'settings', get label() { return t('profile.settings'); }, icon: 'pi-cog' },
 ];
 
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
@@ -34,7 +36,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 @Component({
   selector: 'app-shop-profile',
   standalone: true,
-  imports: [ScrollActiveTabDirective, 
+  imports: [TranslatePipe, ScrollActiveTabDirective, 
     CommonModule,
     RouterLink,
     ProfileOverviewComponent,
@@ -52,9 +54,9 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
       } @else if (error()) {
         <div class="pf-card pf-empty">
           <span class="pf-empty__icon"><i class="pi pi-exclamation-circle"></i></span>
-          <strong>Couldn't load your profile</strong>
-          <p>Check your connection and try again.</p>
-          <button type="button" class="pf-btn pf-btn--primary" (click)="load()"><i class="pi pi-refresh"></i> Try again</button>
+          <strong>{{ 'profile.couldnt_load_your_profile' | translate }}</strong>
+          <p>{{ 'profile.check_your_connection_and_try_again' | translate }}</p>
+          <button type="button" class="pf-btn pf-btn--primary" (click)="load()"><i class="pi pi-refresh"></i> {{ 'common.try_again' | translate }}</button>
         </div>
       } @else if (data(); as d) {
         <!-- ================= Hero ================= -->
@@ -63,19 +65,19 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
             @if (d.shop.bannerUrl) { <img [src]="d.shop.bannerUrl" alt="" class="cover__img" /> }
             <div class="cover__tools">
               <button type="button" class="tool" (click)="bannerInput.click()" [disabled]="uploading() !== null">
-                <i class="pi pi-camera"></i><span>{{ d.shop.bannerUrl ? 'Change cover' : 'Add cover' }}</span>
+                <i class="pi pi-camera"></i><span>{{ d.shop.bannerUrl ? ('profile.change_cover' | translate) : ('profile.add_cover' | translate) }}</span>
               </button>
               @if (d.shop.bannerUrl) {
-                <button type="button" class="tool tool--icon" (click)="remove('banner')" [disabled]="uploading() !== null" aria-label="Remove cover photo"><i class="pi pi-trash"></i></button>
+                <button type="button" class="tool tool--icon" (click)="remove('banner')" [disabled]="uploading() !== null" [attr.aria-label]="'profile.remove_cover_photo' | translate"><i class="pi pi-trash"></i></button>
               }
             </div>
-            @if (uploading() === 'banner') { <div class="busy"><span class="spinner"></span> Uploading…</div> }
+            @if (uploading() === 'banner') { <div class="busy"><span class="spinner"></span> {{ 'common.uploading' | translate }}</div> }
           </div>
 
           <div class="hero__body">
             <div class="avatar" [class.has-image]="!!d.shop.logoUrl">
               @if (d.shop.logoUrl) { <img [src]="d.shop.logoUrl" alt="{{ d.shop.name }} logo" /> } @else { <span>{{ initials(d.shop.name) }}</span> }
-              <button type="button" class="avatar__edit" (click)="logoInput.click()" [disabled]="uploading() !== null" aria-label="Change logo"><i class="pi pi-camera"></i></button>
+              <button type="button" class="avatar__edit" (click)="logoInput.click()" [disabled]="uploading() !== null" [attr.aria-label]="'profile.change_logo' | translate"><i class="pi pi-camera"></i></button>
               @if (uploading() === 'logo') { <div class="busy busy--round"><span class="spinner"></span></div> }
             </div>
 
@@ -85,7 +87,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
                 <span class="chip chip--code"><i class="pi pi-hashtag"></i>{{ d.shop.shopCode }}</span>
                 <span class="chip"><i class="pi pi-map-marker"></i>{{ d.shop.city }}</span>
                 <span class="chip" [ngClass]="d.shop.status === 'ACTIVE' ? 'chip--ok' : 'chip--bad'">
-                  <span class="dot"></span>{{ d.shop.status === 'ACTIVE' ? 'Active' : 'Inactive' }}
+                  <span class="dot"></span>{{ d.shop.status === 'ACTIVE' ? ('common.active' | translate) : ('profile.inactive' | translate) }}
                 </span>
                 @if (open(); as o) {
                   <span class="chip" [ngClass]="o.state === 'open' ? 'chip--ok' : o.state === 'closed' ? 'chip--muted' : 'chip--plain'"><i class="pi pi-clock"></i>{{ o.label }}</span>
@@ -94,13 +96,13 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
               @if (d.shop.description) {
                 <p class="desc">{{ d.shop.description }}</p>
               } @else {
-                <button type="button" class="desc desc--add" (click)="editing.set(true)"><i class="pi pi-plus"></i> Add a short description of your shop</button>
+                <button type="button" class="desc desc--add" (click)="editing.set(true)"><i class="pi pi-plus"></i> {{ 'profile.add_a_short_description_of_your' | translate }}</button>
               }
             </div>
 
             <div class="hero__actions">
-              <button type="button" class="pf-btn pf-btn--primary" (click)="editing.set(true)"><i class="pi pi-pencil"></i> Edit profile</button>
-              <a routerLink="/shop/qr" class="pf-btn"><i class="pi pi-qrcode"></i> QR code</a>
+              <button type="button" class="pf-btn pf-btn--primary" (click)="editing.set(true)"><i class="pi pi-pencil"></i> {{ 'profile.edit_profile' | translate }}</button>
+              <a routerLink="/shop/qr" class="pf-btn"><i class="pi pi-qrcode"></i> {{ 'profile.qr_code' | translate }}</a>
             </div>
           </div>
         </section>
@@ -109,7 +111,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
         <input #bannerInput type="file" accept="image/png,image/jpeg,image/webp" hidden (change)="onImage('banner', $event)" />
 
         <!-- ================= Tabs ================= -->
-        <nav class="tabs" appScrollActiveTab role="tablist" aria-label="Shop profile sections">
+        <nav class="tabs" appScrollActiveTab role="tablist" [attr.aria-label]="'profile.shop_profile_sections' | translate">
           @for (t of tabs; track t.key) {
             <button type="button" role="tab" class="tab" [class.is-on]="tab() === t.key" [attr.aria-selected]="tab() === t.key" (click)="select(t.key)">
               <i class="pi" [ngClass]="t.icon"></i><span>{{ t.label }}</span>
@@ -527,11 +529,11 @@ export class ProfileComponent implements OnInit {
     input.value = ''; // allows choosing the same file again
     if (!file) return;
     if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) {
-      this.messageService.add({ severity: 'warn', summary: 'Use a JPG, PNG or WebP image' });
+      this.messageService.add({ severity: 'warn', get summary() { return t('profile.use_a_jpg_png_or_webp'); } });
       return;
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      this.messageService.add({ severity: 'warn', summary: 'That image is too large', detail: 'Please choose one under 6 MB.' });
+      this.messageService.add({ severity: 'warn', get summary() { return t('profile.that_image_is_too_large'); }, get detail() { return t('profile.please_choose_one_under_6_mb'); } });
       return;
     }
     this.uploading.set(kind);
@@ -539,7 +541,7 @@ export class ProfileComponent implements OnInit {
       next: (res) => {
         this.data.set(res);
         this.uploading.set(null);
-        this.messageService.add({ severity: 'success', summary: kind === 'logo' ? 'Logo updated' : 'Cover photo updated' });
+        this.messageService.add({ severity: 'success', summary: kind === 'logo' ? t('profile.logo_updated') : t('profile.cover_photo_updated') });
       },
       error: () => this.uploading.set(null),
     });

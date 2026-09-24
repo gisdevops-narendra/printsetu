@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -8,112 +9,112 @@ import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { OrderAlertsService } from '../../core/services/order-alerts.service';
 import { NotificationPrefs, OpeningHours, PrinterRow, ShopProfileResponse, ShopSettingsInfo } from '../../core/models/models';
 import { timeAgo } from '../../shared/utils/browser.util';
+import { t } from '../../core/i18n/i18n';
 
 /** How the shop takes orders, prints them and gets told about them. */
 @Component({
   selector: 'app-profile-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ToggleSwitchModule],
+  imports: [TranslatePipe, CommonModule, FormsModule, RouterLink, ToggleSwitchModule],
   template: `
     @for (k of [renderKey()]; track k) {
     <div class="sections">
       <!-- ---------- Order handling ---------- -->
       <section class="pf-card">
-        <header class="pf-card__head"><h3 class="pf-eyebrow">Order handling</h3></header>
+        <header class="pf-card__head"><h3 class="pf-eyebrow">{{ 'profile.order_handling' | translate }}</h3></header>
         <div class="setting">
           <span class="setting__icon"><i class="pi pi-bolt"></i></span>
           <div class="setting__text">
-            <label for="auto-accept">Auto-accept orders</label>
-            <p>Confirmed orders go straight to your printer. You won't need to tap Print, and you won't review them first.</p>
+            <label for="auto-accept">{{ 'profile.auto_accept_orders' | translate }}</label>
+            <p>{{ 'profile.confirmed_orders_go_straight_to_your' | translate }}</p>
           </div>
           <p-toggleswitch inputId="auto-accept" [ngModel]="settings.autoAcceptOrders" (ngModelChange)="onAutoAccept($event)" [disabled]="saving()" />
         </div>
         @if (settings.autoAcceptOrders) {
           <p class="callout callout--warn">
             <i class="pi pi-exclamation-triangle"></i>
-            <span>Auto-accept is on. Make sure your printer has paper and is connected. If it can't print, the order stays in Print Orders.</span>
+            <span>{{ 'profile.auto_accept_is_on_make_sure' | translate }}</span>
           </p>
         } @else {
-          <p class="callout"><i class="pi pi-info-circle"></i><span>Manual mode: you review each order in Print Orders and tap Print.</span></p>
+          <p class="callout"><i class="pi pi-info-circle"></i><span>{{ 'profile.manual_mode_you_review_each_order' | translate }}</span></p>
         }
       </section>
 
       <!-- ---------- Online / Offline schedule ---------- -->
       <section class="pf-card">
-        <header class="pf-card__head"><h3 class="pf-eyebrow">Online / Offline schedule</h3></header>
+        <header class="pf-card__head"><h3 class="pf-eyebrow">{{ 'profile.online_offline_schedule' | translate }}</h3></header>
         <div class="setting">
           <span class="setting__icon"><i class="pi pi-clock"></i></span>
           <div class="setting__text">
-            <label for="auto-schedule">Go online and offline automatically</label>
-            <p>Your shop starts taking orders when it opens and stops when it closes, every day, using your shop hours.</p>
+            <label for="auto-schedule">{{ 'profile.go_online_and_offline_automatically' | translate }}</label>
+            <p>{{ 'profile.your_shop_starts_taking_orders_when' | translate }}</p>
           </div>
           <p-toggleswitch inputId="auto-schedule" [ngModel]="settings.autoSchedule" (ngModelChange)="onAutoSchedule($event)" [disabled]="saving()" />
         </div>
         @if (!hasOpenDay()) {
           <p class="callout callout--warn">
             <i class="pi pi-info-circle"></i>
-            <span>Set your shop hours first. <button type="button" class="linkish" (click)="editHours.emit()">Set shop hours</button></span>
+            <span>{{ 'profile.set_your_shop_hours_first' | translate }} <button type="button" class="linkish" (click)="editHours.emit()">{{ 'profile.set_shop_hours' | translate }}</button></span>
           </p>
         } @else if (settings.autoSchedule) {
           <p class="callout">
             <i class="pi pi-info-circle"></i>
             <span>
-              Following your shop hours. For an unplanned break (lunch, a printer issue) use the Online / Offline switch at the top;
-              the schedule takes over again at the next opening or closing time.
-              <button type="button" class="linkish" (click)="editHours.emit()">Edit shop hours</button>
+              {{ 'profile.following_your_shop_hours_for_an' | translate }}
+              <button type="button" class="linkish" (click)="editHours.emit()">{{ 'profile.edit_shop_hours' | translate }}</button>
             </span>
           </p>
         } @else {
-          <p class="callout"><i class="pi pi-info-circle"></i><span>Manual mode: you switch Online / Offline yourself using the switch at the top.</span></p>
+          <p class="callout"><i class="pi pi-info-circle"></i><span>{{ 'profile.manual_mode_you_switch_online_offline' | translate }}</span></p>
         }
       </section>
 
       <!-- ---------- Notifications ---------- -->
       <section class="pf-card">
-        <header class="pf-card__head"><h3 class="pf-eyebrow">Notifications</h3></header>
+        <header class="pf-card__head"><h3 class="pf-eyebrow">{{ 'common.notifications' | translate }}</h3></header>
         <div class="setting">
           <span class="setting__icon"><i class="pi pi-volume-up"></i></span>
           <div class="setting__text">
-            <label for="n-sound">New order sound</label>
-            <p>A short chime when a new print request arrives.</p>
+            <label for="n-sound">{{ 'profile.new_order_sound' | translate }}</label>
+            <p>{{ 'profile.a_short_chime_when_a_new' | translate }}</p>
           </div>
-          <button type="button" class="test" (click)="alerts.preview()" aria-label="Play the sound"><i class="pi pi-play"></i></button>
+          <button type="button" class="test" (click)="alerts.preview()" [attr.aria-label]="'profile.play_the_sound' | translate"><i class="pi pi-play"></i></button>
           <p-toggleswitch inputId="n-sound" [ngModel]="settings.notificationPrefs.newOrderSound" (ngModelChange)="onPref('newOrderSound', $event)" [disabled]="saving()" />
         </div>
         <div class="setting">
           <span class="setting__icon"><i class="pi pi-desktop"></i></span>
           <div class="setting__text">
-            <label for="n-desktop">Desktop alerts</label>
-            <p>Pop-up notifications when this tab is in the background.</p>
+            <label for="n-desktop">{{ 'profile.desktop_alerts' | translate }}</label>
+            <p>{{ 'profile.pop_up_notifications_when_this_tab' | translate }}</p>
           </div>
           <p-toggleswitch inputId="n-desktop" [ngModel]="settings.notificationPrefs.desktopAlerts" (ngModelChange)="onDesktop($event)" [disabled]="saving()" />
         </div>
         <div class="setting">
           <span class="setting__icon"><i class="pi pi-exclamation-triangle"></i></span>
           <div class="setting__text">
-            <label for="n-fail">Print problems</label>
-            <p>Tell me when the printer goes offline or an order needs checking.</p>
+            <label for="n-fail">{{ 'profile.print_problems' | translate }}</label>
+            <p>{{ 'profile.tell_me_when_the_printer_goes' | translate }}</p>
           </div>
           <p-toggleswitch inputId="n-fail" [ngModel]="settings.notificationPrefs.failureAlerts" (ngModelChange)="onPref('failureAlerts', $event)" [disabled]="saving()" />
         </div>
         @if (permissionNote()) { <p class="callout callout--warn"><i class="pi pi-info-circle"></i><span>{{ permissionNote() }}</span></p> }
-        <p class="fine">Alerts only work while PrintSetu is open in your browser.</p>
+        <p class="fine">{{ 'profile.alerts_only_work_while_printsetu_is' | translate }}</p>
       </section>
 
       <!-- ---------- Printers ---------- -->
       <section class="pf-card wide">
         <header class="pf-card__head">
-          <h3 class="pf-eyebrow">Printers</h3>
-          <a routerLink="/shop/print-agent" class="pf-btn pf-btn--quiet">Manage Printer App <i class="pi pi-arrow-right"></i></a>
+          <h3 class="pf-eyebrow">{{ 'common.printers' | translate }}</h3>
+          <a routerLink="/shop/print-agent" class="pf-btn pf-btn--quiet">{{ 'profile.manage_printer_app' | translate }} <i class="pi pi-arrow-right"></i></a>
         </header>
         @if (printersLoading()) {
           <div class="pf-skeleton" style="height: 4.5rem"></div>
         } @else if (printers().length === 0) {
           <div class="pf-empty">
             <span class="pf-empty__icon"><i class="pi pi-print"></i></span>
-            <strong>No printer connected</strong>
-            <p>Install the Printer App on the computer connected to your printer.</p>
-            <a routerLink="/shop/print-agent" class="pf-btn pf-btn--primary"><i class="pi pi-download"></i> Set up printer</a>
+            <strong>{{ 'profile.no_printer_connected' | translate }}</strong>
+            <p>{{ 'profile.install_the_printer_app_on_the' | translate }}</p>
+            <a routerLink="/shop/print-agent" class="pf-btn pf-btn--primary"><i class="pi pi-download"></i> {{ 'profile.set_up_printer' | translate }}</a>
           </div>
         } @else {
           <ul class="printers">
@@ -124,38 +125,38 @@ import { timeAgo } from '../../shared/utils/browser.util';
                   <span class="printer__name" [title]="p.printerName">{{ p.printerName }}</span>
                   <span class="printer__meta">
                     <span class="pill" [ngClass]="'s-' + p.status.toLowerCase()"><span class="pill__dot"></span>{{ label(p.status) }}</span>
-                    <span>{{ p.lastHeartbeatAt ? 'Seen ' + ago(p.lastHeartbeatAt) : 'Never connected' }}</span>
+                    <span>{{ p.lastHeartbeatAt ? ('profile.seen_ago' | translate: { ago: ago(p.lastHeartbeatAt) }) : ('profile.never_connected' | translate) }}</span>
                   </span>
                 </div>
                 @if (p.id === settings.defaultPrinterId) {
-                  <span class="badge"><i class="pi pi-check"></i> Main printer</span>
+                  <span class="badge"><i class="pi pi-check"></i> {{ 'profile.main_printer' | translate }}</span>
                 } @else {
-                  <button type="button" class="pf-btn" (click)="makeDefault(p)" [disabled]="saving()">Use as main printer</button>
+                  <button type="button" class="pf-btn" (click)="makeDefault(p)" [disabled]="saving()">{{ 'profile.use_as_main_printer' | translate }}</button>
                 }
               </li>
             }
           </ul>
           @if (!settings.defaultPrinterId) {
-            <p class="fine">No main printer chosen: orders go to the first printer that's online.</p>
+            <p class="fine">{{ 'profile.no_main_printer_chosen_orders_go' | translate }}</p>
           }
         }
       </section>
 
       <!-- ---------- Files & privacy ---------- -->
       <section class="pf-card wide">
-        <header class="pf-card__head"><h3 class="pf-eyebrow">Files &amp; privacy</h3></header>
+        <header class="pf-card__head"><h3 class="pf-eyebrow">{{ 'profile.files_privacy' | translate }}</h3></header>
         <dl class="facts">
           <div>
-            <dt><i class="pi pi-trash"></i> File cleanup</dt>
-            <dd>Customer files are deleted as soon as their order is printed.</dd>
+            <dt><i class="pi pi-trash"></i> {{ 'profile.file_cleanup' | translate }}</dt>
+            <dd>{{ 'profile.customer_files_are_deleted_as_soon' | translate }}</dd>
           </div>
           <div>
-            <dt><i class="pi pi-upload"></i> Upload limit</dt>
-            <dd>No file size limit.</dd>
+            <dt><i class="pi pi-upload"></i> {{ 'profile.upload_limit' | translate }}</dt>
+            <dd>{{ 'profile.no_file_size_limit' | translate }}</dd>
           </div>
           <div>
-            <dt><i class="pi pi-eye"></i> Document preview</dt>
-            <dd>Enabled: you can review files before printing.</dd>
+            <dt><i class="pi pi-eye"></i> {{ 'profile.document_preview' | translate }}</dt>
+            <dd>{{ 'profile.enabled_you_can_review_files_before' | translate }}</dd>
           </div>
         </dl>
       </section>
@@ -449,7 +450,7 @@ export class ProfileSettingsComponent implements OnInit {
   }
 
   label(status: PrinterRow['status']): string {
-    return status === 'ONLINE' ? 'Online' : status === 'OFFLINE' ? 'Offline' : 'Not connected yet';
+    return status === 'ONLINE' ? t('common.online') : status === 'OFFLINE' ? t('common.offline') : t('profile.not_connected_yet');
   }
 
   ago(iso: string): string {
@@ -458,17 +459,17 @@ export class ProfileSettingsComponent implements OnInit {
 
   onAutoAccept(on: boolean): void {
     if (!on) {
-      this.save({ autoAcceptOrders: false }, 'Auto-accept turned off');
+      this.save({ autoAcceptOrders: false }, t('profile.auto_accept_turned_off'));
       return;
     }
     // Turning it on changes real behaviour (files print without review), so confirm first.
     this.confirmationService.confirm({
-      header: 'Turn on auto-accept?',
-      message: 'New orders will be sent to your printer automatically, without you reviewing or editing them first. You can turn this off at any time.',
+      get header() { return t('profile.turn_on_auto_accept'); },
+      get message() { return t('profile.new_orders_will_be_sent_to'); },
       icon: 'pi pi-bolt',
-      acceptLabel: 'Turn on',
-      rejectLabel: 'Cancel',
-      accept: () => this.save({ autoAcceptOrders: true }, 'Auto-accept turned on'),
+      get acceptLabel() { return t('profile.turn_on'); },
+      get rejectLabel() { return t('common.cancel'); },
+      accept: () => this.save({ autoAcceptOrders: true }, t('profile.auto_accept_turned_on')),
       reject: () => this.revertSwitches(),
     });
   }
@@ -479,7 +480,7 @@ export class ProfileSettingsComponent implements OnInit {
   }
 
   onAutoSchedule(on: boolean): void {
-    this.save({ autoSchedule: on }, on ? 'Your shop now follows its shop hours' : 'Automatic Online / Offline turned off');
+    this.save({ autoSchedule: on }, on ? t('profile.your_shop_now_follows_its_shop') : t('profile.automatic_online_offline_turned_off'));
   }
 
   onPref(key: keyof NotificationPrefs, value: boolean): void {
@@ -499,14 +500,14 @@ export class ProfileSettingsComponent implements OnInit {
     }
     this.permissionNote.set(
       permission === 'unsupported'
-        ? "This browser doesn't support desktop notifications."
-        : 'Notifications are blocked for this site. Allow them in your browser settings, then try again.',
+        ? t('profile.this_browser_doesnt_support_desktop_notifications')
+        : t('profile.notifications_are_blocked_for_this_site'),
     );
     this.revertSwitches();
   }
 
   makeDefault(printer: PrinterRow): void {
-    this.save({ defaultPrinterId: printer.id }, `${printer.printerName} is now your default printer`);
+    this.save({ defaultPrinterId: printer.id }, t('profile.is_now_your_default_printer', { printerName: printer.printerName }));
   }
 
   /** A switch the user flipped but that was not saved must go back to what is actually stored. */

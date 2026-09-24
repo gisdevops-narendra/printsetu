@@ -1,4 +1,5 @@
 import { Component, Input } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { CardModule } from 'primeng/card';
 import { DividerModule } from 'primeng/divider';
@@ -11,7 +12,7 @@ export interface PriceSummaryLine {
 @Component({
   selector: 'app-price-summary-card',
   standalone: true,
-  imports: [CommonModule, CardModule, DividerModule],
+  imports: [TranslatePipe, CommonModule, CardModule, DividerModule],
   template: `
     <p-card styleClass="price-summary-card">
       <div class="flex flex-column gap-2">
@@ -24,7 +25,7 @@ export interface PriceSummaryLine {
       </div>
       <p-divider />
       <div class="flex justify-content-between align-items-center">
-        <span class="font-medium text-lg">Total</span>
+        <span class="font-medium text-lg">{{ 'common.total' | translate }}</span>
         <span class="font-bold text-2xl" style="color: var(--p-primary-color)">{{ currency }} {{ amount }}</span>
       </div>
     </p-card>

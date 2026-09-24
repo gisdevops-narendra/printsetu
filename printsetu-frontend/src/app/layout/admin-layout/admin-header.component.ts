@@ -1,4 +1,5 @@
 import { Component, ElementRef, HostListener, Input, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -13,7 +14,9 @@ import { HeaderBellComponent } from '../../shared/components/app-header/header-b
 import { HeaderProfileComponent } from '../../shared/components/app-header/header-profile.component';
 import { HeaderClockComponent } from '../../shared/components/app-header/header-clock.component';
 import { ThemeToggleComponent } from '../../shared/components/app-header/theme-toggle.component';
+import { LanguagePickerComponent } from '../../shared/components/app-header/language-picker.component';
 import { HeaderMenuItem } from '../../shared/components/app-header/header.models';
+import { t } from '../../core/i18n/i18n';
 
 const MAX_RESULTS = 6;
 
@@ -24,7 +27,7 @@ const MAX_RESULTS = 6;
 @Component({
   selector: 'app-admin-header',
   standalone: true,
-  imports: [
+  imports: [TranslatePipe, 
     CommonModule,
     FormsModule,
     RouterLink,
@@ -33,19 +36,20 @@ const MAX_RESULTS = 6;
     HeaderProfileComponent,
     HeaderClockComponent,
     ThemeToggleComponent,
+    LanguagePickerComponent,
   ],
   template: `
-    <app-header-frame rootLabel="Admin" rootLink="/admin/dashboard" [navItems]="navItems" [collapsibleStrip]="true">
+    <app-header-frame [rootLabel]="'layout.admin' | translate" rootLink="/admin/dashboard" [navItems]="navItems" [collapsibleStrip]="true">
       <div hdrSearch class="search">
         <i class="pi pi-search search__icon" aria-hidden="true"></i>
         <input
           #searchInput
           type="text"
           class="search__input"
-          placeholder="Find a shop by name, code, owner or city"
+          [placeholder]="'layout.find_a_shop_by_name_code' | translate"
           autocomplete="off"
           role="combobox"
-          aria-label="Search shops"
+          [attr.aria-label]="'layout.search_shops' | translate"
           aria-autocomplete="list"
           aria-controls="admin-shop-results"
           [attr.aria-expanded]="showResults()"
@@ -58,7 +62,7 @@ const MAX_RESULTS = 6;
           (keydown.escape)="closeSearch()"
         />
         @if (query()) {
-          <button type="button" class="search__clear" aria-label="Clear search" (click)="clear(searchInput)"><i class="pi pi-times"></i></button>
+          <button type="button" class="search__clear" [attr.aria-label]="'layout.clear_search' | translate" (click)="clear(searchInput)"><i class="pi pi-times"></i></button>
         } @else {
           <kbd class="search__hint" aria-hidden="true">/</kbd>
         }
@@ -72,16 +76,16 @@ const MAX_RESULTS = 6;
                     <span class="result__name">{{ s.name }}</span>
                     <span class="result__meta">{{ s.shopCode }} · {{ s.ownerName }}@if (s.city) { · {{ s.city }} }</span>
                   </span>
-                  <span class="result__status" [class.result__status--off]="s.status !== 'ACTIVE'">{{ s.status === 'ACTIVE' ? 'Active' : 'Inactive' }}</span>
+                  <span class="result__status" [class.result__status--off]="s.status !== 'ACTIVE'">{{ s.status === 'ACTIVE' ? ('common.active' | translate) : ('layout.inactive' | translate) }}</span>
                 </button>
               </li>
             } @empty {
-              <li class="results__empty">No shop matches “{{ query().trim() }}”.</li>
+              <li class="results__empty">{{ 'layout.no_shop_matches' | translate: { trim: query().trim() } }}</li>
             }
             @if (matchCount() > results().length) {
               <li>
                 <button type="button" class="results__all" (click)="submit(true)">
-                  See all {{ matchCount() }} matches <i class="pi pi-arrow-right"></i>
+                  {{ 'layout.see_all_matches' | translate: { matchCount: matchCount() } }} <i class="pi pi-arrow-right"></i>
                 </button>
               </li>
             }
@@ -90,37 +94,38 @@ const MAX_RESULTS = 6;
       </div>
 
       <div hdrActions class="actions">
+        <app-language-picker class="theme-inline" />
         <app-theme-toggle class="theme-inline" />
         <app-header-bell
           [alerts]="header.alerts()"
           [unread]="header.unread()"
           [newSince]="header.seenAt()"
-          heading="Alerts"
-          emptyText="No payment failures or new shops."
+          [heading]="'layout.alerts' | translate"
+          [emptyText]="'layout.no_payment_failures_or_new_shops' | translate"
           viewAllLink="/admin/subscriptions"
-          viewAllLabel="Open billing"
+          [viewAllLabel]="'layout.open_billing' | translate"
           (seen)="header.markAllRead()"
         />
-        <app-header-profile [name]="auth.user()?.name ?? ''" [email]="auth.user()?.email ?? ''" roleLabel="Administrator" [items]="menu" (logout)="auth.logout()" />
+        <app-header-profile [name]="auth.user()?.name ?? ''" [email]="auth.user()?.email ?? ''" [roleLabel]="'layout.administrator' | translate" [items]="menu" (logout)="auth.logout()" />
       </div>
 
       <div hdrStrip class="strip">
-        <span class="env" [class.env--live]="env.live" [attr.title]="'Connected to ' + env.api">
+        <span class="env" [class.env--live]="env.live" [attr.title]="'layout.connected_to' | translate: { api: env.api }">
           <span class="env__dot"></span>{{ env.label }}
         </span>
 
         @if (header.stats(); as s) {
-          <a class="chip" routerLink="/admin/shops" title="Active shops out of all shops">
-            <i class="pi pi-building"></i><b>{{ s.activeShops }}</b><span class="chip__of">/ {{ s.totalShops }}</span> active shops
+          <a class="chip" routerLink="/admin/shops" [title]="'layout.active_shops_out_of_all_shops' | translate">
+            <i class="pi pi-building"></i><b>{{ s.activeShops }}</b><span class="chip__of">/ {{ s.totalShops }}</span> {{ 'layout.active_shops' | translate }}
           </a>
-          <a class="chip" [class.chip--warn]="s.unpaidInvoices > 0" routerLink="/admin/subscriptions" title="Unpaid invoices waiting for payment">
-            <i class="pi pi-wallet"></i><b>{{ s.unpaidInvoices }}</b> unpaid
+          <a class="chip" [class.chip--warn]="s.unpaidInvoices > 0" routerLink="/admin/subscriptions" [title]="'layout.unpaid_invoices_waiting_for_payment' | translate">
+            <i class="pi pi-wallet"></i><b>{{ s.unpaidInvoices }}</b> {{ 'layout.unpaid' | translate }}
             @if (s.unpaidInvoices > 0) {
               <span class="chip__of">· {{ fmt(s.unpaidAmount, s.currency) }}</span>
             }
           </a>
-          <a class="chip" [class.chip--bad]="s.failedPayments > 0" routerLink="/admin/subscriptions" title="Shops with an overdue or pending payment">
-            <i class="pi pi-exclamation-triangle"></i><b>{{ s.failedPayments }}</b> payment issues
+          <a class="chip" [class.chip--bad]="s.failedPayments > 0" routerLink="/admin/subscriptions" [title]="'layout.shops_with_an_overdue_or_pending' | translate">
+            <i class="pi pi-exclamation-triangle"></i><b>{{ s.failedPayments }}</b> {{ 'layout.payment_issues' | translate }}
           </a>
         } @else {
           <span class="chip chip--skeleton"></span>
@@ -437,14 +442,16 @@ export class AdminHeaderComponent implements OnInit, OnDestroy {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly menu: HeaderMenuItem[] = [
-    { label: 'Billing & plans', icon: 'pi pi-wallet', route: '/admin/subscriptions' },
-    { label: 'Users', icon: 'pi pi-users', route: '/admin/users' },
-    { label: 'Activity log', icon: 'pi pi-shield', route: '/admin/audit-logs' },
+    { get label() { return t('layout.billing_plans'); }, icon: 'pi pi-wallet', route: '/admin/subscriptions' },
+    { get label() { return t('common.users'); }, icon: 'pi pi-users', route: '/admin/users' },
+    { get label() { return t('layout.activity_log'); }, icon: 'pi pi-shield', route: '/admin/audit-logs' },
   ];
 
   readonly env = {
     live: environment.production,
-    label: environment.production ? 'Live' : 'Staging',
+    get label() {
+      return environment.production ? t('layout.live') : t('layout.staging');
+    },
     api: environment.apiBaseUrl,
   };
 

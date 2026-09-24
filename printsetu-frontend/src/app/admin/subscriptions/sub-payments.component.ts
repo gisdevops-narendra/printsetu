@@ -1,4 +1,5 @@
 import { Component, EventEmitter, OnInit, Output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BillingService } from '../../core/services/billing.service';
@@ -6,6 +7,7 @@ import { InvoiceRecord, InvoiceStatus } from '../../core/models/billing.models';
 import { InvoiceTableComponent } from '../../shared/billing/invoice-table.component';
 import { downloadBlob, printBlob } from '../../shared/billing/billing.util';
 import { RefundDialogComponent } from './refund-dialog.component';
+import { t } from '../../core/i18n/i18n';
 
 const PAGE = 20;
 
@@ -13,13 +15,13 @@ const PAGE = 20;
 @Component({
   selector: 'app-sub-payments',
   standalone: true,
-  imports: [CommonModule, FormsModule, InvoiceTableComponent, RefundDialogComponent],
+  imports: [TranslatePipe, CommonModule, FormsModule, InvoiceTableComponent, RefundDialogComponent],
   template: `
     <div class="gateway" role="note">
       <span class="gateway__icon"><i class="pi pi-wallet"></i></span>
       <div>
-        <strong>Manual payment tracking</strong>
-        <p>No online payment service (Razorpay, Stripe, …) is connected. Payments are recorded by an admin with <b>Mark paid</b> (cash, UPI, bank transfer). Automatic renewals and retries switch on once one is added.</p>
+        <strong>{{ 'subscriptions.manual_payment_tracking' | translate }}</strong>
+        <p [innerHTML]="'subscriptions.manual_payments_note' | translate"></p>
       </div>
     </div>
 
@@ -27,9 +29,9 @@ const PAGE = 20;
       <div class="filters">
         <label class="search">
           <i class="pi pi-search" aria-hidden="true"></i>
-          <input type="search" placeholder="Search invoice number, shop or reference" [ngModel]="search()" (ngModelChange)="onSearch($event)" aria-label="Search invoices" />
+          <input type="search" [placeholder]="'subscriptions.search_invoice_number_shop_or_reference' | translate" [ngModel]="search()" (ngModelChange)="onSearch($event)" [attr.aria-label]="'subscriptions.search_invoices' | translate" />
         </label>
-        <div class="chips" role="tablist" aria-label="Filter by status">
+        <div class="chips" role="tablist" [attr.aria-label]="'subscriptions.filter_by_status' | translate">
           @for (f of filters; track f.key) {
             <button type="button" role="tab" class="chip" [class.is-on]="status() === f.key" [attr.aria-selected]="status() === f.key" (click)="setStatus(f.key)">{{ f.label }}</button>
           }
@@ -44,16 +46,16 @@ const PAGE = 20;
           [showShop]="true"
           [canRefund]="true"
           [canMarkPaid]="false"
-          emptyText="No invoices match."
+          [emptyText]="'subscriptions.no_invoices_match' | translate"
           (pdf)="pdf($event)"
           (print)="print($event)"
           (refund)="refunding.set($event); refundOpen = true"
         />
         @if (total() > items().length || page() > 1) {
           <div class="pager">
-            <button type="button" class="pf-btn" [disabled]="page() === 1" (click)="go(page() - 1)"><i class="pi pi-chevron-left"></i> Newer</button>
-            <span>{{ (page() - 1) * pageSize + 1 }}–{{ (page() - 1) * pageSize + items().length }} of {{ total() }}</span>
-            <button type="button" class="pf-btn" [disabled]="page() * pageSize >= total()" (click)="go(page() + 1)">Older <i class="pi pi-chevron-right"></i></button>
+            <button type="button" class="pf-btn" [disabled]="page() === 1" (click)="go(page() - 1)"><i class="pi pi-chevron-left"></i> {{ 'subscriptions.newer' | translate }}</button>
+            <span>{{ 'subscriptions.of' | translate: { pageSize: (page() - 1) * pageSize + 1, items: (page() - 1) * pageSize + items().length, total: total() } }}</span>
+            <button type="button" class="pf-btn" [disabled]="page() * pageSize >= total()" (click)="go(page() + 1)">{{ 'subscriptions.older' | translate }} <i class="pi pi-chevron-right"></i></button>
           </div>
         }
       }
@@ -170,13 +172,13 @@ export class SubPaymentsComponent implements OnInit {
 
   readonly pageSize = PAGE;
   readonly filters: { key: InvoiceStatus | ''; label: string }[] = [
-    { key: '', label: 'All' },
-    { key: 'PAID', label: 'Paid' },
-    { key: 'OPEN', label: 'Unpaid' },
-    { key: 'FAILED', label: 'Failed' },
-    { key: 'PARTIALLY_REFUNDED', label: 'Part refunded' },
-    { key: 'REFUNDED', label: 'Refunded' },
-    { key: 'VOID', label: 'Cancelled' },
+    { key: '', get label() { return t('subscriptions.all'); } },
+    { key: 'PAID', get label() { return t('subscriptions.paid'); } },
+    { key: 'OPEN', get label() { return t('subscriptions.unpaid'); } },
+    { key: 'FAILED', get label() { return t('common.failed'); } },
+    { key: 'PARTIALLY_REFUNDED', get label() { return t('subscriptions.part_refunded'); } },
+    { key: 'REFUNDED', get label() { return t('subscriptions.refunded'); } },
+    { key: 'VOID', get label() { return t('common.cancelled'); } },
   ];
 
   loading = signal(true);

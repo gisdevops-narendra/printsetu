@@ -1,3 +1,4 @@
+import { t, intlLocale } from '../../core/i18n/i18n';
 /**
  * Small browser helpers shared by several screens.
  */
@@ -40,14 +41,14 @@ export function timeAgo(iso: string | null | undefined, now: number = Date.now()
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return 'never';
   const seconds = Math.max(0, Math.round((now - then) / 1000));
-  if (seconds < 45) return 'just now';
+  if (seconds < 45) return t('shared.just_now');
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 60) return t('shared.min_ago', { minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} h ago`;
+  if (hours < 24) return t('shared.h_ago_2', { hours });
   const days = Math.round(hours / 24);
-  if (days < 7) return `${days} d ago`;
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  if (days < 7) return t('shared.d_ago_2', { days });
+  return new Date(iso).toLocaleDateString(intlLocale(), { month: 'short', day: 'numeric' });
 }
 
 /** Triggers a browser download of a data/blob URL. */

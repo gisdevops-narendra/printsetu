@@ -1,7 +1,9 @@
 import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { MessageService } from 'primeng/api';
 import { copyText, downloadUrl } from '../../utils/browser.util';
+import { t } from '../../../core/i18n/i18n';
 
 export interface QrData {
   dataUrl: string;
@@ -21,81 +23,81 @@ export interface QrData {
 @Component({
   selector: 'app-qr-panel',
   standalone: true,
-  imports: [CommonModule],
+  imports: [TranslatePipe, CommonModule],
   template: `
     <div class="qrp">
       <!-- ============ Sign preview ============ -->
       <div class="qrp__preview">
         <div class="stage">
-          <div class="poster print-poster" role="img" [attr.aria-label]="'Counter sign with QR code' + (shopName ? ' for ' + shopName : '')">
+          <div class="poster print-poster" role="img" [attr.aria-label]="shopName ? ('qrPanel.counter_sign_for' | translate: { shop: shopName }) : ('qrPanel.counter_sign_with_qr_code' | translate)">
             <div class="poster__band">PrintSetu</div>
-            <h2 class="poster__title">Scan to print</h2>
+            <h2 class="poster__title">{{ 'qrPanel.scan_to_print' | translate }}</h2>
             @if (shopName) {
               <p class="poster__shop">{{ shopName }}</p>
             }
             <div class="poster__qr"><img [src]="qr.dataUrl" alt="" /></div>
-            <p class="poster__hint">Point your phone camera at the code</p>
+            <p class="poster__hint">{{ 'qrPanel.point_your_phone_camera_at_the' | translate }}</p>
             <ol class="poster__steps">
-              <li><b>1</b><span>Scan</span></li>
-              <li><b>2</b><span>Upload your files</span></li>
-              <li><b>3</b><span>Collect at the counter</span></li>
+              <li><b>1</b><span>{{ 'qrPanel.scan' | translate }}</span></li>
+              <li><b>2</b><span>{{ 'qrPanel.upload_your_files' | translate }}</span></li>
+              <li><b>3</b><span>{{ 'qrPanel.collect_at_the_counter' | translate }}</span></li>
             </ol>
             <p class="poster__url">{{ shortUrl }}</p>
           </div>
         </div>
-        <p class="qrp__caption"><i class="pi pi-info-circle"></i> Sign preview &middot; prints on A4</p>
+        <p class="qrp__caption"><i class="pi pi-info-circle"></i> {{ 'qrPanel.sign_preview_prints_on_a4' | translate }}</p>
       </div>
 
       <!-- ============ Actions ============ -->
       <div class="qrp__side">
         <section class="card">
-          <h2 class="card__title">Print &amp; share</h2>
+          <h2 class="card__title">{{ 'qrPanel.print_share' | translate }}</h2>
           <button type="button" class="btn btn--primary" (click)="printSign()">
-            <i class="pi pi-print"></i> Print sign
+            <i class="pi pi-print"></i> {{ 'qrPanel.print_sign' | translate }}
           </button>
           <div class="grid2">
             <button type="button" class="btn btn--outline" (click)="downloadSign()" [disabled]="busy()">
-              <i class="pi" [ngClass]="busy() ? 'pi-spin pi-spinner' : 'pi-download'"></i> Download sign
+              <i class="pi" [ngClass]="busy() ? 'pi-spin pi-spinner' : 'pi-download'"></i> {{ 'qrPanel.download_sign' | translate }}
             </button>
             <button type="button" class="btn btn--outline" (click)="downloadQr()">
-              <i class="pi pi-qrcode"></i> QR image only
+              <i class="pi pi-qrcode"></i> {{ 'qrPanel.qr_image_only' | translate }}
             </button>
           </div>
           <div class="grid2">
-            <button type="button" class="tile" (click)="copyLink()"><i class="pi pi-copy"></i><span>Copy link</span></button>
-            <button type="button" class="tile" (click)="share()"><i class="pi pi-share-alt"></i><span>Share</span></button>
+            <button type="button" class="tile" (click)="copyLink()"><i class="pi pi-copy"></i><span>{{ 'common.copy_link' | translate }}</span></button>
+            <button type="button" class="tile" (click)="share()"><i class="pi pi-share-alt"></i><span>{{ 'common.share' | translate }}</span></button>
           </div>
         </section>
 
         <section class="card">
-          <h2 class="card__title">Your link</h2>
+          <h2 class="card__title">{{ 'qrPanel.your_link' | translate }}</h2>
           <div class="linkbox">
             <span class="linkbox__url" [title]="qr.url">{{ qr.url }}</span>
-            <button type="button" class="iconbtn" (click)="copyLink()" aria-label="Copy link"><i class="pi pi-copy"></i></button>
-            <a class="iconbtn" [href]="qr.url" target="_blank" rel="noopener" aria-label="Open the customer page in a new tab"><i class="pi pi-external-link"></i></a>
+            <button type="button" class="iconbtn" (click)="copyLink()" [attr.aria-label]="'common.copy_link' | translate"><i class="pi pi-copy"></i></button>
+            <a class="iconbtn" [href]="qr.url" target="_blank" rel="noopener" [attr.aria-label]="'qrPanel.open_the_customer_page_in_a' | translate"><i class="pi pi-external-link"></i></a>
           </div>
-          <div class="meta"><span>Code</span><code>{{ qr.code }}</code></div>
+          <div class="meta"><span>{{ 'qrPanel.code' | translate }}</span><code>{{ qr.code }}</code></div>
         </section>
 
         <section class="card card--soft">
-          <h2 class="card__title">Where to put it</h2>
+          <h2 class="card__title">{{ 'qrPanel.where_to_put_it' | translate }}</h2>
           <ul class="tips">
-            <li><i class="pi pi-check-circle"></i> At the counter, at eye level, where people wait.</li>
-            <li><i class="pi pi-check-circle"></i> Keep the code flat and clean: no folds, glare or stickers over it.</li>
-            <li><i class="pi pi-check-circle"></i> Scan it yourself once after printing to be sure it opens.</li>
+            <li><i class="pi pi-check-circle"></i> {{ 'qrPanel.at_the_counter_at_eye_level' | translate }}</li>
+            <li><i class="pi pi-check-circle"></i> {{ 'qrPanel.keep_the_code_flat_and_clean' | translate }}</li>
+            <li><i class="pi pi-check-circle"></i> {{ 'qrPanel.scan_it_yourself_once_after_printing' | translate }}</li>
           </ul>
         </section>
 
         @if (canRegenerate) {
           <section class="card card--danger">
             <div>
-              <h2 class="card__title">Need a new code?</h2>
-              <p class="note">The old printed sign stops working immediately. Past orders are not affected.</p>
+              <h2 class="card__title">{{ 'qrPanel.need_a_new_code' | translate }}</h2>
+              <p class="note">{{ 'qrPanel.the_old_printed_sign_stops_working' | translate }}</p>
             </div>
-            <button type="button" class="btn btn--danger" (click)="regenerate.emit()"><i class="pi pi-refresh"></i> Make a new code</button>
+            <button type="button" class="btn btn--danger" (click)="regenerate.emit()"><i class="pi pi-refresh"></i> {{ 'qrPanel.make_a_new_code' | translate }}</button>
           </section>
         } @else {
-          <p class="note note--center">Sign damaged or misused? Ask your administrator to issue a new code.</p>
+          <p class="note note--center">{{ 'qrPanel.sign_damaged_or_misused_ask_your' | translate }}</p>
         }
       </div>
     </div>
@@ -472,16 +474,18 @@ export class QrPanelComponent {
     const ok = await copyText(this.qr.url);
     this.messageService.add(
       ok
-        ? { severity: 'success', summary: 'Link copied' }
-        : { severity: 'warn', summary: "Couldn't copy automatically", detail: 'Long-press the link to copy it.' },
+        ? { severity: 'success', get summary() { return t('common.link_copied'); } }
+        : { severity: 'warn', get summary() { return t('qrPanel.couldnt_copy_automatically'); }, get detail() { return t('qrPanel.long_press_the_link_to_copy'); } },
     );
   }
 
   async share(): Promise<void> {
-    const text = `Send your documents for printing${this.shopName ? ' at ' + this.shopName : ''}`;
+    const text = this.shopName
+      ? t('qrPanel.send_documents_at_shop', { shop: this.shopName })
+      : t('qrPanel.send_your_documents_for_printing');
     if (navigator.share) {
       try {
-        await navigator.share({ title: this.shopName ? `Print at ${this.shopName}` : 'Print with PrintSetu', text, url: this.qr.url });
+        await navigator.share({ title: this.shopName ? t('qrPanel.print_at', { shopName: this.shopName }) : t('qrPanel.print_with_printsetu'), text, url: this.qr.url });
       } catch {
         // dismissed by the user
       }
@@ -503,7 +507,7 @@ export class QrPanelComponent {
       canvas.width = W;
       canvas.height = H;
       const ctx = canvas.getContext('2d')!;
-      const font = (w: number, px: number) => `${w} ${px}px Inter, system-ui, -apple-system, "Segoe UI", sans-serif`;
+      const font = (w: number, px: number) => `${w} ${px}px Inter, "Noto Sans Devanagari", "Noto Sans Gujarati", system-ui, -apple-system, "Segoe UI", sans-serif`;
 
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, W, H);
@@ -523,7 +527,7 @@ export class QrPanelComponent {
       // title + shop
       ctx.fillStyle = '#0f172a';
       ctx.font = font(800, 136);
-      ctx.fillText('Scan to print', W / 2, 340);
+      ctx.fillText(t('qrPanel.scan_to_print'), W / 2, 340);
       if (this.shopName) {
         ctx.fillStyle = '#475569';
         ctx.font = font(600, 54);
@@ -546,10 +550,10 @@ export class QrPanelComponent {
 
       ctx.fillStyle = '#64748b';
       ctx.font = font(500, 40);
-      ctx.fillText('Point your phone camera at the code', W / 2, fy + frame + 76);
+      ctx.fillText(t('qrPanel.point_your_phone_camera_at_the'), W / 2, fy + frame + 76);
 
       // three steps
-      const steps = ['Scan', 'Upload your files', 'Collect at the counter'];
+      const steps = [t('qrPanel.scan'), t('qrPanel.upload_your_files'), t('qrPanel.collect_at_the_counter')];
       const colW = 330;
       const gap = 40;
       const startX = (W - (colW * 3 + gap * 2)) / 2;
@@ -574,7 +578,7 @@ export class QrPanelComponent {
       const name = (this.shopName ?? 'shop').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'shop';
       downloadUrl(canvas.toDataURL('image/png'), `printsetu-qr-sign-${name}.png`);
     } catch {
-      this.messageService.add({ severity: 'error', summary: "Couldn't create the sign", detail: 'Try "QR image only" instead.' });
+      this.messageService.add({ severity: 'error', get summary() { return t('qrPanel.couldnt_create_the_sign'); }, get detail() { return t('qrPanel.try_qr_image_only_instead'); } });
     } finally {
       this.busy.set(false);
     }

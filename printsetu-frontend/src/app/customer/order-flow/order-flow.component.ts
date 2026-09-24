@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -17,6 +18,10 @@ import {
   QuoteResponse,
   SideMode,
 } from '../../core/models/models';
+import { t, tn } from '../../core/i18n/i18n';
+import { TranslateCountPipe } from '../../core/i18n/translate-count.pipe';
+import { COLOR_LABELS, PAPER_LABELS, SIDE_LABELS } from '../../shared/utils/print-options.util';
+import { LanguagePickerComponent } from '../../shared/components/app-header/language-picker.component';
 
 const STATUS_POLL_MS = 4000;
 const DOC_STATUS_POLL_MS = 2000;
@@ -58,7 +63,7 @@ interface PersistedOrderSession {
 @Component({
   selector: 'app-order-flow',
   standalone: true,
-  imports: [CommonModule, ProgressSpinnerModule, StatusTagComponent],
+  imports: [TranslateCountPipe, TranslatePipe, LanguagePickerComponent, CommonModule, ProgressSpinnerModule, StatusTagComponent],
   template: `
     <div class="page">
       <!-- ================= App bar ================= -->
@@ -67,7 +72,7 @@ interface PersistedOrderSession {
           <div class="appbar__row">
             <div class="appbar__side">
               @if (canGoBack()) {
-                <button type="button" class="icon-btn" (click)="goBack()" aria-label="Back">
+                <button type="button" class="icon-btn" (click)="goBack()" [attr.aria-label]="'common.back' | translate">
                   <i class="pi pi-arrow-left"></i>
                 </button>
               }
@@ -79,8 +84,9 @@ interface PersistedOrderSession {
               }
             </div>
             <div class="appbar__side appbar__side--end">
+              <app-language-picker />
               @if (canStartOver()) {
-                <button type="button" class="text-link" (click)="confirmStartOver()">Start over</button>
+                <button type="button" class="text-link" (click)="confirmStartOver()">{{ 'order.start_over' | translate }}</button>
               }
             </div>
           </div>
@@ -91,14 +97,14 @@ interface PersistedOrderSession {
             aria-valuemin="1"
             [attr.aria-valuemax]="stepItems.length"
             [attr.aria-valuenow]="currentStep() + 1"
-            [attr.aria-label]="'Step ' + (currentStep() + 1) + ' of ' + stepItems.length + ': ' + stepItems[currentStep()].label"
+            [attr.aria-label]="'order.step_of_label' | translate: { current: currentStep() + 1, total: stepItems.length, label: stepItems[currentStep()].label }"
           >
             @for (s of stepItems; track s.label; let i = $index) {
               <span class="progress__seg" [class.is-on]="i <= currentStep()"></span>
             }
           </div>
           <p class="progress__label">
-            Step {{ currentStep() + 1 }} of {{ stepItems.length }} &middot;&nbsp;<strong>{{ stepItems[currentStep()].label }}</strong>
+            {{ 'order.step_of' | translate: { current: currentStep() + 1, total: stepItems.length } }}<strong>{{ stepItems[currentStep()].label }}</strong>
           </p>
           }
         </div>
@@ -112,7 +118,7 @@ interface PersistedOrderSession {
           } @else if (shopUnavailable(); as unavailable) {
             <div class="state-card state-card--unavailable" role="status">
               <i class="pi pi-clock"></i>
-              <h2>This shop is temporarily unavailable</h2>
+              <h2>{{ 'order.this_shop_is_temporarily_unavailable' | translate }}</h2>
               <p>{{ unavailableDetail(unavailable) }}</p>
               <p class="state-card__shop">{{ shopName() }}</p>
             </div>
@@ -124,8 +130,8 @@ interface PersistedOrderSession {
           } @else {
             <!-- ---------- Step 1: Upload & set up ---------- -->
             @if (currentStep() === 0) {
-              <h1 class="title">Upload &amp; set up</h1>
-              <p class="lead">Add your files, then choose how each one should be printed.</p>
+              <h1 class="title">{{ 'order.upload_set_up' | translate }}</h1>
+              <p class="lead">{{ 'order.add_your_files_then_choose_how' | translate }}</p>
 
               @if (uploadError()) {
                 <div class="notice notice--error" role="alert">
@@ -138,9 +144,9 @@ interface PersistedOrderSession {
                 <label class="dropzone" [class.is-drag]="dragging()" (dragover)="onDragOver($event)" (dragleave)="dragging.set(false)" (drop)="onDrop($event)">
                   <input class="sr-only" type="file" multiple accept=".pdf,.jpg,.jpeg,.png" (change)="onFilesChosen($event)" />
                   <span class="dropzone__icon"><i class="pi pi-cloud-upload"></i></span>
-                  <span class="dropzone__title">Choose files to print</span>
-                  <span class="dropzone__hint">PDF, JPG or PNG</span>
-                  <span class="dropzone__cta"><i class="pi pi-plus"></i> Select files</span>
+                  <span class="dropzone__title">{{ 'order.choose_files_to_print' | translate }}</span>
+                  <span class="dropzone__hint">{{ 'order.pdf_jpg_or_png' | translate }}</span>
+                  <span class="dropzone__cta"><i class="pi pi-plus"></i> {{ 'order.select_files' | translate }}</span>
                 </label>
               } @else {
                 <div class="files">
@@ -155,9 +161,9 @@ interface PersistedOrderSession {
                           <span class="fname__ext">{{ nameParts(u.originalName).ext }}</span>
                         </span>
                         @if (u.status === 'PROCESSED') {
-                          <span class="file__meta">{{ u.pageCount }} {{ u.pageCount === 1 ? 'page' : 'pages' }}</span>
+                          <span class="file__meta">{{ 'common.count.pages' | translateCount: u.pageCount }}</span>
                         } @else if (u.status === 'ANALYSIS_FAILED') {
-                          <span class="file__meta file__meta--error">Failed</span>
+                          <span class="file__meta file__meta--error">{{ 'common.failed' | translate }}</span>
                         } @else {
                           <p-progressSpinner strokeWidth="8" [style]="{ width: '18px', height: '18px' }" />
                         }
@@ -166,8 +172,8 @@ interface PersistedOrderSession {
                       @if (u.status === 'PROCESSED') {
                         <div class="opts">
                           <div class="opt">
-                            <span class="opt__label">Paper</span>
-                            <div class="seg" role="radiogroup" aria-label="Paper size">
+                            <span class="opt__label">{{ 'common.paper' | translate }}</span>
+                            <div class="seg" role="radiogroup" [attr.aria-label]="'common.paper_size' | translate">
                               @for (p of paperSizes; track p) {
                                 <button type="button" class="seg__btn" role="radio" [attr.aria-checked]="u.options.paperSize === p" [class.is-on]="u.options.paperSize === p" (click)="setOption(u, 'paperSize', p)">
                                   {{ paperLabel(p) }}
@@ -177,20 +183,20 @@ interface PersistedOrderSession {
                           </div>
 
                           <div class="opt">
-                            <span class="opt__label">Color</span>
-                            <div class="seg" role="radiogroup" aria-label="Color">
+                            <span class="opt__label">{{ 'common.color' | translate }}</span>
+                            <div class="seg" role="radiogroup" [attr.aria-label]="'common.color' | translate">
                               @for (c of colorModes; track c) {
                                 <button type="button" class="seg__btn" role="radio" [attr.aria-checked]="u.options.colorMode === c" [class.is-on]="u.options.colorMode === c" (click)="setOption(u, 'colorMode', c)">
-                                  {{ c === 'BW' ? 'B&W' : 'Color' }}
+                                  {{ colorLabels[c] }}
                                 </button>
                               }
                             </div>
                           </div>
 
                           <div class="opt opt--row">
-                            <span class="opt__label">Copies</span>
-                            <div class="qty" role="group" aria-label="Copies">
-                              <button type="button" class="qty__btn" (click)="stepCopies(u, -1)" [disabled]="u.options.copies <= 1" aria-label="Fewer copies">
+                            <span class="opt__label">{{ 'common.copies' | translate }}</span>
+                            <div class="qty" role="group" [attr.aria-label]="'common.copies' | translate">
+                              <button type="button" class="qty__btn" (click)="stepCopies(u, -1)" [disabled]="u.options.copies <= 1" [attr.aria-label]="'order.fewer_copies' | translate">
                                 <i class="pi pi-minus"></i>
                               </button>
                               <input
@@ -199,24 +205,24 @@ interface PersistedOrderSession {
                                 inputmode="numeric"
                                 pattern="[0-9]*"
                                 maxlength="3"
-                                aria-label="Number of copies"
+                                [attr.aria-label]="'order.number_of_copies' | translate"
                                 [value]="u.options.copies"
                                 (focus)="$any($event.target).select()"
                                 (change)="setCopies(u, $any($event.target))"
                                 (keydown.enter)="$any($event.target).blur()"
                               />
-                              <button type="button" class="qty__btn" (click)="stepCopies(u, 1)" [disabled]="u.options.copies >= 999" aria-label="More copies">
+                              <button type="button" class="qty__btn" (click)="stepCopies(u, 1)" [disabled]="u.options.copies >= 999" [attr.aria-label]="'order.more_copies' | translate">
                                 <i class="pi pi-plus"></i>
                               </button>
                             </div>
                           </div>
 
                           <div class="opt">
-                            <span class="opt__label">Sides</span>
-                            <div class="seg" role="radiogroup" aria-label="Sides">
+                            <span class="opt__label">{{ 'common.sides' | translate }}</span>
+                            <div class="seg" role="radiogroup" [attr.aria-label]="'common.sides' | translate">
                               @for (s of sideModes; track s) {
                                 <button type="button" class="seg__btn" role="radio" [attr.aria-checked]="u.options.sideMode === s" [class.is-on]="u.options.sideMode === s" (click)="setOption(u, 'sideMode', s)">
-                                  {{ s === 'SIMPLEX' ? 'Single' : 'Double' }}
+                                  {{ s === 'SIMPLEX' ? ('order.single' | translate) : ('order.double' | translate) }}
                                 </button>
                               }
                             </div>
@@ -224,15 +230,15 @@ interface PersistedOrderSession {
 
                           @if (lineFor(u.documentId); as line) {
                             <div class="file__price">
-                              <span>{{ line.billablePages }} {{ line.billablePages === 1 ? 'page' : 'pages' }} to print</span>
+                              <span>{{ 'order.to_print' | translate: { pages: ('common.count.pages' | translateCount: line.billablePages) } }}</span>
                               <strong>{{ money(line.amount) }}</strong>
                             </div>
                           }
                         </div>
                       } @else if (u.status === 'ANALYSIS_FAILED') {
-                        <p class="file__note file__note--error">We couldn't read this file. Try a different PDF, JPG or PNG.</p>
+                        <p class="file__note file__note--error">{{ 'order.we_couldnt_read_this_file_try' | translate }}</p>
                       } @else {
-                        <p class="file__note">Checking your file&hellip;</p>
+                        <p class="file__note">{{ 'order.checking_your_file' | translate }}</p>
                       }
                     </article>
                   }
@@ -240,19 +246,19 @@ interface PersistedOrderSession {
 
                 <label class="add-more" [class.is-drag]="dragging()" (dragover)="onDragOver($event)" (dragleave)="dragging.set(false)" (drop)="onDrop($event)">
                   <input class="sr-only" type="file" multiple accept=".pdf,.jpg,.jpeg,.png" (change)="onFilesChosen($event)" />
-                  <i class="pi pi-plus"></i> Add more files
+                  <i class="pi pi-plus"></i> {{ 'order.add_more_files' | translate }}
                 </label>
               }
 
               @if (uploading()) {
-                <div class="uploading"><p-progressSpinner strokeWidth="6" [style]="{ width: '20px', height: '20px' }" /> Uploading&hellip;</div>
+                <div class="uploading"><p-progressSpinner strokeWidth="6" [style]="{ width: '20px', height: '20px' }" /> {{ 'common.uploading' | translate }}</div>
               }
             }
 
             <!-- ---------- Step 2: Review ---------- -->
             @if (currentStep() === 1) {
-              <h1 class="title">Review your order</h1>
-              <p class="lead">Check the details, then confirm to send it to the shop.</p>
+              <h1 class="title">{{ 'order.review_your_order' | translate }}</h1>
+              <p class="lead">{{ 'order.check_the_details_then_confirm_to' | translate }}</p>
 
               @if (quote(); as q) {
                 <section class="review">
@@ -264,20 +270,20 @@ interface PersistedOrderSession {
                           <span class="fname__ext">{{ nameParts(line.name).ext }}</span>
                         </span>
                         <span class="rline__meta">{{ line.summary }}</span>
-                        <button type="button" class="text-link text-link--small" (click)="editDoc(line.documentId)">Edit</button>
+                        <button type="button" class="text-link text-link--small" (click)="editDoc(line.documentId)">{{ 'common.edit' | translate }}</button>
                       </div>
                       <strong class="rline__amount">{{ money(line.amount) }}</strong>
                     </div>
                   }
                   <div class="rtotal">
-                    <span>Total</span>
+                    <span>{{ 'common.total' | translate }}</span>
                     <strong>{{ money(q.amount) }}</strong>
                   </div>
                 </section>
 
                 <div class="notice notice--info">
                   <i class="pi pi-info-circle"></i>
-                  <span>No online payment. Pay at the shop counter if required.</span>
+                  <span>{{ 'order.no_online_payment_pay_at_the' | translate }}</span>
                 </div>
               } @else {
                 <div class="center-block"><p-progressSpinner strokeWidth="4" /></div>
@@ -292,11 +298,11 @@ interface PersistedOrderSession {
                 </span>
                 <h1 class="title title--center">{{ statusCopy(job.status) }}</h1>
                 <div class="token">
-                  <span class="token__label">Your order number</span>
+                  <span class="token__label">{{ 'order.your_order_number' | translate }}</span>
                   <strong class="token__value">#{{ tokenNumber() }}</strong>
                 </div>
                 <app-status-tag [status]="job.status" />
-                <p class="hint">Show this number at the counter for anything about this order.</p>
+                <p class="hint">{{ 'order.show_this_number_at_the_counter' | translate }}</p>
               </section>
             }
           }
@@ -311,8 +317,8 @@ interface PersistedOrderSession {
               @if (uploads().length > 0) {
                 <div class="summary">
                   <span class="summary__label">
-                    {{ processedUploads().length }} {{ processedUploads().length === 1 ? 'file' : 'files' }} ready
-                    @if (pendingCount() > 0) { <span class="summary__pending">&middot; {{ pendingCount() }} checking</span> }
+                    {{ 'order.ready' | translate: { files: ('common.count.files' | translateCount: processedUploads().length) } }}
+                    @if (pendingCount() > 0) { <span class="summary__pending">{{ 'order.checking' | translate: { pendingCount: pendingCount() } }}</span> }
                   </span>
                   @if (quote(); as q) {
                     <strong class="summary__total" [class.is-stale]="quoting()">{{ money(q.amount) }}</strong>
@@ -322,7 +328,7 @@ interface PersistedOrderSession {
                 </div>
               }
               <button type="button" class="btn btn--primary" [disabled]="!canContinue()" (click)="goToReview()">
-                @if (uploads().length === 0) { Add a file to continue } @else { Continue <i class="pi pi-arrow-right"></i> }
+                @if (uploads().length === 0) { {{ 'order.add_a_file_to_continue' | translate }} } @else { {{ 'order.continue' | translate }} <i class="pi pi-arrow-right"></i> }
               </button>
             </div>
           </footer>
@@ -331,11 +337,11 @@ interface PersistedOrderSession {
           <footer class="actionbar">
             <div class="wrap">
               <div class="summary">
-                <span class="summary__label">Total</span>
+                <span class="summary__label">{{ 'common.total' | translate }}</span>
                 <strong class="summary__total">{{ money(q.amount) }}</strong>
               </div>
               <button type="button" class="btn btn--primary" [disabled]="confirming()" (click)="confirm()">
-                @if (confirming()) { <i class="pi pi-spin pi-spinner"></i> Sending&hellip; } @else { <i class="pi pi-check"></i> Confirm order }
+                @if (confirming()) { <i class="pi pi-spin pi-spinner"></i> {{ 'order.sending' | translate }} } @else { <i class="pi pi-check"></i> {{ 'order.confirm_order' | translate }} }
               </button>
             </div>
           </footer>
@@ -343,7 +349,7 @@ interface PersistedOrderSession {
         @if (currentStep() === 2 && jobStatus()) {
           <footer class="actionbar">
             <div class="wrap">
-              <button type="button" class="btn btn--secondary" (click)="confirmStartOver()">Print something else</button>
+              <button type="button" class="btn btn--secondary" (click)="confirmStartOver()">{{ 'order.print_something_else' | translate }}</button>
             </div>
           </footer>
         }
@@ -410,6 +416,7 @@ interface PersistedOrderSession {
       }
       .appbar__side--end {
         justify-content: flex-end;
+        gap: 0.5rem;
       }
       .appbar__title {
         display: flex;
@@ -1120,13 +1127,13 @@ interface PersistedOrderSession {
 export class OrderFlowComponent implements OnInit, OnDestroy {
   currentStep = signal(0);
   /** Three steps: upload + set up options, review, done (confirmation / live status). */
-  stepItems: { label: string }[] = [{ label: 'Upload' }, { label: 'Review' }, { label: 'Done' }];
+  stepItems: { label: string }[] = [{ get label() { return t('order.upload'); } }, { get label() { return t('order.review'); } }, { get label() { return t('order.done'); } }];
 
   resolvingShop = signal(true);
   shopError = signal<string | null>(null);
   /** The heading already says "temporarily unavailable", so only show what the server adds to it. */
   unavailableDetail(message: string): string {
-    return message.replace(/^This shop is temporarily unavailable\.?\s*/i, '').trim() || 'Please try again later.';
+    return message.replace(/^This shop is temporarily unavailable\.?\s*/i, '').trim() || t('order.please_try_again_later');
   }
   /** The shop exists but is not taking orders (suspended, overdue, or at its plan limit). */
   shopUnavailable = signal<string | null>(null);
@@ -1147,6 +1154,7 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
   private docPollHandle?: ReturnType<typeof setInterval>;
 
   paperSizes: PaperSize[] = ['A4', 'A3', 'LETTER', 'LEGAL'];
+  readonly colorLabels = COLOR_LABELS;
   colorModes: ColorMode[] = ['BW', 'COLOR'];
   sideModes: SideMode[] = ['SIMPLEX', 'DUPLEX'];
   /** Option combinations the shop has a price for; null until known. */
@@ -1177,13 +1185,13 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
     return q.items.map((item) => {
       const u = byId.get(item.documentId);
       const o = u?.options;
-      const pages = `${item.billablePages} ${item.billablePages === 1 ? 'page' : 'pages'}`;
+      const pages = tn('common.count.pages', item.billablePages);
       return {
         documentId: item.documentId,
-        name: u?.originalName ?? 'Document',
+        name: u?.originalName ?? t('order.document'),
         amount: item.amount,
         summary: o
-          ? `${this.paperLabel(o.paperSize)} · ${o.colorMode === 'BW' ? 'B&W' : 'Color'} · ${o.sideMode === 'SIMPLEX' ? 'Single-sided' : 'Double-sided'} · ×${o.copies} · ${pages}`
+          ? `${this.paperLabel(o.paperSize)} · ${COLOR_LABELS[o.colorMode]} · ${SIDE_LABELS[o.sideMode]} · ×${o.copies} · ${pages}`
           : pages,
       };
     });
@@ -1211,13 +1219,13 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
         this.pricedOptions = res.pricedOptions ?? null;
         this.resolvingShop.set(false);
         if (res.available === false) {
-          this.shopUnavailable.set(res.unavailableMessage ?? 'Please try again later.');
+          this.shopUnavailable.set(res.unavailableMessage ?? t('order.please_try_again_later'));
           return;
         }
         this.restoreSession();
       },
       error: () => {
-        this.shopError.set('This QR code is invalid or the shop is not currently accepting orders.');
+        this.shopError.set(t('order.this_qr_code_is_invalid_or'));
         this.resolvingShop.set(false);
       },
     });
@@ -1249,7 +1257,7 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
           this.jobStatus.set({ status: job.status });
           this.currentStep.set(2);
           this.startPolling();
-          this.messageService.add({ severity: 'info', summary: 'Your order is still here' });
+          this.messageService.add({ severity: 'info', get summary() { return t('order.your_order_is_still_here'); } });
         },
         error: () => this.clearPersisted(),
       });
@@ -1267,7 +1275,7 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
           this.sessionToken = saved.sessionToken;
           this.mergeSessionDocuments(docs);
           this.startAnalysisPollingIfNeeded();
-          this.messageService.add({ severity: 'info', summary: 'Restored your uploaded documents' });
+          this.messageService.add({ severity: 'info', get summary() { return t('order.restored_your_uploaded_documents'); } });
         },
         error: () => this.clearPersisted(),
       });
@@ -1318,13 +1326,13 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
       return;
     }
     this.confirmationService.confirm({
-      header: 'Start over?',
+      get header() { return t('order.start_over_2'); },
       message: this.jobId()
-        ? 'This stops tracking the current order on this phone. The shop still has your request, so keep your order number.'
-        : 'Your current files and print settings will be cleared.',
+        ? t('order.this_stops_tracking_the_current_order')
+        : t('order.your_current_files_and_print_settings'),
       icon: 'pi pi-refresh',
-      acceptLabel: 'Start over',
-      rejectLabel: 'Keep going',
+      get acceptLabel() { return t('order.start_over'); },
+      get rejectLabel() { return t('order.keep_going'); },
       accept: () => this.startNewOrder(),
     });
   }
@@ -1353,7 +1361,7 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
     const problems: string[] = [];
     const valid = files.filter((file) => {
       if (!/\.(pdf|jpe?g|png)$/i.test(file.name)) {
-        problems.push(`"${file.name}" isn't a PDF, JPG or PNG.`);
+        problems.push(t('order.isnt_a_pdf_jpg_or_png', { name: file.name }));
         return false;
       }
       return true;
@@ -1379,7 +1387,7 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
         ]);
         this.persist();
       } catch {
-        problems.push(`"${file.name}" could not be uploaded. Please try again.`);
+        problems.push(t('order.could_not_be_uploaded_please_try', { name: file.name }));
       }
     }
     this.uploading.set(false);
@@ -1481,7 +1489,7 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
   // ---------- File cards ----------
 
   paperLabel(p: PaperSize): string {
-    return p === 'LETTER' ? 'Letter' : p === 'LEGAL' ? 'Legal' : p;
+    return PAPER_LABELS[p] ?? p;
   }
 
   isPdf(u: UploadEntry): boolean {
@@ -1575,21 +1583,21 @@ export class OrderFlowComponent implements OnInit, OnDestroy {
   statusCopy(status: PrintJobStatus): string {
     switch (status) {
       case 'PRINT_ELIGIBLE':
-        return 'Order confirmed';
+        return t('order.order_confirmed');
       case 'QUEUED':
-        return 'Pending at the shop';
+        return t('order.pending_at_the_shop');
       case 'PRINTING':
-        return 'Printing now…';
+        return t('order.printing_now');
       case 'PRINTED':
       case 'RETENTION_PENDING':
       case 'DELETED':
-        return 'All done. Please collect your printout';
+        return t('order.all_done_please_collect_your_printout');
       case 'PRINT_FAILED':
-        return 'Printing failed. Please check with the shop';
+        return t('order.printing_failed_please_check_with_the');
       case 'AGENT_OFFLINE':
-        return "The shop's printer is offline. Your order is still pending";
+        return t('order.the_shops_printer_is_offline_your');
       default:
-        return 'Tracking your order…';
+        return t('order.tracking_your_order');
     }
   }
 

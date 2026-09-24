@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { catchError, throwError } from 'rxjs';
 import { SubscriptionStatusService } from '../services/subscription-status.service';
+import { t } from '../i18n/i18n';
 
 /**
  * Surfaces every failed API call as a p-toast, using the backend's { code, message } shape (SRS §17.3).
@@ -16,43 +17,43 @@ import { SubscriptionStatusService } from '../services/subscription-status.servi
  */
 /** Plain-language toast titles for the backend's error codes (the codes themselves mean nothing to users). */
 const ERROR_TITLES: Record<string, string> = {
-  BAD_REQUEST: 'Please check and try again',
-  INVALID_PRINT_OPTION: "Can't do that",
-  NOT_FOUND: 'Not found',
-  SHOP_ACCESS_DENIED: "You don't have access to this",
-  FORBIDDEN: "You don't have access to this",
-  CONFLICT: 'Please refresh the page',
-  DOCUMENT_PROCESSING_CONFLICT: 'Please refresh the page',
-  BILLING_CONFLICT: "Can't do that",
-  JOB_ALREADY_PRINTING: 'Already printing',
-  PRINT_AGENT_OFFLINE: 'Printer offline',
-  FILE_TOO_LARGE: 'File too large',
-  UNSUPPORTED_DOCUMENT: "Can't use this file",
-  EMAIL_ALREADY_REGISTERED: 'Email already registered',
-  WEAK_PASSWORD: 'Choose a stronger password',
-  RATE_LIMITED: 'Too many tries',
-  PLAN_LIMIT_REACHED: 'Plan limit reached',
-  PLAN_FEATURE_UNAVAILABLE: 'Not in your plan',
-  SUBSCRIPTION_RESTRICTED: 'Printing paused',
-  SHOP_UNAVAILABLE: 'Shop unavailable',
-  INTERNAL_ERROR: 'Something went wrong',
+  get BAD_REQUEST() { return t('errors.please_check_and_try_again'); },
+  get INVALID_PRINT_OPTION() { return t('errors.cant_do_that'); },
+  get NOT_FOUND() { return t('errors.not_found'); },
+  get SHOP_ACCESS_DENIED() { return t('errors.you_dont_have_access_to_this'); },
+  get FORBIDDEN() { return t('errors.you_dont_have_access_to_this'); },
+  get CONFLICT() { return t('errors.please_refresh_the_page'); },
+  get DOCUMENT_PROCESSING_CONFLICT() { return t('errors.please_refresh_the_page'); },
+  get BILLING_CONFLICT() { return t('errors.cant_do_that'); },
+  get JOB_ALREADY_PRINTING() { return t('errors.already_printing'); },
+  get PRINT_AGENT_OFFLINE() { return t('errors.printer_offline'); },
+  get FILE_TOO_LARGE() { return t('errors.file_too_large'); },
+  get UNSUPPORTED_DOCUMENT() { return t('errors.cant_use_this_file'); },
+  get EMAIL_ALREADY_REGISTERED() { return t('errors.email_already_registered'); },
+  get WEAK_PASSWORD() { return t('errors.choose_a_stronger_password'); },
+  get RATE_LIMITED() { return t('errors.too_many_tries'); },
+  get PLAN_LIMIT_REACHED() { return t('errors.plan_limit_reached'); },
+  get PLAN_FEATURE_UNAVAILABLE() { return t('errors.not_in_your_plan'); },
+  get SUBSCRIPTION_RESTRICTED() { return t('errors.printing_paused'); },
+  get SHOP_UNAVAILABLE() { return t('errors.shop_unavailable'); },
+  get INTERNAL_ERROR() { return t('errors.something_went_wrong'); },
 };
 
 function errorTitle(code: string | undefined, status: number): string {
-  if (status === 0) return 'No internet connection';
+  if (status === 0) return t('errors.no_internet_connection');
   if (code && ERROR_TITLES[code]) return ERROR_TITLES[code];
-  if (status >= 500) return 'Something went wrong';
-  if (status === 404) return 'Not found';
-  if (status === 403) return "You don't have access to this";
-  if (status === 409) return 'Please refresh the page';
-  if (status === 429) return 'Too many tries';
-  return "Can't do that";
+  if (status >= 500) return t('errors.something_went_wrong');
+  if (status === 404) return t('errors.not_found');
+  if (status === 403) return t('errors.you_dont_have_access_to_this');
+  if (status === 409) return t('errors.please_refresh_the_page');
+  if (status === 429) return t('errors.too_many_tries');
+  return t('errors.cant_do_that');
 }
 
 function errorDetail(message: string | undefined, code: string | undefined, status: number): string {
-  if (status === 0) return "Can't reach PrintSetu. Check your internet connection and try again.";
+  if (status === 0) return t('errors.cant_reach_printsetu_check_your_internet');
   // Unexpected server faults carry no message worth showing.
-  if (!message || code === 'INTERNAL_ERROR') return 'Please try again in a moment.';
+  if (!message || code === 'INTERNAL_ERROR') return t('errors.please_try_again_in_a_moment');
   return message;
 }
 

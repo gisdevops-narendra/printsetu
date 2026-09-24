@@ -6,17 +6,18 @@ import { SubscriptionStatusService } from '../../core/services/subscription-stat
 import { AppShellComponent, ShellNavItem } from '../../shared/components/app-shell/app-shell.component';
 import { SubscriptionBannerComponent } from '../../shared/billing/subscription-banner.component';
 import { ShopHeaderComponent } from './shop-header.component';
+import { t } from '../../core/i18n/i18n';
 
-const BILLING: ShellNavItem = { label: 'Billing', icon: 'pi pi-credit-card', route: '/shop/billing' };
+const BILLING: ShellNavItem = { get label() { return t('common.billing'); }, icon: 'pi pi-credit-card', route: '/shop/billing' };
 
 const FULL_NAV: ShellNavItem[] = [
-  { label: 'Print Orders', icon: 'pi pi-inbox', route: '/shop/queue' },
-  { label: 'History', icon: 'pi pi-history', route: '/shop/history' },
-  { label: 'Notifications', icon: 'pi pi-bell', route: '/shop/notifications' },
-  { label: 'Shop Profile', icon: 'pi pi-building', route: '/shop/profile' },
-  { label: 'Pricing', icon: 'pi pi-tag', route: '/shop/pricing' },
-  { label: 'QR Code', icon: 'pi pi-qrcode', route: '/shop/qr' },
-  { label: 'Printer App', icon: 'pi pi-desktop', route: '/shop/print-agent' },
+  { get label() { return t('layout.print_orders'); }, icon: 'pi pi-inbox', route: '/shop/queue' },
+  { get label() { return t('common.history'); }, icon: 'pi pi-history', route: '/shop/history' },
+  { get label() { return t('common.notifications'); }, icon: 'pi pi-bell', route: '/shop/notifications' },
+  { get label() { return t('layout.shop_profile'); }, icon: 'pi pi-building', route: '/shop/profile' },
+  { get label() { return t('common.pricing'); }, icon: 'pi pi-tag', route: '/shop/pricing' },
+  { get label() { return t('layout.qr_code'); }, icon: 'pi pi-qrcode', route: '/shop/qr' },
+  { get label() { return t('layout.printer_app'); }, icon: 'pi pi-desktop', route: '/shop/print-agent' },
   BILLING,
 ];
 

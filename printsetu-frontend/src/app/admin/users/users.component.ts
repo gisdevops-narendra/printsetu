@@ -1,4 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -11,11 +12,12 @@ import { ConfirmationService } from 'primeng/api';
 import { AdminService } from '../../core/services/admin.service';
 import { UserRow } from '../../core/models/models';
 import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
+import { t } from '../../core/i18n/i18n';
 
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [
+  imports: [TranslatePipe, 
     CommonModule,
     FormsModule,
     TableModule,
@@ -29,13 +31,13 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
   template: `
     <div class="page-header">
       <div>
-        <h1 class="page-title">Users</h1>
-        <p class="page-subtitle m-0">Shop user accounts. Each is created when a shop registers from the sign-in page; there is one admin for the whole platform. Passwords are handled by the sign-in system.</p>
+        <h1 class="page-title">{{ 'common.users' | translate }}</h1>
+        <p class="page-subtitle m-0">{{ 'adminUsers.shop_user_accounts_each_is_created' | translate }}</p>
       </div>
       <div class="page-actions">
         <p-iconfield>
           <p-inputicon styleClass="pi pi-search" />
-          <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+          <input pInputText type="text" [placeholder]="'common.search' | translate" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
         </p-iconfield>
       </div>
     </div>
@@ -55,12 +57,12 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 15%" pSortableColumn="name">Name <p-sortIcon field="name" /></th>
-          <th style="width: 20%" pSortableColumn="email">Email <p-sortIcon field="email" /></th>
-          <th style="width: 19%">Password</th>
-          <th style="width: 9%" pSortableColumn="role.name">Role <p-sortIcon field="role.name" /></th>
-          <th style="width: 13%" pSortableColumn="shop.name">Shop <p-sortIcon field="shop.name" /></th>
-          <th style="width: 9%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
+          <th style="width: 15%" pSortableColumn="name">{{ 'common.name' | translate }} <p-sortIcon field="name" /></th>
+          <th style="width: 20%" pSortableColumn="email">{{ 'common.email' | translate }} <p-sortIcon field="email" /></th>
+          <th style="width: 19%">{{ 'adminUsers.password' | translate }}</th>
+          <th style="width: 9%" pSortableColumn="role.name">{{ 'adminUsers.role' | translate }} <p-sortIcon field="role.name" /></th>
+          <th style="width: 13%" pSortableColumn="shop.name">{{ 'common.shop' | translate }} <p-sortIcon field="shop.name" /></th>
+          <th style="width: 9%" pSortableColumn="status">{{ 'common.status' | translate }} <p-sortIcon field="status" /></th>
           <th style="width: 12%"></th>
         </tr>
       </ng-template>
@@ -84,16 +86,16 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
                   type="button"
                   class="pw-cell__toggle"
                   (click)="toggleReveal(user.id)"
-                  [attr.aria-label]="isRevealed(user.id) ? 'Hide password' : 'Show password'"
+                  [attr.aria-label]="isRevealed(user.id) ? ('adminUsers.hide_password' | translate) : ('adminUsers.show_password' | translate)"
                 >
                   <i class="pi" [ngClass]="isRevealed(user.id) ? 'pi-eye-slash' : 'pi-eye'"></i>
                 </button>
                 @if (user.mustChangePassword) {
-                  <span class="pw-cell__badge">Temporary</span>
+                  <span class="pw-cell__badge">{{ 'adminUsers.temporary' | translate }}</span>
                 }
               </div>
             } @else {
-              <span class="text-color-secondary">Set by user</span>
+              <span class="text-color-secondary">{{ 'adminUsers.set_by_user' | translate }}</span>
             }
           </td>
           <td data-label="Role">{{ user.role.name }}</td>
@@ -105,7 +107,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
           <td data-label="Status"><p-tag [value]="user.status" [severity]="user.status === 'ACTIVE' ? 'success' : 'danger'" /></td>
           <td class="text-right">
             <p-button
-              [label]="user.status === 'ACTIVE' ? 'Disable' : 'Enable'"
+              [label]="user.status === 'ACTIVE' ? ('adminUsers.disable' | translate) : ('adminUsers.enable' | translate)"
               size="small"
               [text]="true"
               [severity]="user.status === 'ACTIVE' ? 'danger' : 'success'"
@@ -117,7 +119,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
       <ng-template pTemplate="emptymessage">
         <tr>
           <td colspan="7">
-            <div class="table-empty"><i class="pi pi-users"></i><span>No users yet.</span></div>
+            <div class="table-empty"><i class="pi pi-users"></i><span>{{ 'adminUsers.no_users_yet' | translate }}</span></div>
           </td>
         </tr>
       </ng-template>
@@ -219,7 +221,7 @@ export class UsersComponent implements OnInit {
     const next = user.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
     this.confirmationService.confirm({
       message: `${next === 'ACTIVE' ? 'Enable' : 'Disable'} ${user.email}?`,
-      header: 'Confirm',
+      get header() { return t('common.confirm'); },
       icon: 'pi pi-exclamation-triangle',
       accept: () => this.adminService.setUserStatus(user.id, next).subscribe(() => this.load()),
     });

@@ -5,6 +5,7 @@ import { Observable, catchError, finalize, firstValueFrom, map, of, shareReplay,
 import { environment } from '../../../environments/environment';
 import { DecodedAccessToken, decodeJwt } from './jwt.util';
 import { RoleName } from '../models/models';
+import { t } from '../i18n/i18n';
 
 export interface SessionUser {
   email: string;
@@ -32,7 +33,7 @@ export interface RegisterShopRequest {
 /** Thrown by login() when the account still has a temporary password; caught by LoginComponent to switch to the change-password step. */
 export class PasswordChangeRequiredError extends Error {
   constructor() {
-    super('This account has a temporary password and must set a new one before signing in.');
+    super(t('auth.this_account_has_a_temporary_password'));
   }
 }
 
@@ -123,7 +124,7 @@ export class AuthService {
   refreshAccessToken(): Observable<string> {
     if (this.refreshInFlight) return this.refreshInFlight;
     const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-    if (!refreshToken) return throwError(() => new Error('No refresh token.'));
+    if (!refreshToken) return throwError(() => new Error(t('auth.no_refresh_token')));
     this.refreshInFlight = this.http
       .post<TokenPair>(`${environment.apiBaseUrl}/auth/refresh`, { refreshToken })
       .pipe(
@@ -183,7 +184,7 @@ export class AuthService {
     this.storeTokens(response);
     const claims = decodeJwt(response.accessToken);
     const user = claims ? this.toSessionUser(claims) : null;
-    if (!user) throw new Error('Login succeeded but no PrintSetu role was found on this account.');
+    if (!user) throw new Error(t('auth.login_succeeded_but_no_printsetu_role'));
     this.userSignal.set(user);
     return user;
   }

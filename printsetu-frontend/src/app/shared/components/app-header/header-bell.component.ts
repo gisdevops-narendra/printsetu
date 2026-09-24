@@ -1,8 +1,10 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HdrDropdownComponent } from './hdr-dropdown.component';
 import { HeaderAlert, timeAgo } from './header.models';
+import { t } from '../../../core/i18n/i18n';
 
 /**
  * Notification bell with an unread badge and a dropdown of recent items.
@@ -13,19 +15,19 @@ import { HeaderAlert, timeAgo } from './header.models';
 @Component({
   selector: 'app-header-bell',
   standalone: true,
-  imports: [CommonModule, RouterLink, HdrDropdownComponent],
+  imports: [TranslatePipe, CommonModule, RouterLink, HdrDropdownComponent],
   template: `
-    <app-hdr-dropdown label="Notifications" triggerClass="icon-btn" width="24rem" (openChange)="onOpenChange($event)">
+    <app-hdr-dropdown [label]="'common.notifications' | translate" triggerClass="icon-btn" width="24rem" (openChange)="onOpenChange($event)">
       <span trigger class="bell">
         <i class="pi pi-bell"></i>
         @if (unread > 0) {
-          <span class="bell__badge" [attr.aria-label]="unread + ' unread'">{{ unread > 9 ? '9+' : unread }}</span>
+          <span class="bell__badge" [attr.aria-label]="'shared.unread_count' | translate: { count: unread }">{{ unread > 9 ? '9+' : unread }}</span>
         }
       </span>
       <div class="head">
         <strong>{{ heading }}</strong>
         @if (unread > 0) {
-          <span class="head__count">{{ unread }} new</span>
+          <span class="head__count">{{ 'shared.new' | translate: { unread: unread } }}</span>
         }
       </div>
       @if (alerts.length) {
@@ -211,10 +213,10 @@ export class HeaderBellComponent {
   @Input() unread = 0;
   /** Epoch ms of the last time the owner looked; items newer than this are highlighted. */
   @Input() newSince = 0;
-  @Input() heading = 'Notifications';
-  @Input() emptyText = "You're all caught up.";
+  @Input() heading = t('common.notifications');
+  @Input() emptyText = t('shared.youre_all_caught_up');
   @Input() viewAllLink = '';
-  @Input() viewAllLabel = 'View all';
+  @Input() viewAllLabel = t('shared.view_all');
   @Output() seen = new EventEmitter<void>();
 
   isNew(a: HeaderAlert): boolean {

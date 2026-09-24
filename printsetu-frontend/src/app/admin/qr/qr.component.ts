@@ -1,4 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -6,20 +7,20 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { AdminService } from '../../core/services/admin.service';
 import { QrData, QrPanelComponent } from '../../shared/components/qr-panel/qr-panel.component';
+import { t } from '../../core/i18n/i18n';
 
 @Component({
   selector: 'app-qr',
   standalone: true,
-  imports: [CommonModule, RouterLink, ButtonModule, ProgressSpinnerModule, QrPanelComponent],
+  imports: [TranslatePipe, CommonModule, RouterLink, ButtonModule, ProgressSpinnerModule, QrPanelComponent],
   template: `
-    <a routerLink="/admin/shops" class="back-link"><i class="pi pi-arrow-left"></i> Back to shops</a>
+    <a routerLink="/admin/shops" class="back-link"><i class="pi pi-arrow-left"></i> {{ 'adminQr.back_to_shops' | translate }}</a>
     <div class="page-header">
       <div>
-        <h1 class="page-title">Shop QR Code</h1>
+        <h1 class="page-title">{{ 'adminQr.shop_qr_code' | translate }}</h1>
         <p class="page-subtitle">
           @if (shopName()) { <strong>{{ shopName() }}</strong> &middot; }
-          Customers scan this to reach the upload page for this shop. Making a new code doesn't affect any
-          past order.
+          {{ 'adminQr.customers_scan_this_to_reach_the' | translate }}
         </p>
       </div>
     </div>
@@ -30,8 +31,8 @@ import { QrData, QrPanelComponent } from '../../shared/components/qr-panel/qr-pa
       <app-qr-panel [qr]="q" [shopName]="shopName()" [canRegenerate]="true" (regenerate)="regenerate()" />
     } @else {
       <div class="surface-card-flat p-5 text-center">
-        <p class="mt-0 mb-3">We couldn't load this QR code.</p>
-        <p-button label="Try again" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="load()" />
+        <p class="mt-0 mb-3">{{ 'adminQr.we_couldnt_load_this_qr_code' | translate }}</p>
+        <p-button [label]="'common.try_again' | translate" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="load()" />
       </div>
     }
   `,
@@ -92,15 +93,15 @@ export class QrComponent implements OnInit {
 
   regenerate(): void {
     this.confirmationService.confirm({
-      message: 'Make a new QR code? The old printed QR sign will stop working immediately.',
-      header: 'Make a new QR code?',
+      get message() { return t('adminQr.make_a_new_qr_code_the'); },
+      get header() { return t('adminQr.make_a_new_qr_code'); },
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Make a new code',
-      rejectLabel: 'Cancel',
+      get acceptLabel() { return t('adminQr.make_a_new_code'); },
+      get rejectLabel() { return t('common.cancel'); },
       accept: () => {
         this.adminService.regenerateQr(this.shopId).subscribe((qr) => {
           this.qr.set(qr);
-          this.messageService.add({ severity: 'success', summary: 'New QR code ready' });
+          this.messageService.add({ severity: 'success', get summary() { return t('adminQr.new_qr_code_ready'); } });
         });
       },
     });

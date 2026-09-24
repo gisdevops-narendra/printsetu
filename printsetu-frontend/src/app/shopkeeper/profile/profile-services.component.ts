@@ -1,9 +1,12 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { PaperSize, PricingRate } from '../../core/models/models';
 import { rupees } from './profile.util';
+import { t } from '../../core/i18n/i18n';
+import { TranslateCountPipe } from '../../core/i18n/translate-count.pipe';
 
 interface Column {
   key: string;
@@ -17,17 +20,17 @@ interface Column {
 @Component({
   selector: 'app-profile-services',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [TranslateCountPipe, TranslatePipe, CommonModule, RouterLink],
   template: `
     <section class="pf-card">
       <header class="pf-card__head">
         <div>
-          <h3 class="pf-eyebrow">Print services &amp; pricing</h3>
+          <h3 class="pf-eyebrow">{{ 'profile.print_services_pricing' | translate }}</h3>
           @if (!loading() && count() > 0) {
-            <p class="summary">{{ count() }} {{ count() === 1 ? 'service' : 'services' }} &middot; from {{ money(cheapest()) }} per page</p>
+            <p class="summary">{{ 'profile.from_per_page' | translate: { services: ('common.count.services' | translateCount: count()), cheapest: money(cheapest()) } }}</p>
           }
         </div>
-        <a routerLink="/shop/pricing" class="pf-btn pf-btn--primary"><i class="pi pi-pencil"></i> Manage rates</a>
+        <a routerLink="/shop/pricing" class="pf-btn pf-btn--primary"><i class="pi pi-pencil"></i> {{ 'profile.manage_rates' | translate }}</a>
       </header>
 
       @if (loading()) {
@@ -35,16 +38,16 @@ interface Column {
       } @else if (count() === 0) {
         <div class="pf-empty">
           <span class="pf-empty__icon"><i class="pi pi-tag"></i></span>
-          <strong>No rates set yet</strong>
-          <p>Add a price for each paper size, colour and sides option to start accepting orders.</p>
-          <a routerLink="/shop/pricing" class="pf-btn pf-btn--primary"><i class="pi pi-plus"></i> Add rates</a>
+          <strong>{{ 'profile.no_rates_set_yet' | translate }}</strong>
+          <p>{{ 'profile.add_a_price_for_each_paper' | translate }}</p>
+          <a routerLink="/shop/pricing" class="pf-btn pf-btn--primary"><i class="pi pi-plus"></i> {{ 'profile.add_rates' | translate }}</a>
         </div>
       } @else {
         <div class="scroll">
           <table class="matrix">
             <thead>
               <tr>
-                <th scope="col">Paper size</th>
+                <th scope="col">{{ 'common.paper_size' | translate }}</th>
                 @for (c of columns; track c.key) {
                   <th scope="col"><span class="col-title"><i class="pi" [ngClass]="c.color === 'COLOR' ? 'pi-palette' : 'pi-circle-fill'"></i> {{ c.title }}</span><small>{{ c.sub }}</small></th>
                 }
@@ -60,7 +63,7 @@ interface Column {
                       @if (rate !== null) {
                         <span class="price" [class.is-min]="rate === cheapest()">{{ money(rate) }}</span>
                       } @else {
-                        <span class="none" aria-label="Not offered">&mdash;</span>
+                        <span class="none" [attr.aria-label]="'profile.not_offered' | translate">&mdash;</span>
                       }
                     </td>
                   }
@@ -69,7 +72,7 @@ interface Column {
             </tbody>
           </table>
         </div>
-        <p class="note"><i class="pi pi-info-circle"></i> Prices are per page. Changing a rate never alters orders that were already placed.</p>
+        <p class="note"><i class="pi pi-info-circle"></i> {{ 'profile.prices_are_per_page_changing_a' | translate }}</p>
       }
     </section>
   `,
@@ -241,10 +244,10 @@ interface Column {
 })
 export class ProfileServicesComponent implements OnInit {
   readonly columns: Column[] = [
-    { key: 'bw-1', color: 'BW', side: 'SIMPLEX', title: 'B&W', sub: 'Single-sided' },
-    { key: 'bw-2', color: 'BW', side: 'DUPLEX', title: 'B&W', sub: 'Double-sided' },
-    { key: 'c-1', color: 'COLOR', side: 'SIMPLEX', title: 'Color', sub: 'Single-sided' },
-    { key: 'c-2', color: 'COLOR', side: 'DUPLEX', title: 'Color', sub: 'Double-sided' },
+    { key: 'bw-1', color: 'BW', side: 'SIMPLEX', title: 'B&W', get sub() { return t('profile.single_sided'); } },
+    { key: 'bw-2', color: 'BW', side: 'DUPLEX', title: 'B&W', get sub() { return t('profile.double_sided'); } },
+    { key: 'c-1', color: 'COLOR', side: 'SIMPLEX', get title() { return t('common.color'); }, get sub() { return t('profile.single_sided'); } },
+    { key: 'c-2', color: 'COLOR', side: 'DUPLEX', get title() { return t('common.color'); }, get sub() { return t('profile.double_sided'); } },
   ];
   private readonly order: PaperSize[] = ['A4', 'A3', 'LETTER', 'LEGAL'];
 
@@ -279,7 +282,7 @@ export class ProfileServicesComponent implements OnInit {
   }
 
   paperLabel(p: PaperSize): string {
-    return p === 'LETTER' ? 'Letter' : p === 'LEGAL' ? 'Legal' : p;
+    return p === 'LETTER' ? t('profile.letter') : p === 'LEGAL' ? t('profile.legal') : p;
   }
 
   money(n: number): string {

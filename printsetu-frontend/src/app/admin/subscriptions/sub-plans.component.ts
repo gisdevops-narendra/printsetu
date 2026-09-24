@@ -1,4 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
@@ -7,6 +8,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { BillingService } from '../../core/services/billing.service';
 import { BillingCycle, BillingSettings, PlanInput, SubscriptionPlan } from '../../core/models/billing.models';
 import { BILLING_CYCLES, cyclePrice, cycleUnit, limit, money, yearlySaving } from '../../shared/billing/billing.util';
+import { t } from '../../core/i18n/i18n';
 
 interface Form {
   name: string;
@@ -43,16 +45,16 @@ const BLANK: Form = {
 @Component({
   selector: 'app-sub-plans',
   standalone: true,
-  imports: [CommonModule, FormsModule, DialogModule, ToggleSwitchModule],
+  imports: [TranslatePipe, CommonModule, FormsModule, DialogModule, ToggleSwitchModule],
   template: `
     <div class="bar">
-      <div class="pf-seg" role="tablist" aria-label="Price period">
+      <div class="pf-seg" role="tablist" [attr.aria-label]="'subscriptions.price_period' | translate">
         @for (c of cycles; track c.value) {
           <button type="button" role="tab" [class.is-on]="cycle() === c.value" [attr.aria-selected]="cycle() === c.value" (click)="cycle.set(c.value)">{{ c.label }}</button>
         }
       </div>
-      <label class="check"><input type="checkbox" [ngModel]="showRetired()" (ngModelChange)="showRetired.set($event)" /> Show discontinued plans</label>
-      <button type="button" class="pf-btn pf-btn--primary push" (click)="openEditor()"><i class="pi pi-plus"></i> New plan</button>
+      <label class="check"><input type="checkbox" [ngModel]="showRetired()" (ngModelChange)="showRetired.set($event)" /> {{ 'subscriptions.show_discontinued_plans' | translate }}</label>
+      <button type="button" class="pf-btn pf-btn--primary push" (click)="openEditor()"><i class="pi pi-plus"></i> {{ 'subscriptions.new_plan' | translate }}</button>
     </div>
 
     @if (loading()) {
@@ -60,9 +62,9 @@ const BLANK: Form = {
     } @else if (visible().length === 0) {
       <div class="pf-card pf-empty">
         <span class="pf-empty__icon"><i class="pi pi-tags"></i></span>
-        <strong>No plans yet</strong>
-        <p>Create your first plan, for example Basic, Standard and Premium.</p>
-        <button type="button" class="pf-btn pf-btn--primary" (click)="openEditor()"><i class="pi pi-plus"></i> New plan</button>
+        <strong>{{ 'subscriptions.no_plans_yet' | translate }}</strong>
+        <p>{{ 'subscriptions.create_your_first_plan_for_example' | translate }}</p>
+        <button type="button" class="pf-btn pf-btn--primary" (click)="openEditor()"><i class="pi pi-plus"></i> {{ 'subscriptions.new_plan' | translate }}</button>
       </div>
     } @else {
       <div class="cards">
@@ -71,9 +73,9 @@ const BLANK: Form = {
             <header class="plan__head">
               <div>
                 <h3>{{ p.name }}</h3>
-                @if (!p.isActive) { <span class="badge badge--muted">Discontinued</span> }
+                @if (!p.isActive) { <span class="badge badge--muted">{{ 'subscriptions.discontinued' | translate }}</span> }
               </div>
-              <span class="count" [title]="p.shopCount + ' shops on this plan'"><i class="pi pi-building"></i> {{ p.shopCount }}</span>
+              <span class="count" [title]="p.shopCount + ' ' + ('subscriptions.shops_on_this_plan' | translate) + ''"><i class="pi pi-building"></i> {{ p.shopCount }}</span>
             </header>
             @if (p.description) { <p class="plan__desc">{{ p.description }}</p> }
 
@@ -83,24 +85,24 @@ const BLANK: Form = {
             </div>
             <p class="saving">
               @if (cycle() === 'YEARLY' && yearlyNote(p); as s) { <span class="badge badge--ok">{{ s }}</span> }
-              @else if (cycle() === 'MONTHLY') { or {{ money(p.yearlyPrice) }} billed yearly }
-              @else if (cycle() === 'DAILY') { or {{ money(p.monthlyPrice) }} billed monthly }
-              @if (p.trialDays > 0) { <span class="badge badge--info">{{ p.trialDays }}-day free trial</span> }
+              @else if (cycle() === 'MONTHLY') { {{ 'subscriptions.or_billed_yearly' | translate: { yearlyPrice: money(p.yearlyPrice) } }} }
+              @else if (cycle() === 'DAILY') { {{ 'subscriptions.or_billed_monthly' | translate: { monthlyPrice: money(p.monthlyPrice) } }} }
+              @if (p.trialDays > 0) { <span class="badge badge--info">{{ 'subscriptions.day_free_trial' | translate: { trialDays: p.trialDays } }}</span> }
             </p>
 
             <ul class="features">
-              <li><i class="pi pi-print"></i><span><b>{{ limit(p.maxPrintsPerMonth) }}</b> prints / month</span></li>
-              <li><i class="pi pi-ticket"></i><span><b>{{ limit(p.maxTokensPerDay) }}</b> orders / day</span></li>
-              <li><i class="pi pi-desktop"></i><span><b>{{ limit(p.maxPrinters) }}</b> {{ p.maxPrinters === 1 ? 'computer' : 'computers' }} with a printer</span></li>
-              <li [class.off]="!p.analyticsAccess"><i class="pi" [ngClass]="p.analyticsAccess ? 'pi-check' : 'pi-times'"></i><span>Sales reports</span></li>
-              <li [class.off]="!p.prioritySupport"><i class="pi" [ngClass]="p.prioritySupport ? 'pi-check' : 'pi-times'"></i><span>Priority support</span></li>
+              <li><i class="pi pi-print"></i><span><b>{{ limit(p.maxPrintsPerMonth) }}</b> {{ 'subscriptions.prints_month' | translate }}</span></li>
+              <li><i class="pi pi-ticket"></i><span><b>{{ limit(p.maxTokensPerDay) }}</b> {{ 'subscriptions.orders_day' | translate }}</span></li>
+              <li><i class="pi pi-desktop"></i><span><b>{{ limit(p.maxPrinters) }}</b> {{ (p.maxPrinters === 1 ? 'subscriptions.computers_with_printer.one' : 'subscriptions.computers_with_printer.other') | translate }}</span></li>
+              <li [class.off]="!p.analyticsAccess"><i class="pi" [ngClass]="p.analyticsAccess ? 'pi-check' : 'pi-times'"></i><span>{{ 'subscriptions.sales_reports' | translate }}</span></li>
+              <li [class.off]="!p.prioritySupport"><i class="pi" [ngClass]="p.prioritySupport ? 'pi-check' : 'pi-times'"></i><span>{{ 'subscriptions.priority_support' | translate }}</span></li>
               @for (h of p.highlights; track h) { <li><i class="pi pi-check"></i><span>{{ h }}</span></li> }
             </ul>
 
             <footer class="plan__foot">
-              <button type="button" class="pf-btn" (click)="openEditor(p)"><i class="pi pi-pencil"></i> Edit</button>
-              <button type="button" class="pf-btn" (click)="toggleActive(p)">{{ p.isActive ? 'Retire' : 'Reactivate' }}</button>
-              <button type="button" class="pf-btn pf-btn--quiet danger" (click)="remove(p)" aria-label="Delete plan"><i class="pi pi-trash"></i></button>
+              <button type="button" class="pf-btn" (click)="openEditor(p)"><i class="pi pi-pencil"></i> {{ 'common.edit' | translate }}</button>
+              <button type="button" class="pf-btn" (click)="toggleActive(p)">{{ p.isActive ? ('subscriptions.retire' | translate) : ('subscriptions.reactivate' | translate) }}</button>
+              <button type="button" class="pf-btn pf-btn--quiet danger" (click)="remove(p)" [attr.aria-label]="'subscriptions.delete_plan' | translate"><i class="pi pi-trash"></i></button>
             </footer>
           </article>
         }
@@ -112,31 +114,31 @@ const BLANK: Form = {
       <section class="pf-card rules">
         <header class="pf-card__head">
           <div>
-            <h3 class="pf-eyebrow">Plan change rules</h3>
-            <p class="sub">How a plan change takes effect when an admin moves a shop. You can still override this per change.</p>
+            <h3 class="pf-eyebrow">{{ 'subscriptions.plan_change_rules' | translate }}</h3>
+            <p class="sub">{{ 'subscriptions.how_a_plan_change_takes_effect' | translate }}</p>
           </div>
         </header>
         <div class="rules__grid">
           <div class="rule">
             <span class="rule__icon rule__icon--up"><i class="pi pi-arrow-up-right"></i></span>
             <div class="rule__body">
-              <strong>Upgrade</strong>
-              <div class="pf-seg" role="tablist" aria-label="Upgrade timing">
-                <button type="button" role="tab" [class.is-on]="r.upgradeTiming === 'IMMEDIATE_PRORATED'" (click)="setRule('upgradeTiming', 'IMMEDIATE_PRORATED')">Immediately, pay for days left</button>
-                <button type="button" role="tab" [class.is-on]="r.upgradeTiming === 'NEXT_CYCLE'" (click)="setRule('upgradeTiming', 'NEXT_CYCLE')">Next renewal</button>
+              <strong>{{ 'subscriptions.upgrade' | translate }}</strong>
+              <div class="pf-seg" role="tablist" [attr.aria-label]="'subscriptions.upgrade_timing' | translate">
+                <button type="button" role="tab" [class.is-on]="r.upgradeTiming === 'IMMEDIATE_PRORATED'" (click)="setRule('upgradeTiming', 'IMMEDIATE_PRORATED')">{{ 'subscriptions.immediately_pay_for_days_left' | translate }}</button>
+                <button type="button" role="tab" [class.is-on]="r.upgradeTiming === 'NEXT_CYCLE'" (click)="setRule('upgradeTiming', 'NEXT_CYCLE')">{{ 'subscriptions.next_renewal' | translate }}</button>
               </div>
-              <p>{{ r.upgradeTiming === 'IMMEDIATE_PRORATED' ? 'The new plan starts now. The shop is charged the price difference for the days left in the billing period.' : 'The shop stays on its current plan until the next renewal, then moves to the new one.' }}</p>
+              <p>{{ r.upgradeTiming === 'IMMEDIATE_PRORATED' ? ('subscriptions.the_new_plan_starts_now_the' | translate) : ('subscriptions.the_shop_stays_on_its_current' | translate) }}</p>
             </div>
           </div>
           <div class="rule">
             <span class="rule__icon rule__icon--down"><i class="pi pi-arrow-down-right"></i></span>
             <div class="rule__body">
-              <strong>Downgrade</strong>
-              <div class="pf-seg" role="tablist" aria-label="Downgrade timing">
-                <button type="button" role="tab" [class.is-on]="r.downgradeTiming === 'END_OF_CYCLE'" (click)="setRule('downgradeTiming', 'END_OF_CYCLE')">End of billing period</button>
-                <button type="button" role="tab" [class.is-on]="r.downgradeTiming === 'IMMEDIATE'" (click)="setRule('downgradeTiming', 'IMMEDIATE')">Immediately</button>
+              <strong>{{ 'subscriptions.downgrade' | translate }}</strong>
+              <div class="pf-seg" role="tablist" [attr.aria-label]="'subscriptions.downgrade_timing' | translate">
+                <button type="button" role="tab" [class.is-on]="r.downgradeTiming === 'END_OF_CYCLE'" (click)="setRule('downgradeTiming', 'END_OF_CYCLE')">{{ 'subscriptions.end_of_billing_period' | translate }}</button>
+                <button type="button" role="tab" [class.is-on]="r.downgradeTiming === 'IMMEDIATE'" (click)="setRule('downgradeTiming', 'IMMEDIATE')">{{ 'subscriptions.immediately' | translate }}</button>
               </div>
-              <p>{{ r.downgradeTiming === 'END_OF_CYCLE' ? 'The shop keeps what it paid for until the cycle ends, then moves to the cheaper plan. No refund is due.' : 'The cheaper plan starts now. No refund or credit is given for the unused days.' }}</p>
+              <p>{{ r.downgradeTiming === 'END_OF_CYCLE' ? ('subscriptions.the_shop_keeps_what_it_paid' | translate) : ('subscriptions.the_cheaper_plan_starts_now_no' | translate) }}</p>
             </div>
           </div>
         </div>
@@ -145,7 +147,7 @@ const BLANK: Form = {
 
     <!-- ---------- Editor ---------- -->
     <p-dialog
-      [header]="editingId() ? 'Edit plan' : 'New plan'"
+      [header]="editingId() ? ('subscriptions.edit_plan' | translate) : ('subscriptions.new_plan' | translate)"
       [(visible)]="editorOpen"
       [modal]="true"
       [draggable]="false"
@@ -155,72 +157,72 @@ const BLANK: Form = {
     >
       <form class="form" (ngSubmit)="save()" novalidate>
         <div class="field" [class.has-error]="touched() && !!errors()['name']">
-          <label for="pl-name">Plan name</label>
-          <input id="pl-name" name="name" type="text" [(ngModel)]="form.name" maxlength="60" placeholder="e.g. Standard" />
+          <label for="pl-name">{{ 'subscriptions.plan_name' | translate }}</label>
+          <input id="pl-name" name="name" type="text" [(ngModel)]="form.name" maxlength="60" [placeholder]="'subscriptions.e_g_standard' | translate" />
           @if (touched() && errors()['name']) { <span class="err">{{ errors()['name'] }}</span> }
         </div>
         <div class="field">
-          <label for="pl-desc">Description</label>
-          <textarea id="pl-desc" name="description" rows="2" [(ngModel)]="form.description" maxlength="400" placeholder="Who is this plan for?"></textarea>
+          <label for="pl-desc">{{ 'subscriptions.description' | translate }}</label>
+          <textarea id="pl-desc" name="description" rows="2" [(ngModel)]="form.description" maxlength="400" [placeholder]="'subscriptions.who_is_this_plan_for' | translate"></textarea>
         </div>
 
         <fieldset>
-          <legend>Pricing</legend>
+          <legend>{{ 'common.pricing' | translate }}</legend>
           <div class="pair">
             <div class="field" [class.has-error]="touched() && !!errors()['daily']">
-              <label for="pl-d">Daily price (₹)</label>
+              <label for="pl-d">{{ 'subscriptions.daily_price' | translate }}</label>
               <input id="pl-d" name="daily" type="number" inputmode="decimal" min="0" step="1" [(ngModel)]="form.dailyPrice" />
               @if (touched() && errors()['daily']) { <span class="err">{{ errors()['daily'] }}</span> }
             </div>
             <div class="field" [class.has-error]="touched() && !!errors()['monthly']">
-              <label for="pl-m">Monthly price (₹)</label>
+              <label for="pl-m">{{ 'subscriptions.monthly_price' | translate }}</label>
               <input id="pl-m" name="monthly" type="number" inputmode="decimal" min="0" step="1" [(ngModel)]="form.monthlyPrice" />
               @if (touched() && errors()['monthly']) { <span class="err">{{ errors()['monthly'] }}</span> }
             </div>
             <div class="field" [class.has-error]="touched() && !!errors()['yearly']">
-              <label for="pl-y">Yearly price (₹)</label>
+              <label for="pl-y">{{ 'subscriptions.yearly_price' | translate }}</label>
               <input id="pl-y" name="yearly" type="number" inputmode="decimal" min="0" step="1" [(ngModel)]="form.yearlyPrice" />
               @if (touched() && errors()['yearly']) { <span class="err">{{ errors()['yearly'] }}</span> }
             </div>
           </div>
-          @if (formSaving(); as s) { <p class="hint hint--ok"><i class="pi pi-tag"></i> Yearly billing: {{ s }}</p> }
+          @if (formSaving(); as s) { <p class="hint hint--ok"><i class="pi pi-tag"></i> {{ 'subscriptions.yearly_billing' | translate: { value: s } }}</p> }
           <div class="field narrow">
-            <label for="pl-trial">Free trial (days)</label>
+            <label for="pl-trial">{{ 'subscriptions.free_trial_days' | translate }}</label>
             <input id="pl-trial" name="trial" type="number" inputmode="numeric" min="0" max="365" [(ngModel)]="form.trialDays" />
-            <span class="hint">0 means no trial. Common choices: 7 or 14.</span>
+            <span class="hint">{{ 'subscriptions.0_means_no_trial_common_choices' | translate }}</span>
           </div>
         </fieldset>
 
         <fieldset>
-          <legend>Feature limits <small>leave empty for unlimited</small></legend>
+          <legend>{{ 'subscriptions.feature_limits' | translate }} <small>{{ 'subscriptions.leave_empty_for_unlimited' | translate }}</small></legend>
           <div class="triple">
             <div class="field">
-              <label for="pl-p">Prints / month</label>
-              <input id="pl-p" name="prints" type="number" inputmode="numeric" min="1" [(ngModel)]="form.maxPrintsPerMonth" placeholder="Unlimited" />
+              <label for="pl-p">{{ 'subscriptions.prints_month_2' | translate }}</label>
+              <input id="pl-p" name="prints" type="number" inputmode="numeric" min="1" [(ngModel)]="form.maxPrintsPerMonth" [placeholder]="'subscriptions.unlimited' | translate" />
             </div>
             <div class="field">
-              <label for="pl-t">Orders / day</label>
-              <input id="pl-t" name="tokens" type="number" inputmode="numeric" min="1" [(ngModel)]="form.maxTokensPerDay" placeholder="Unlimited" />
+              <label for="pl-t">{{ 'subscriptions.orders_day_2' | translate }}</label>
+              <input id="pl-t" name="tokens" type="number" inputmode="numeric" min="1" [(ngModel)]="form.maxTokensPerDay" [placeholder]="'subscriptions.unlimited' | translate" />
             </div>
             <div class="field">
-              <label for="pl-d">Computers connected to a printer</label>
-              <input id="pl-d" name="devices" type="number" inputmode="numeric" min="1" [(ngModel)]="form.maxPrinters" placeholder="Unlimited" />
+              <label for="pl-d">{{ 'subscriptions.computers_connected_to_a_printer' | translate }}</label>
+              <input id="pl-d" name="devices" type="number" inputmode="numeric" min="1" [(ngModel)]="form.maxPrinters" [placeholder]="'subscriptions.unlimited' | translate" />
             </div>
           </div>
-          <div class="toggle"><p-toggleswitch inputId="pl-an" [(ngModel)]="form.analyticsAccess" [ngModelOptions]="{ standalone: true }" /><label for="pl-an">Sales reports</label></div>
-          <div class="toggle"><p-toggleswitch inputId="pl-ps" [(ngModel)]="form.prioritySupport" [ngModelOptions]="{ standalone: true }" /><label for="pl-ps">Priority support</label></div>
+          <div class="toggle"><p-toggleswitch inputId="pl-an" [(ngModel)]="form.analyticsAccess" [ngModelOptions]="{ standalone: true }" /><label for="pl-an">{{ 'subscriptions.sales_reports' | translate }}</label></div>
+          <div class="toggle"><p-toggleswitch inputId="pl-ps" [(ngModel)]="form.prioritySupport" [ngModelOptions]="{ standalone: true }" /><label for="pl-ps">{{ 'subscriptions.priority_support' | translate }}</label></div>
         </fieldset>
 
         <div class="field">
-          <label for="pl-hi">Extra selling points <small>one per line</small></label>
-          <textarea id="pl-hi" name="highlights" rows="3" [(ngModel)]="form.highlights" placeholder="Email reminders&#10;QR ordering page"></textarea>
+          <label for="pl-hi">{{ 'subscriptions.extra_selling_points' | translate }} <small>{{ 'subscriptions.one_per_line' | translate }}</small></label>
+          <textarea id="pl-hi" name="highlights" rows="3" [(ngModel)]="form.highlights" [placeholder]="'subscriptions.email_reminders_qr_ordering_page' | translate"></textarea>
         </div>
-        <div class="toggle"><p-toggleswitch inputId="pl-on" [(ngModel)]="form.isActive" [ngModelOptions]="{ standalone: true }" /><label for="pl-on">Active <small>discontinued plans cannot be given to new shops but keep their history</small></label></div>
+        <div class="toggle"><p-toggleswitch inputId="pl-on" [(ngModel)]="form.isActive" [ngModelOptions]="{ standalone: true }" /><label for="pl-on">{{ 'common.active' | translate }} <small>{{ 'subscriptions.discontinued_plans_cannot_be_given_to' | translate }}</small></label></div>
       </form>
       <ng-template #footer>
-        <button type="button" class="pf-btn" (click)="editorOpen = false" [disabled]="saving()">Cancel</button>
+        <button type="button" class="pf-btn" (click)="editorOpen = false" [disabled]="saving()">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="pf-btn pf-btn--primary" (click)="save()" [disabled]="saving()">
-          @if (saving()) { <i class="pi pi-spin pi-spinner"></i> Saving… } @else { <i class="pi pi-check"></i> {{ editingId() ? 'Save changes' : 'Create plan' }} }
+          @if (saving()) { <i class="pi pi-spin pi-spinner"></i> {{ 'common.saving' | translate }} } @else { <i class="pi pi-check"></i> {{ editingId() ? ('common.save_changes' | translate) : ('subscriptions.create_plan' | translate) }} }
         </button>
       </ng-template>
     </p-dialog>
@@ -589,15 +591,15 @@ export class SubPlansComponent implements OnInit {
   errors(): Record<string, string> {
     const e: Record<string, string> = {};
     const f = this.form;
-    if (f.name.trim().length < 2) e['name'] = 'Enter a plan name.';
-    if (f.dailyPrice === null || Number(f.dailyPrice) < 0) e['daily'] = 'Enter the daily price.';
-    if (f.monthlyPrice === null || Number(f.monthlyPrice) < 0) e['monthly'] = 'Enter the monthly price.';
+    if (f.name.trim().length < 2) e['name'] = t('subscriptions.enter_a_plan_name');
+    if (f.dailyPrice === null || Number(f.dailyPrice) < 0) e['daily'] = t('subscriptions.enter_the_daily_price');
+    if (f.monthlyPrice === null || Number(f.monthlyPrice) < 0) e['monthly'] = t('subscriptions.enter_the_monthly_price');
     else if (f.dailyPrice !== null && Number(f.monthlyPrice) > Number(f.dailyPrice) * 30) {
-      e['monthly'] = 'Monthly price can’t be more than 30 days of the daily price.';
+      e['monthly'] = t('subscriptions.monthly_price_can_t_be_more');
     }
-    if (f.yearlyPrice === null || Number(f.yearlyPrice) < 0) e['yearly'] = 'Enter the yearly price.';
+    if (f.yearlyPrice === null || Number(f.yearlyPrice) < 0) e['yearly'] = t('subscriptions.enter_the_yearly_price');
     else if (f.monthlyPrice !== null && Number(f.yearlyPrice) > Number(f.monthlyPrice) * 12) {
-      e['yearly'] = 'Yearly price can’t be more than 12 months of the monthly price.';
+      e['yearly'] = t('subscriptions.yearly_price_can_t_be_more');
     }
     return e;
   }
@@ -651,7 +653,7 @@ export class SubPlansComponent implements OnInit {
       next: () => {
         this.saving.set(false);
         this.editorOpen = false;
-        this.messages.add({ severity: 'success', summary: id ? 'Plan updated' : 'Plan created' });
+        this.messages.add({ severity: 'success', summary: id ? t('subscriptions.plan_updated') : t('subscriptions.plan_created') });
         this.load();
       },
       error: () => this.saving.set(false),
@@ -660,18 +662,18 @@ export class SubPlansComponent implements OnInit {
 
   toggleActive(p: SubscriptionPlan): void {
     this.billing.setPlanActive(p.id, !p.isActive).subscribe(() => {
-      this.messages.add({ severity: 'success', summary: p.isActive ? `${p.name} discontinued` : `${p.name} is active again` });
+      this.messages.add({ severity: 'success', summary: p.isActive ? `${p.name} discontinued` : t('subscriptions.is_active_again', { name: p.name }) });
       this.load();
     });
   }
 
   remove(p: SubscriptionPlan): void {
     this.confirm.confirm({
-      header: `Delete ${p.name}?`,
-      message: 'This can’t be undone. A plan that shops or invoices still use can only be discontinued, not deleted.',
+      get header() { return t('subscriptions.delete', { name: p.name }); },
+      get message() { return t('subscriptions.this_can_t_be_undone_a'); },
       icon: 'pi pi-trash',
-      acceptLabel: 'Delete',
-      rejectLabel: 'Keep',
+      get acceptLabel() { return t('common.delete'); },
+      get rejectLabel() { return t('subscriptions.keep'); },
       acceptButtonStyleClass: 'p-button-danger',
       accept: () =>
         this.billing.deletePlan(p.id).subscribe(() => {
@@ -686,7 +688,7 @@ export class SubPlansComponent implements OnInit {
     if (!current || current[key] === value) return;
     this.billing.updateSettings({ [key]: value } as Partial<BillingSettings>).subscribe((s) => {
       this.rules.set(s);
-      this.messages.add({ severity: 'success', summary: 'Plan change rule saved' });
+      this.messages.add({ severity: 'success', get summary() { return t('subscriptions.plan_change_rule_saved'); } });
     });
   }
 }

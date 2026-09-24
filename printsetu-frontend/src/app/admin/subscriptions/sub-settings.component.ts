@@ -1,10 +1,12 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { BillingService } from '../../core/services/billing.service';
 import { BillingChannel, BillingSettings } from '../../core/models/billing.models';
 import { CHANNEL_META } from '../../shared/billing/billing.util';
+import { t } from '../../core/i18n/i18n';
 
 interface Form {
   graceDays: number;
@@ -19,7 +21,7 @@ interface Form {
 @Component({
   selector: 'app-sub-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [TranslatePipe, CommonModule, FormsModule],
   template: `
     @if (loading()) {
       <div class="pf-skeleton" style="height: 24rem"></div>
@@ -27,85 +29,85 @@ interface Form {
       <div class="grid">
         <div class="col">
           <section class="pf-card">
-            <header class="pf-card__head"><h3 class="pf-eyebrow">When a payment is missed</h3></header>
+            <header class="pf-card__head"><h3 class="pf-eyebrow">{{ 'subscriptions.when_a_payment_is_missed' | translate }}</h3></header>
 
             <ol class="timeline">
               <li>
                 <span class="tl tl--warn">1</span>
                 <div class="tl__body">
-                  <strong>Extra days to pay</strong>
-                  <p>The shop keeps <b>full access</b> and sees a warning banner.</p>
-                  <label class="num"><input type="number" min="0" max="60" [(ngModel)]="form.graceDays" name="grace" /> days</label>
+                  <strong>{{ 'subscriptions.extra_days_to_pay' | translate }}</strong>
+                  <p [innerHTML]="'subscriptions.grace_rule' | translate"></p>
+                  <label class="num"><input type="number" min="0" max="60" [(ngModel)]="form.graceDays" name="grace" /> {{ 'subscriptions.days' | translate }}</label>
                 </div>
               </li>
               <li>
                 <span class="tl tl--bad">2</span>
                 <div class="tl__body">
-                  <strong>Payment overdue</strong>
-                  <p>Read-only: old orders can be viewed but no new print requests are accepted. Customers see the shop as unavailable.</p>
-                  <label class="num">Suspend after <input type="number" min="0" max="90" [(ngModel)]="form.suspendAfterPastDueDays" name="susp" /> days</label>
+                  <strong>{{ 'subscriptions.payment_overdue' | translate }}</strong>
+                  <p>{{ 'subscriptions.read_only_old_orders_can_be' | translate }}</p>
+                  <label class="num">{{ 'subscriptions.suspend_after' | translate }} <input type="number" min="0" max="90" [(ngModel)]="form.suspendAfterPastDueDays" name="susp" /> {{ 'subscriptions.days' | translate }}</label>
                 </div>
               </li>
               <li>
                 <span class="tl tl--dark">3</span>
                 <div class="tl__body">
-                  <strong>Suspended</strong>
-                  <p>The shop portal is locked except Billing. Customers see &ldquo;This shop is temporarily unavailable&rdquo;.</p>
+                  <strong>{{ 'common.suspended' | translate }}</strong>
+                  <p>{{ 'subscriptions.the_shop_portal_is_locked_except_2' | translate }}</p>
                 </div>
               </li>
             </ol>
           </section>
 
           <section class="pf-card">
-            <header class="pf-card__head"><h3 class="pf-eyebrow">Reminders</h3></header>
-            <p class="lead">Automatic messages are sent: before renewal, when a payment fails, halfway through the extra days to pay, and a final warning before suspension.</p>
-            <label class="num">Renewal reminder <input type="number" min="0" max="30" [(ngModel)]="form.renewalReminderDays" name="remind" /> days before <span class="fine inline">(0 turns it off)</span></label>
+            <header class="pf-card__head"><h3 class="pf-eyebrow">{{ 'subscriptions.reminders' | translate }}</h3></header>
+            <p class="lead">{{ 'subscriptions.automatic_messages_are_sent_before_renewal' | translate }}</p>
+            <label class="num">{{ 'subscriptions.renewal_reminder' | translate }} <input type="number" min="0" max="30" [(ngModel)]="form.renewalReminderDays" name="remind" /> {{ 'subscriptions.days_before' | translate }} <span class="fine inline">{{ 'subscriptions.0_turns_it_off' | translate }}</span></label>
           </section>
         </div>
 
         <div class="col">
           <section class="pf-card">
-            <header class="pf-card__head"><h3 class="pf-eyebrow">Automatic payment retries</h3></header>
-            <p class="lead">Only for shops paying through a connected online payment service. Shops that pay offline are followed up with reminders instead.</p>
+            <header class="pf-card__head"><h3 class="pf-eyebrow">{{ 'subscriptions.automatic_payment_retries' | translate }}</h3></header>
+            <p class="lead">{{ 'subscriptions.only_for_shops_paying_through_a' | translate }}</p>
             <div class="row">
-              <label class="num"><input type="number" min="0" max="10" [(ngModel)]="form.retryAttempts" name="retries" /> retries</label>
-              <label class="num">every <input type="number" min="1" max="14" [(ngModel)]="form.retryIntervalDays" name="interval" /> days</label>
+              <label class="num"><input type="number" min="0" max="10" [(ngModel)]="form.retryAttempts" name="retries" /> {{ 'subscriptions.retries' | translate }}</label>
+              <label class="num">{{ 'subscriptions.every' | translate }} <input type="number" min="1" max="14" [(ngModel)]="form.retryIntervalDays" name="interval" /> {{ 'subscriptions.days' | translate }}</label>
             </div>
-            <p class="fine"><i class="pi pi-info-circle"></i> No online payment service is connected yet, so these rules take effect once one is added.</p>
+            <p class="fine"><i class="pi pi-info-circle"></i> {{ 'subscriptions.no_online_payment_service_is_connected' | translate }}</p>
           </section>
 
           <section class="pf-card">
-            <header class="pf-card__head"><h3 class="pf-eyebrow">Default notification channels</h3></header>
-            <p class="lead">Used for every shop unless that shop picks its own on its billing page.</p>
+            <header class="pf-card__head"><h3 class="pf-eyebrow">{{ 'subscriptions.default_notification_channels' | translate }}</h3></header>
+            <p class="lead">{{ 'subscriptions.used_for_every_shop_unless_that' | translate }}</p>
             <div class="channels">
               @for (c of channels; track c.value) {
                 <button type="button" class="channel" [class.is-on]="has(c.value)" [disabled]="c.locked" (click)="toggle(c.value)" [attr.aria-pressed]="has(c.value)">
                   <i class="pi" [ngClass]="c.icon"></i>
                   <span>{{ c.label }}</span>
-                  @if (c.locked) { <em>always on</em> }
+                  @if (c.locked) { <em>{{ 'subscriptions.always_on' | translate }}</em> }
                 </button>
               }
             </div>
-            <p class="fine"><i class="pi pi-info-circle"></i> In-app messages are delivered now. Email, SMS and WhatsApp messages are queued and recorded, but no provider is connected yet, so nothing is sent on those channels.</p>
+            <p class="fine"><i class="pi pi-info-circle"></i> {{ 'subscriptions.in_app_messages_are_delivered_now' | translate }}</p>
           </section>
         </div>
       </div>
 
       <div class="foot">
         <button type="button" class="pf-btn" (click)="runChecks()" [disabled]="running()">
-          @if (running()) { <i class="pi pi-spin pi-spinner"></i> Checking… } @else { <i class="pi pi-refresh"></i> Run billing checks now }
+          @if (running()) { <i class="pi pi-spin pi-spinner"></i> {{ 'subscriptions.checking' | translate }} } @else { <i class="pi pi-refresh"></i> {{ 'subscriptions.run_billing_checks_now' | translate }} }
         </button>
         <button type="button" class="pf-btn pf-btn--primary" (click)="save()" [disabled]="saving() || !dirty()">
-          @if (saving()) { <i class="pi pi-spin pi-spinner"></i> Saving… } @else { <i class="pi pi-check"></i> Save settings }
+          @if (saving()) { <i class="pi pi-spin pi-spinner"></i> {{ 'common.saving' | translate }} } @else { <i class="pi pi-check"></i> {{ 'subscriptions.save_settings' | translate }} }
         </button>
       </div>
       @if (result(); as r) {
         <div class="result" role="status">
-          <strong>{{ r.changes.length ? r.changes.length + ' change(s) made' : 'Nothing needed changing' }}</strong> across {{ r.checked }} subscriptions.
+          <strong>{{ r.changes.length ? ((r.changes.length === 1 ? 'subscriptions.changes_made.one' : 'subscriptions.changes_made.other') | translate: { count: r.changes.length }) : ('subscriptions.nothing_needed_changing' | translate) }}</strong> {{ 'subscriptions.across_subscriptions' | translate: { checked: r.checked } }}
           @if (r.changes.length) { <ul>@for (c of r.changes; track c) { <li>{{ c }}</li> }</ul> }
         </div>
       }
-      <p class="fine center">Checks also run automatically every 15 minutes.</p>
+      <p class="fine center">{{ 'subscriptions.checks_also_run_automatically_every_15' | translate }}</p>
     }
   `,
   styles: [
@@ -347,7 +349,7 @@ export class SubSettingsComponent implements OnInit {
     const f = this.form;
     const ints = [f.graceDays, f.suspendAfterPastDueDays, f.retryAttempts, f.retryIntervalDays, f.renewalReminderDays];
     if (ints.some((n) => n === null || n === undefined || !Number.isInteger(Number(n)) || Number(n) < 0) || Number(f.retryIntervalDays) < 1) {
-      this.messages.add({ severity: 'warn', summary: 'Check the numbers', detail: 'Use whole numbers; the retry interval must be at least 1 day.' });
+      this.messages.add({ severity: 'warn', get summary() { return t('subscriptions.check_the_numbers'); }, get detail() { return t('subscriptions.use_whole_numbers_the_retry_interval'); } });
       return;
     }
     this.saving.set(true);
@@ -364,7 +366,7 @@ export class SubSettingsComponent implements OnInit {
         next: (s) => {
           this.apply(s);
           this.saving.set(false);
-          this.messages.add({ severity: 'success', summary: 'Billing settings saved' });
+          this.messages.add({ severity: 'success', get summary() { return t('subscriptions.billing_settings_saved'); } });
         },
         error: () => this.saving.set(false),
       });

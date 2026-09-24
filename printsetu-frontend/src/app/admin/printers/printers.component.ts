@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
@@ -8,6 +9,8 @@ import { TagModule } from 'primeng/tag';
 import { AdminService } from '../../core/services/admin.service';
 import { PrinterRow, Shop } from '../../core/models/models';
 import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
+import { t } from '../../core/i18n/i18n';
+import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
 
 /**
  * Read-only monitoring: registering and unlinking a printer/agent is
@@ -18,17 +21,17 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 @Component({
   selector: 'app-printers',
   standalone: true,
-  imports: [CommonModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, TagModule, EllipsisDirective],
+  imports: [AppDatePipe, TranslatePipe, CommonModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, TagModule, EllipsisDirective],
   template: `
     <div class="page-header">
       <div>
-        <h1 class="page-title">Printers</h1>
-        <p class="page-subtitle m-0">See each shop's connected printers. Shops connect and remove their own printers from their Printer App page.</p>
+        <h1 class="page-title">{{ 'common.printers' | translate }}</h1>
+        <p class="page-subtitle m-0">{{ 'adminPrinters.see_each_shops_connected_printers_shops' | translate }}</p>
       </div>
       <div class="page-actions">
         <p-iconfield>
           <p-inputicon styleClass="pi pi-search" />
-          <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+          <input pInputText type="text" [placeholder]="'common.search' | translate" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
         </p-iconfield>
       </div>
     </div>
@@ -47,11 +50,11 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 25%" pSortableColumn="printerName">Printer <p-sortIcon field="printerName" /></th>
-          <th style="width: 22%" pSortableColumn="shopName">Shop <p-sortIcon field="shopName" /></th>
-          <th style="width: 19%" pSortableColumn="computer">Computer <p-sortIcon field="computer" /></th>
-          <th style="width: 14%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
-          <th style="width: 20%" pSortableColumn="lastHeartbeatAt">Last seen <p-sortIcon field="lastHeartbeatAt" /></th>
+          <th style="width: 25%" pSortableColumn="printerName">{{ 'common.printer' | translate }} <p-sortIcon field="printerName" /></th>
+          <th style="width: 22%" pSortableColumn="shopName">{{ 'common.shop' | translate }} <p-sortIcon field="shopName" /></th>
+          <th style="width: 19%" pSortableColumn="computer">{{ 'adminPrinters.computer' | translate }} <p-sortIcon field="computer" /></th>
+          <th style="width: 14%" pSortableColumn="status">{{ 'common.status' | translate }} <p-sortIcon field="status" /></th>
+          <th style="width: 20%" pSortableColumn="lastHeartbeatAt">{{ 'adminPrinters.last_seen' | translate }} <p-sortIcon field="lastHeartbeatAt" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-p>
@@ -69,17 +72,17 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
           <td data-label="Computer">{{ p.computer }}</td>
           <td data-label="Status">
             <p-tag
-              [value]="p.status === 'ONLINE' ? 'Online' : p.status === 'OFFLINE' ? 'Offline' : 'Not connected yet'"
+              [value]="p.status === 'ONLINE' ? ('common.online' | translate) : p.status === 'OFFLINE' ? ('common.offline' | translate) : ('adminPrinters.not_connected_yet' | translate)"
               [severity]="p.status === 'ONLINE' ? 'success' : p.status === 'OFFLINE' ? 'danger' : 'secondary'"
             />
           </td>
-          <td data-label="Last seen">{{ p.lastHeartbeatAt ? (p.lastHeartbeatAt | date: 'medium') : 'never' }}</td>
+          <td data-label="Last seen">{{ p.lastHeartbeatAt ? (p.lastHeartbeatAt | appDate: 'medium') : ('adminPrinters.never' | translate) }}</td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
         <tr>
           <td colspan="5">
-            <div class="table-empty"><i class="pi pi-print"></i><span>No printers connected yet.</span></div>
+            <div class="table-empty"><i class="pi pi-print"></i><span>{{ 'adminPrinters.no_printers_connected_yet' | translate }}</span></div>
           </td>
         </tr>
       </ng-template>
@@ -93,7 +96,7 @@ export class PrintersComponent implements OnInit {
     this.printers().map((p) => ({
       ...p,
       shopName: this.shopName(p.shopId),
-      computer: p.capabilitiesJson?.hostname ?? 'Not reported yet',
+      computer: p.capabilitiesJson?.hostname ?? t('adminPrinters.not_reported_yet'),
     })),
   );
   loading = signal(true);

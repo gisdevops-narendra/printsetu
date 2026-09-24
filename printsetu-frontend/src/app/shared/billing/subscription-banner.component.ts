@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SubscriptionStatusService } from '../../core/services/subscription-status.service';
@@ -8,7 +9,7 @@ import { money } from './billing.util';
 @Component({
   selector: 'app-subscription-banner',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [TranslatePipe, CommonModule, RouterLink],
   template: `
     @if (status.access()?.banner; as b) {
       <div class="banner" [ngClass]="'banner--' + b.severity" role="alert">
@@ -16,10 +17,10 @@ import { money } from './billing.util';
         <div class="banner__text">
           <strong>{{ b.message }}</strong>
           @if (status.overview()?.amountDue; as due) {
-            <span>Amount due {{ money(due.amount, due.currency) }} (invoice {{ due.number }}). Pay your administrator to keep your shop running.</span>
+            <span>{{ 'billingShared.amount_due_invoice_pay_your_administrator' | translate: { amount: money(due.amount, due.currency), number: due.number } }}</span>
           }
         </div>
-        <a routerLink="/shop/billing" class="banner__link">View billing <i class="pi pi-arrow-right"></i></a>
+        <a routerLink="/shop/billing" class="banner__link">{{ 'billingShared.view_billing' | translate }} <i class="pi pi-arrow-right"></i></a>
       </div>
     }
   `,

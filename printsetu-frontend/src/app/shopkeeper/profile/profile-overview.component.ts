@@ -1,10 +1,14 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { ShopStats } from '../../core/models/models';
 import { BarChartComponent, BarDatum } from '../../shared/components/bar-chart/bar-chart.component';
 import { rupees } from './profile.util';
+import { t as tr, intlLocale, tn } from '../../core/i18n/i18n';
+import { AppNumberPipe } from '../../core/i18n/i18n-format.pipes';
+import { TranslateCountPipe } from '../../core/i18n/translate-count.pipe';
 
 type Period = 'today' | 'week' | 'month';
 type Metric = 'earnings' | 'jobs';
@@ -13,7 +17,7 @@ type Metric = 'earnings' | 'jobs';
 @Component({
   selector: 'app-profile-overview',
   standalone: true,
-  imports: [CommonModule, RouterLink, BarChartComponent],
+  imports: [TranslateCountPipe, AppNumberPipe, TranslatePipe, CommonModule, RouterLink, BarChartComponent],
   template: `
     @if (loading()) {
       <div class="kpis">
@@ -23,46 +27,46 @@ type Metric = 'earnings' | 'jobs';
     } @else if (error()) {
       <div class="pf-card pf-empty">
         <span class="pf-empty__icon"><i class="pi pi-exclamation-circle"></i></span>
-        <strong>Couldn't load your statistics</strong>
-        <p>Please try again in a moment.</p>
-        <button type="button" class="pf-btn" (click)="load()"><i class="pi pi-refresh"></i> Try again</button>
+        <strong>{{ 'profile.couldnt_load_your_statistics' | translate }}</strong>
+        <p>{{ 'profile.please_try_again_in_a_moment' | translate }}</p>
+        <button type="button" class="pf-btn" (click)="load()"><i class="pi pi-refresh"></i> {{ 'common.try_again' | translate }}</button>
       </div>
     } @else if (stats(); as s) {
       <!-- ---------- Headline numbers ---------- -->
       <div class="kpis">
         <article class="kpi">
           <span class="kpi__icon kpi__icon--ok"><i class="pi pi-check-circle"></i></span>
-          <p class="kpi__label">Prints completed</p>
-          <strong class="kpi__value">{{ s.totals.completed | number }}</strong>
-          <span class="kpi__sub">{{ s.jobs.today }} today</span>
+          <p class="kpi__label">{{ 'profile.prints_completed' | translate }}</p>
+          <strong class="kpi__value">{{ s.totals.completed | appNumber }}</strong>
+          <span class="kpi__sub">{{ 'profile.today' | translate: { today: s.jobs.today } }}</span>
         </article>
 
         <article class="kpi">
           <span class="kpi__icon kpi__icon--info"><i class="pi pi-hourglass"></i></span>
-          <p class="kpi__label">Orders waiting</p>
-          <strong class="kpi__value">{{ s.totals.pending | number }}</strong>
-          <a routerLink="/shop/queue" class="kpi__link">Open Print Orders <i class="pi pi-arrow-right"></i></a>
+          <p class="kpi__label">{{ 'profile.orders_waiting' | translate }}</p>
+          <strong class="kpi__value">{{ s.totals.pending | appNumber }}</strong>
+          <a routerLink="/shop/queue" class="kpi__link">{{ 'profile.open_print_orders' | translate }} <i class="pi pi-arrow-right"></i></a>
         </article>
 
         <article class="kpi kpi--earn">
           <span class="kpi__icon kpi__icon--warn"><i class="pi pi-wallet"></i></span>
           <div class="kpi__top">
-            <p class="kpi__label">Earnings</p>
-            <div class="pf-seg" role="tablist" aria-label="Earnings period">
+            <p class="kpi__label">{{ 'profile.earnings' | translate }}</p>
+            <div class="pf-seg" role="tablist" [attr.aria-label]="'profile.earnings_period' | translate">
               @for (p of periods; track p.key) {
                 <button type="button" role="tab" [class.is-on]="period() === p.key" [attr.aria-selected]="period() === p.key" (click)="period.set(p.key)">{{ p.label }}</button>
               }
             </div>
           </div>
           <strong class="kpi__value">{{ money(s.earnings[period()]) }}</strong>
-          <span class="kpi__sub">{{ s.jobs[period()] }} {{ s.jobs[period()] === 1 ? 'print' : 'prints' }}</span>
+          <span class="kpi__sub">{{ 'common.count.prints' | translateCount: s.jobs[period()] }}</span>
         </article>
 
         <article class="kpi">
           <span class="kpi__icon kpi__icon--violet"><i class="pi pi-file"></i></span>
-          <p class="kpi__label">Pages printed</p>
-          <strong class="kpi__value">{{ s.totals.pagesPrinted | number }}</strong>
-          <span class="kpi__sub">{{ money(s.totals.earnings) }} earned all time</span>
+          <p class="kpi__label">{{ 'profile.pages_printed' | translate }}</p>
+          <strong class="kpi__value">{{ s.totals.pagesPrinted | appNumber }}</strong>
+          <span class="kpi__sub">{{ 'profile.earned_all_time' | translate: { earnings: money(s.totals.earnings) } }}</span>
         </article>
       </div>
 
@@ -71,15 +75,15 @@ type Metric = 'earnings' | 'jobs';
         <section class="pf-card">
           <header class="pf-card__head">
             <div>
-              <h3 class="pf-eyebrow">{{ metric() === 'earnings' ? 'Earnings' : 'Prints' }} &middot; last {{ range() }} days</h3>
-              <p class="total">{{ metric() === 'earnings' ? money(rangeTotal()) : (rangeTotal() | number) + ' prints' }}</p>
+              <h3 class="pf-eyebrow">{{ 'profile.last_days' | translate: { metric: (metric() === 'earnings' ? ('profile.earnings' | translate) : ('profile.prints' | translate)), days: range() } }}</h3>
+              <p class="total">{{ metric() === 'earnings' ? money(rangeTotal()) : ('common.count.prints' | translateCount: rangeTotal()) }}</p>
             </div>
             <div class="controls">
-              <div class="pf-seg" role="tablist" aria-label="Metric">
-                <button type="button" [class.is-on]="metric() === 'earnings'" (click)="metric.set('earnings')">Earnings</button>
-                <button type="button" [class.is-on]="metric() === 'jobs'" (click)="metric.set('jobs')">Prints</button>
+              <div class="pf-seg" role="tablist" [attr.aria-label]="'profile.metric' | translate">
+                <button type="button" [class.is-on]="metric() === 'earnings'" (click)="metric.set('earnings')">{{ 'profile.earnings' | translate }}</button>
+                <button type="button" [class.is-on]="metric() === 'jobs'" (click)="metric.set('jobs')">{{ 'profile.prints' | translate }}</button>
               </div>
-              <div class="pf-seg" role="tablist" aria-label="Range">
+              <div class="pf-seg" role="tablist" [attr.aria-label]="'profile.range' | translate">
                 @for (r of ranges; track r) {
                   <button type="button" [class.is-on]="range() === r" (click)="range.set(r)">{{ r }}d</button>
                 }
@@ -89,26 +93,26 @@ type Metric = 'earnings' | 'jobs';
           @if (rangeTotal() === 0) {
             <div class="pf-empty">
               <span class="pf-empty__icon"><i class="pi pi-chart-bar"></i></span>
-              <strong>No completed prints in this period</strong>
-              <p>Once orders are printed, your daily {{ metric() === 'earnings' ? 'earnings' : 'print counts' }} show up here.</p>
+              <strong>{{ 'profile.no_completed_prints_in_this_period' | translate }}</strong>
+              <p>{{ (metric() === 'earnings' ? 'profile.empty_chart_earnings' : 'profile.empty_chart_prints') | translate }}</p>
             </div>
           } @else {
-            <app-bar-chart [data]="chartData()" [format]="chartFormat()" [ariaLabel]="'Daily ' + metric() + ' for the last ' + range() + ' days'" />
+            <app-bar-chart [data]="chartData()" [format]="chartFormat()" [ariaLabel]="(metric() === 'earnings' ? 'profile.chart_aria_earnings' : 'profile.chart_aria_prints') | translate: { days: range() }" />
           }
         </section>
 
         <!-- ---------- Status breakdown ---------- -->
         <section class="pf-card">
-          <header class="pf-card__head"><h3 class="pf-eyebrow">All-time breakdown</h3></header>
+          <header class="pf-card__head"><h3 class="pf-eyebrow">{{ 'profile.all_time_breakdown' | translate }}</h3></header>
           @if (s.totals.all === 0) {
             <div class="pf-empty">
               <span class="pf-empty__icon"><i class="pi pi-inbox"></i></span>
-              <strong>No print requests yet</strong>
-              <p>Share your QR code so customers can start sending files.</p>
-              <a routerLink="/shop/qr" class="pf-btn"><i class="pi pi-qrcode"></i> Get my QR code</a>
+              <strong>{{ 'profile.no_print_requests_yet' | translate }}</strong>
+              <p>{{ 'profile.share_your_qr_code_so_customers' | translate }}</p>
+              <a routerLink="/shop/qr" class="pf-btn"><i class="pi pi-qrcode"></i> {{ 'profile.get_my_qr_code' | translate }}</a>
             </div>
           } @else {
-            <div class="stack" role="img" [attr.aria-label]="'Of ' + s.totals.all + ' print requests: ' + breakdownText()">
+            <div class="stack" role="img" [attr.aria-label]="'profile.breakdown_aria' | translate: { total: s.totals.all, breakdown: breakdownText() }">
               @for (seg of breakdown(); track seg.key) {
                 @if (seg.count > 0) { <span class="stack__seg" [style.flex-grow]="seg.count" [ngClass]="'c-' + seg.key"></span> }
               }
@@ -118,7 +122,7 @@ type Metric = 'earnings' | 'jobs';
                 <li>
                   <span class="dot" [ngClass]="'c-' + seg.key"></span>
                   <span class="legend__name">{{ seg.label }}</span>
-                  <b>{{ seg.count | number }}</b>
+                  <b>{{ seg.count | appNumber }}</b>
                   <small>{{ seg.pct }}%</small>
                 </li>
               }
@@ -321,9 +325,9 @@ type Metric = 'earnings' | 'jobs';
 })
 export class ProfileOverviewComponent implements OnInit {
   readonly periods: { key: Period; label: string }[] = [
-    { key: 'today', label: 'Today' },
-    { key: 'week', label: 'Week' },
-    { key: 'month', label: 'Month' },
+    { key: 'today', get label() { return tr('common.today'); } },
+    { key: 'week', get label() { return tr('profile.week'); } },
+    { key: 'month', get label() { return tr('profile.month'); } },
   ];
   readonly ranges = [7, 14, 30];
 
@@ -340,23 +344,23 @@ export class ProfileOverviewComponent implements OnInit {
     this.series().map((d) => {
       const date = new Date(d.date + 'T00:00:00');
       return {
-        title: date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }),
-        axis: this.range() <= 7 ? date.toLocaleDateString(undefined, { weekday: 'short' }) : String(date.getDate()),
+        title: date.toLocaleDateString(intlLocale(), { weekday: 'short', day: 'numeric', month: 'short' }),
+        axis: this.range() <= 7 ? date.toLocaleDateString(intlLocale(), { weekday: 'short' }) : String(date.getDate()),
         value: this.metric() === 'earnings' ? d.earnings : d.jobs,
       };
     }),
   );
-  chartFormat = computed(() => (this.metric() === 'earnings' ? (n: number) => rupees(n) : (n: number) => `${n} ${n === 1 ? 'print' : 'prints'}`));
+  chartFormat = computed(() => (this.metric() === 'earnings' ? (n: number) => rupees(n) : (n: number) => tn('common.count.prints', n)));
 
   breakdown = computed(() => {
     const t = this.stats()?.totals;
     if (!t) return [];
     const total = Math.max(1, t.all);
     const rows = [
-      { key: 'completed', label: 'Completed', count: t.completed },
-      { key: 'pending', label: 'Pending / in progress', count: t.pending },
-      { key: 'failed', label: 'Failed', count: t.failed },
-      { key: 'cancelled', label: 'Cancelled', count: t.cancelled },
+      { key: 'completed', get label() { return tr('profile.completed'); }, count: t.completed },
+      { key: 'pending', get label() { return tr('profile.pending_in_progress'); }, count: t.pending },
+      { key: 'failed', get label() { return tr('common.failed'); }, count: t.failed },
+      { key: 'cancelled', get label() { return tr('common.cancelled'); }, count: t.cancelled },
     ];
     return rows.map((r) => ({ ...r, pct: Math.round((r.count / total) * 100) }));
   });

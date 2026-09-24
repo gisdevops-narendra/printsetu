@@ -1,9 +1,11 @@
 import { Component, Input, computed, inject, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter } from 'rxjs';
 import { ShellStateService } from '../../../core/services/shell-state.service';
 import type { ShellNavItem } from '../app-shell/app-shell.component';
+import { t } from '../../../core/i18n/i18n';
 
 interface Crumb {
   label: string;
@@ -11,9 +13,9 @@ interface Crumb {
 }
 
 /** Pages that live outside the sidebar but belong under one of its entries. */
-const PATH_ALIASES: { prefix: string; label: string; link: string }[] = [{ prefix: '/shop/print-jobs', label: 'Print Orders', link: '/shop/queue' }];
+const PATH_ALIASES: { prefix: string; label: string; link: string }[] = [{ prefix: '/shop/print-jobs', get label() { return t('shared.print_orders'); }, link: '/shop/queue' }];
 /** Last URL segment → breadcrumb label for detail pages. */
-const SEGMENT_LABELS: Record<string, string> = { qr: 'QR code', edit: 'Edit document' };
+const SEGMENT_LABELS: Record<string, string> = { get qr() { return t('shared.qr_code'); }, get edit() { return t('shared.edit_document'); } };
 
 /**
  * The sticky page header shared by the admin and shop portals: a primary row
@@ -32,7 +34,7 @@ const SEGMENT_LABELS: Record<string, string> = { qr: 'QR code', edit: 'Edit docu
 @Component({
   selector: 'app-header-frame',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [TranslatePipe, CommonModule, RouterLink],
   template: `
     <header class="hdr" [class.hdr--collapsible]="collapsibleStrip" [class.hdr--open]="moreOpen()" [class.hdr--no-phone-crumbs]="!phoneBreadcrumb">
       <div class="hdr__lead">
@@ -40,14 +42,14 @@ const SEGMENT_LABELS: Record<string, string> = { qr: 'QR code', edit: 'Edit docu
           type="button"
           class="icon-btn hdr__menu"
           (click)="shell.toggle()"
-          aria-label="Toggle navigation"
+          [attr.aria-label]="'shared.toggle_navigation' | translate"
           aria-controls="app-sidebar"
           [attr.aria-expanded]="shell.drawerOpen()"
         >
           <i class="pi" [ngClass]="shell.drawerOpen() ? 'pi-times' : 'pi-bars'"></i>
         </button>
         <div class="hdr__brand"><ng-content select="[hdrBrand]" /></div>
-        <nav class="crumbs" aria-label="Breadcrumb">
+        <nav class="crumbs" [attr.aria-label]="'shared.breadcrumb' | translate">
           @for (c of crumbs(); track $index; let last = $last; let first = $first) {
             <span class="crumbs__step" [class.crumbs__step--root]="first" [class.crumbs__step--last]="last">
               @if (!first) {
@@ -74,7 +76,7 @@ const SEGMENT_LABELS: Record<string, string> = { qr: 'QR code', edit: 'Edit docu
             (click)="moreOpen.set(!moreOpen())"
             [attr.aria-expanded]="moreOpen()"
             aria-controls="hdr-strip"
-            [attr.aria-label]="moreOpen() ? 'Hide search and stats' : 'Show search and stats'"
+            [attr.aria-label]="moreOpen() ? ('shared.hide_search_and_stats' | translate) : ('shared.show_search_and_stats' | translate)"
           >
             <i class="pi" [ngClass]="moreOpen() ? 'pi-chevron-up' : 'pi-chevron-down'"></i>
           </button>

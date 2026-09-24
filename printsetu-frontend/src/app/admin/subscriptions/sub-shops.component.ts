@@ -1,11 +1,14 @@
 import { Component, Input, OnInit, signal } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { TranslatePipe } from '@ngx-translate/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BillingService } from '../../core/services/billing.service';
 import { SubscriptionListRow, SubscriptionPlan } from '../../core/models/billing.models';
 import { BillingPillComponent } from '../../shared/billing/billing-pill.component';
 import { STATE_META, cycleLabel, money } from '../../shared/billing/billing.util';
 import { ShopBillingDrawerComponent } from './shop-billing-drawer.component';
+import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
+import { TranslateCountPipe } from '../../core/i18n/translate-count.pipe';
 
 const PAGE = 20;
 const STATUS_OPTIONS = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPENDED', 'CANCELLED', 'EXPIRED', 'NONE'] as const;
@@ -14,26 +17,26 @@ const STATUS_OPTIONS = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPE
 @Component({
   selector: 'app-sub-shops',
   standalone: true,
-  imports: [CommonModule, DatePipe, FormsModule, BillingPillComponent, ShopBillingDrawerComponent],
+  imports: [TranslateCountPipe, AppDatePipe, TranslatePipe, CommonModule, FormsModule, BillingPillComponent, ShopBillingDrawerComponent],
   template: `
     <section class="pf-card">
       <div class="filters">
         <label class="search">
           <i class="pi pi-search" aria-hidden="true"></i>
-          <input type="search" placeholder="Search shop name, code or city" [ngModel]="search()" (ngModelChange)="onSearch($event)" aria-label="Search shops" />
+          <input type="search" [placeholder]="'subscriptions.search_shop_name_code_or_city' | translate" [ngModel]="search()" (ngModelChange)="onSearch($event)" [attr.aria-label]="'subscriptions.search_shops' | translate" />
         </label>
-        <select [ngModel]="planId()" (ngModelChange)="setPlan($event)" aria-label="Filter by plan">
-          <option value="">All plans</option>
+        <select [ngModel]="planId()" (ngModelChange)="setPlan($event)" [attr.aria-label]="'subscriptions.filter_by_plan' | translate">
+          <option value="">{{ 'subscriptions.all_plans' | translate }}</option>
           @for (p of plans(); track p.id) { <option [value]="p.id">{{ p.name }}</option> }
         </select>
-        <select [ngModel]="status()" (ngModelChange)="setStatus($event)" aria-label="Filter by status">
-          <option value="">All statuses</option>
+        <select [ngModel]="status()" (ngModelChange)="setStatus($event)" [attr.aria-label]="'subscriptions.filter_by_status' | translate">
+          <option value="">{{ 'subscriptions.all_statuses' | translate }}</option>
           @for (s of statusOptions; track s) { <option [value]="s">{{ label(s) }}</option> }
         </select>
         <button type="button" class="soon" [class.is-on]="expiring()" (click)="toggleExpiring()" [attr.aria-pressed]="expiring()">
-          <i class="pi pi-clock"></i> Expiring in 7 days
+          <i class="pi pi-clock"></i> {{ 'subscriptions.expiring_in_7_days' | translate }}
         </button>
-        @if (hasFilters()) { <button type="button" class="link" (click)="clear()">Clear filters</button> }
+        @if (hasFilters()) { <button type="button" class="link" (click)="clear()">{{ 'subscriptions.clear_filters' | translate }}</button> }
       </div>
 
       @if (loading()) {
@@ -41,47 +44,47 @@ const STATUS_OPTIONS = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPE
       } @else if (rows().length === 0) {
         <div class="pf-empty">
           <span class="pf-empty__icon"><i class="pi pi-building"></i></span>
-          <strong>No shops match</strong>
-          <p>Try a different search or clear the filters.</p>
+          <strong>{{ 'subscriptions.no_shops_match' | translate }}</strong>
+          <p>{{ 'subscriptions.try_a_different_search_or_clear' | translate }}</p>
         </div>
       } @else {
         <table class="tbl">
           <thead>
             <tr>
-              <th scope="col">Shop</th>
-              <th scope="col">Plan</th>
-              <th scope="col">Pays</th>
-              <th scope="col">Started</th>
-              <th scope="col">Next billing</th>
-              <th scope="col">Renews automatically</th>
-              <th scope="col">Status</th>
-              <th scope="col"><span class="sr">Open</span></th>
+              <th scope="col">{{ 'common.shop' | translate }}</th>
+              <th scope="col">{{ 'common.plan' | translate }}</th>
+              <th scope="col">{{ 'subscriptions.pays' | translate }}</th>
+              <th scope="col">{{ 'common.started' | translate }}</th>
+              <th scope="col">{{ 'subscriptions.next_billing' | translate }}</th>
+              <th scope="col">{{ 'subscriptions.renews_automatically' | translate }}</th>
+              <th scope="col">{{ 'common.status' | translate }}</th>
+              <th scope="col"><span class="sr">{{ 'common.open' | translate }}</span></th>
             </tr>
           </thead>
           <tbody>
             @for (r of rows(); track r.shopId) {
-              <tr tabindex="0" (click)="openShop(r)" (keydown.enter)="openShop(r)" [attr.aria-label]="'Open billing for ' + r.shopName">
+              <tr tabindex="0" (click)="openShop(r)" (keydown.enter)="openShop(r)" [attr.aria-label]="'subscriptions.open_billing_for' | translate: { shop: r.shopName }">
                 <td data-label="Shop"><strong>{{ r.shopName }}</strong><span class="sub">{{ r.shopCode }} &middot; {{ r.city }}</span></td>
                 <td data-label="Plan">
                   @if (r.plan) { <strong>{{ r.plan.name }}</strong><span class="sub">{{ money(r.price) }}</span> } @else { <span class="none">—</span> }
                 </td>
                 <td data-label="Pays">{{ r.cycle ? cycleLabel(r.cycle) : '—' }}</td>
-                <td data-label="Started">{{ r.startDate ? (r.startDate | date: 'd MMM y') : '—' }}</td>
+                <td data-label="Started">{{ r.startDate ? (r.startDate | appDate: 'd MMM y') : '—' }}</td>
                 <td data-label="Next billing">
                   @if (r.currentPeriodEnd) {
-                    <strong [class.soon-text]="isSoon(r)">{{ r.currentPeriodEnd | date: 'd MMM y' }}</strong>
-                    @if (r.status === 'PAYMENT_PENDING' && r.graceEndsAt) { <span class="sub bad">grace ends {{ r.graceEndsAt | date: 'd MMM' }}</span> }
-                    @else if (r.cancelAtPeriodEnd) { <span class="sub bad">ends, won't renew</span> }
-                    @else if (r.status === 'TRIAL') { <span class="sub">trial ends</span> }
+                    <strong [class.soon-text]="isSoon(r)">{{ r.currentPeriodEnd | appDate: 'd MMM y' }}</strong>
+                    @if (r.status === 'PAYMENT_PENDING' && r.graceEndsAt) { <span class="sub bad">{{ 'subscriptions.extra_days_end' | translate: { date: (r.graceEndsAt | appDate: 'd MMM') } }}</span> }
+                    @else if (r.cancelAtPeriodEnd) { <span class="sub bad">{{ 'subscriptions.ends_wont_renew' | translate }}</span> }
+                    @else if (r.status === 'TRIAL') { <span class="sub">{{ 'subscriptions.trial_ends_3' | translate }}</span> }
                   } @else { <span class="none">—</span> }
                 </td>
                 <td data-label="Renews automatically">
                   @if (r.autoRenew === null) { <span class="none">—</span> }
-                  @else { <span class="ar" [class.ar--on]="r.autoRenew"><i class="pi" [ngClass]="r.autoRenew ? 'pi-sync' : 'pi-times'"></i> {{ r.autoRenew ? 'On' : 'Off' }}</span> }
+                  @else { <span class="ar" [class.ar--on]="r.autoRenew"><i class="pi" [ngClass]="r.autoRenew ? 'pi-sync' : 'pi-times'"></i> {{ r.autoRenew ? ('subscriptions.on' | translate) : ('subscriptions.off' | translate) }}</span> }
                 </td>
                 <td data-label="Status">
                   <app-billing-pill [state]="r.status" />
-                  @if (r.automationPaused) { <span class="sub"><i class="pi pi-lock"></i> manually controlled</span> }
+                  @if (r.automationPaused) { <span class="sub"><i class="pi pi-lock"></i> {{ 'subscriptions.manually_controlled_2' | translate }}</span> }
                 </td>
                 <td class="go"><i class="pi pi-chevron-right" aria-hidden="true"></i></td>
               </tr>
@@ -89,11 +92,11 @@ const STATUS_OPTIONS = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPE
           </tbody>
         </table>
         <div class="pager">
-          <span>{{ total() }} {{ total() === 1 ? 'shop' : 'shops' }}</span>
+          <span>{{ 'common.count.shops' | translateCount: total() }}</span>
           @if (total() > pageSize) {
             <div>
               <button type="button" class="pf-btn" [disabled]="page() === 1" (click)="go(page() - 1)"><i class="pi pi-chevron-left"></i></button>
-              <span class="pg">Page {{ page() }} of {{ pages() }}</span>
+              <span class="pg">{{ 'subscriptions.page_of' | translate: { page: page(), pages: pages() } }}</span>
               <button type="button" class="pf-btn" [disabled]="page() >= pages()" (click)="go(page() + 1)"><i class="pi pi-chevron-right"></i></button>
             </div>
           }

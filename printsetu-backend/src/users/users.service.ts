@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UnauthenticatedException } from '../common/exceptions/app.exceptions';
 import { AuthenticatedUser } from '../common/types/request-context';
 import { KeycloakTokenClaims } from '../auth/keycloak-token-verifier.service';
+import { Language, SUPPORTED_LANGUAGES, UpdatePreferencesDto } from './dto/preferences.dto';
 
 @Injectable()
 export class UsersService {
@@ -69,4 +70,31 @@ export class UsersService {
       data: { mustChangePassword: false, currentPasswordEnc: null },
     });
   }
+
+  async getPreferences(userId: string): Promise<{ language: Language }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { language: true },
+    });
+    return { language: toLanguage(user?.language) };
+  }
+
+  async updatePreferences(
+    userId: string,
+    dto: UpdatePreferencesDto,
+  ): Promise<{ language: Language }> {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { language: dto.language },
+      select: { language: true },
+    });
+    return { language: toLanguage(user.language) };
+  }
+}
+
+/** Anything unexpected in the column reads as the default, English. */
+function toLanguage(value: string | undefined): Language {
+  return (SUPPORTED_LANGUAGES as readonly string[]).includes(value ?? '')
+    ? (value as Language)
+    : 'en';
 }

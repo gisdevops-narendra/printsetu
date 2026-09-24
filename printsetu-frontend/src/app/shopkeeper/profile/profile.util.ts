@@ -1,15 +1,16 @@
 import { DayKey, OpeningHours } from '../../core/models/models';
+import { t, intlLocale } from '../../core/i18n/i18n';
 
 export const DAY_KEYS: DayKey[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 export const DAY_LABELS: Record<DayKey, string> = {
-  mon: 'Monday',
-  tue: 'Tuesday',
-  wed: 'Wednesday',
-  thu: 'Thursday',
-  fri: 'Friday',
-  sat: 'Saturday',
-  sun: 'Sunday',
+  get mon() { return t('profile.monday'); },
+  get tue() { return t('profile.tuesday'); },
+  get wed() { return t('profile.wednesday'); },
+  get thu() { return t('profile.thursday'); },
+  get fri() { return t('profile.friday'); },
+  get sat() { return t('profile.saturday'); },
+  get sun() { return t('profile.sunday'); },
 };
 
 export const DEFAULT_HOURS: OpeningHours = {
@@ -42,7 +43,7 @@ export interface OpenStatus {
 
 /** Whether the shop is open right now, with a human line such as "Open · closes 8:00 PM". */
 export function openStatus(hours: OpeningHours | null, now: Date = new Date()): OpenStatus {
-  if (!hours) return { state: 'unknown', label: 'Hours not set' };
+  if (!hours) return { state: 'unknown', get label() { return t('profile.hours_not_set'); } };
   const today = hours[dayKeyOf(now)];
   const minutes = now.getHours() * 60 + now.getMinutes();
   const toMinutes = (t: string) => {
@@ -50,10 +51,10 @@ export function openStatus(hours: OpeningHours | null, now: Date = new Date()): 
     return h * 60 + m;
   };
   if (today.open && minutes >= toMinutes(today.from) && minutes < toMinutes(today.to)) {
-    return { state: 'open', label: `Open · closes ${format12h(today.to)}` };
+    return { state: 'open', get label() { return t('profile.open_closes', { to: format12h(today.to) }); } };
   }
   if (today.open && minutes < toMinutes(today.from)) {
-    return { state: 'closed', label: `Closed · opens ${format12h(today.from)}` };
+    return { state: 'closed', get label() { return t('profile.closed_opens', { from: format12h(today.from) }); } };
   }
   // Closed for the rest of today: find the next open day.
   for (let i = 1; i <= 7; i++) {
@@ -62,10 +63,10 @@ export function openStatus(hours: OpeningHours | null, now: Date = new Date()): 
     const key = dayKeyOf(next);
     if (hours[key].open) {
       const when = i === 1 ? 'tomorrow' : DAY_LABELS[key].slice(0, 3);
-      return { state: 'closed', label: `Closed · opens ${when} ${format12h(hours[key].from)}` };
+      return { state: 'closed', get label() { return t('profile.closed_opens_2', { when, from: format12h(hours[key].from) }); } };
     }
   }
-  return { state: 'closed', label: 'Closed' };
+  return { state: 'closed', get label() { return t('common.closed'); } };
 }
 
 /** Initials for the logo placeholder: "Rohit Med Print" -> "RM". */
@@ -78,5 +79,5 @@ export function initials(name: string): string {
 export function rupees(value: number | string): string {
   const n = Number(value);
   if (!Number.isFinite(n)) return '₹0';
-  return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: n % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 });
+  return '₹' + n.toLocaleString(intlLocale(), { minimumFractionDigits: n % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 });
 }

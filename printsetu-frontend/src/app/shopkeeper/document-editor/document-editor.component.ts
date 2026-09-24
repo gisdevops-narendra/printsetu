@@ -1,4 +1,5 @@
 import { Component, ElementRef, Injector, OnInit, ViewChild, afterNextRender, computed, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -15,6 +16,8 @@ import { ColorMode, EditState, PaperSize, PrintJobItemRow, PrintJobRow, SideMode
 import { ImageCanvasEditorComponent, CanvasEditorSaveResult } from './image-canvas-editor/image-canvas-editor.component';
 import { BatchParams, renderImageBatch } from './image-canvas-editor/image-batch-render';
 import { clearLatestState, loadLatestState } from './image-canvas-editor/editor-storage';
+import { t, tn } from '../../core/i18n/i18n';
+import { TranslateCountPipe } from '../../core/i18n/translate-count.pipe';
 
 type CropDraft = { x: number; y: number; width: number; height: number };
 
@@ -44,7 +47,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
 @Component({
   selector: 'app-document-editor',
   standalone: true,
-  imports: [
+  imports: [TranslateCountPipe, TranslatePipe, 
     CommonModule,
     FormsModule,
     ButtonModule,
@@ -62,18 +65,18 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
       } @else if (!job()) {
         <div class="state-box">
           <i class="pi pi-inbox state-box__icon"></i>
-          <p class="m-0">Order not found.</p>
-          <p-button label="Back to Print Orders" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" size="small" (onClick)="backToQueue()" />
+          <p class="m-0">{{ 'editor.order_not_found' | translate }}</p>
+          <p-button [label]="'editor.back_to_print_orders' | translate" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" size="small" (onClick)="backToQueue()" />
         </div>
       } @else {
         <header class="editor-header">
-          <button type="button" class="back-btn" (click)="backToQueue()" pTooltip="Back to Print Orders" tooltipPosition="bottom">
+          <button type="button" class="back-btn" (click)="backToQueue()" [pTooltip]="'editor.back_to_print_orders' | translate" tooltipPosition="bottom">
             <i class="pi pi-arrow-left"></i>
           </button>
           <div class="editor-header__title">
             <div class="title-row">
-              <h1 class="editor-title">Order #{{ job()!.tokenNumber }}</h1>
-              <span class="pill">{{ job()!.items.length }} {{ job()!.items.length === 1 ? 'document' : 'documents' }}</span>
+              <h1 class="editor-title">{{ 'editor.order' | translate: { tokenNumber: job()!.tokenNumber } }}</h1>
+              <span class="pill">{{ 'common.count.documents' | translateCount: job()!.items.length }}</span>
             </div>
             <p class="editor-subtitle" [title]="selectedItem()?.document?.originalName">
               {{ selectedItem()?.document?.originalName }}
@@ -81,14 +84,14 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
           </div>
           <div class="header-actions">
             @if (hasEdits()) {
-              <p-button label="Undo all changes" icon="pi pi-undo" severity="secondary" [outlined]="true" size="small" (onClick)="resetEdits()" [disabled]="savingEdit()" />
+              <p-button [label]="'editor.undo_all_changes' | translate" icon="pi pi-undo" severity="secondary" [outlined]="true" size="small" (onClick)="resetEdits()" [disabled]="savingEdit()" />
             }
             <div class="pager">
-              <button type="button" class="pager__btn" [disabled]="selectedIndex() === 0" (click)="prev()" aria-label="Previous document">
+              <button type="button" class="pager__btn" [disabled]="selectedIndex() === 0" (click)="prev()" [attr.aria-label]="'editor.previous_document' | translate">
                 <i class="pi pi-chevron-left"></i>
               </button>
               <span class="pager__label">{{ selectedIndex() + 1 }} / {{ job()!.items.length }}</span>
-              <button type="button" class="pager__btn" [disabled]="selectedIndex() >= job()!.items.length - 1" (click)="next()" aria-label="Next document">
+              <button type="button" class="pager__btn" [disabled]="selectedIndex() >= job()!.items.length - 1" (click)="next()" [attr.aria-label]="'editor.next_document' | translate">
                 <i class="pi pi-chevron-right"></i>
               </button>
             </div>
@@ -98,7 +101,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         <div class="editor-body">
           <!-- Left rail: document list + reorder + delete -->
           <aside class="docs" [class.docs--single]="job()!.items.length === 1">
-            <h3 class="section-heading">Documents</h3>
+            <h3 class="section-heading">{{ 'common.documents' | translate }}</h3>
             <ul class="doc-list">
               @for (item of job()!.items; track item.id; let i = $index) {
                 <li class="doc-card" [class.is-active]="i === selectedIndex()" (click)="selectIndex(i)">
@@ -108,17 +111,17 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
                   <div class="doc-card__text">
                     <span class="doc-card__name" [title]="item.document?.originalName">{{ item.document?.originalName }}</span>
                     <span class="doc-card__meta">
-                      {{ item.paperSize }} &middot; {{ item.colorMode === 'COLOR' ? 'Color' : 'B/W' }} &middot; &times;{{ item.copies }} &middot; {{ job()!.currency }} {{ item.amount }}
+                      {{ item.paperSize }} &middot; {{ item.colorMode === 'COLOR' ? ('common.color' | translate) : 'B/W' }} &middot; &times;{{ item.copies }} &middot; {{ job()!.currency }} {{ item.amount }}
                       @if (item.renderedS3Key) {
-                        <span class="edited-tag"><i class="pi pi-pencil"></i> Edited</span>
+                        <span class="edited-tag"><i class="pi pi-pencil"></i> {{ 'editor.edited' | translate }}</span>
                       }
                     </span>
                   </div>
                   <div class="doc-card__actions" (click)="$event.stopPropagation()">
-                    <button type="button" class="icon-btn" [disabled]="i === 0" (click)="moveItem(i, -1)" title="Move up">
+                    <button type="button" class="icon-btn" [disabled]="i === 0" (click)="moveItem(i, -1)" [title]="'editor.move_up' | translate">
                       <i class="pi pi-arrow-up"></i>
                     </button>
-                    <button type="button" class="icon-btn" [disabled]="i === job()!.items.length - 1" (click)="moveItem(i, 1)" title="Move down">
+                    <button type="button" class="icon-btn" [disabled]="i === job()!.items.length - 1" (click)="moveItem(i, 1)" [title]="'editor.move_down' | translate">
                       <i class="pi pi-arrow-down"></i>
                     </button>
                     <button
@@ -126,7 +129,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
                       class="icon-btn icon-btn--danger"
                       [disabled]="job()!.items.length === 1"
                       (click)="removeItem(item)"
-                      title="Remove from order"
+                      [title]="'editor.remove_from_order' | translate"
                     >
                       <i class="pi pi-trash"></i>
                     </button>
@@ -143,7 +146,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
             } @else if (!previewUrl()) {
               <div class="stage stage--center state-box">
                 <i class="pi pi-eye-slash state-box__icon"></i>
-                <p class="m-0">Preview unavailable for this document.</p>
+                <p class="m-0">{{ 'editor.preview_unavailable_for_this_document' | translate }}</p>
               </div>
             } @else if (!isPdf()) {
               <!-- Images: full free-form canvas editor (pan/zoom, paper guide,
@@ -169,18 +172,18 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
                   <div class="toolbar">
                     <div class="segmented">
                       <button type="button" [class.is-on]="!finalPreview()" (click)="setFinalPreview(false)">
-                        <i class="pi pi-pencil"></i> Edit
+                        <i class="pi pi-pencil"></i> {{ 'common.edit' | translate }}
                       </button>
                       <button type="button" [class.is-on]="finalPreview()" (click)="setFinalPreview(true)">
-                        <i class="pi pi-eye"></i> Final preview
+                        <i class="pi pi-eye"></i> {{ 'editor.final_preview' | translate }}
                       </button>
                     </div>
                     <span class="flex-spacer"></span>
                     @if (!finalPreview()) {
                       <div class="zoom-controls">
-                        <button type="button" class="icon-btn icon-btn--lg" (click)="zoomOut()" title="Zoom out"><i class="pi pi-search-minus"></i></button>
-                        <button type="button" class="zoom-controls__value" (click)="resetZoom()" title="Reset zoom">{{ (zoom() * 100).toFixed(0) }}%</button>
-                        <button type="button" class="icon-btn icon-btn--lg" (click)="zoomIn()" title="Zoom in"><i class="pi pi-search-plus"></i></button>
+                        <button type="button" class="icon-btn icon-btn--lg" (click)="zoomOut()" [title]="'editor.zoom_out' | translate"><i class="pi pi-search-minus"></i></button>
+                        <button type="button" class="zoom-controls__value" (click)="resetZoom()" [title]="'editor.reset_zoom' | translate">{{ (zoom() * 100).toFixed(0) }}%</button>
+                        <button type="button" class="icon-btn icon-btn--lg" (click)="zoomIn()" [title]="'editor.zoom_in' | translate"><i class="pi pi-search-plus"></i></button>
                       </div>
                     }
                   </div>
@@ -219,11 +222,11 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
 
                 <aside class="inspector">
                   <section class="panel">
-                    <h4 class="panel__title"><i class="pi pi-sliders-h"></i> Edit</h4>
+                    <h4 class="panel__title"><i class="pi pi-sliders-h"></i> {{ 'common.edit' | translate }}</h4>
                     <div class="btn-grid">
-                      <p-button icon="pi pi-refresh" label="Rotate 90°" severity="secondary" [outlined]="true" size="small" styleClass="w-full" (onClick)="rotate(90)" [disabled]="savingEdit()" />
+                      <p-button icon="pi pi-refresh" [label]="'editor.rotate_90' | translate" severity="secondary" [outlined]="true" size="small" styleClass="w-full" (onClick)="rotate(90)" [disabled]="savingEdit()" />
                       <p-button
-                        [label]="cropMode() ? 'Cancel crop' : 'Crop'"
+                        [label]="cropMode() ? ('editor.cancel_crop' | translate) : ('editor.crop' | translate)"
                         icon="pi pi-crop"
                         [severity]="cropMode() ? 'danger' : 'secondary'"
                         [outlined]="true"
@@ -234,13 +237,13 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
                       />
                     </div>
                     @if (cropMode()) {
-                      <p class="hint"><i class="pi pi-info-circle"></i> Drag on the page to draw the area to keep.</p>
+                      <p class="hint"><i class="pi pi-info-circle"></i> {{ 'editor.drag_on_the_page_to_draw' | translate }}</p>
                     }
                     @if (cropMode() && cropDraft()) {
-                      <p-button label="Apply crop" icon="pi pi-check" size="small" styleClass="w-full" (onClick)="applyCrop()" [loading]="savingEdit()" />
+                      <p-button [label]="'editor.apply_crop' | translate" icon="pi pi-check" size="small" styleClass="w-full" (onClick)="applyCrop()" [loading]="savingEdit()" />
                     }
                     @if (selectedItem()?.editState?.crop) {
-                      <p-button label="Clear crop" icon="pi pi-times" [text]="true" size="small" severity="secondary" styleClass="w-full" (onClick)="clearCrop()" [disabled]="savingEdit()" />
+                      <p-button [label]="'editor.clear_crop' | translate" icon="pi pi-times" [text]="true" size="small" severity="secondary" styleClass="w-full" (onClick)="clearCrop()" [disabled]="savingEdit()" />
                     }
                   </section>
                 </aside>
@@ -251,35 +254,35 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
 
         <footer class="print-bar" [class.settings-open]="settingsOpen()">
           <button type="button" class="settings-toggle" (click)="settingsOpen.set(!settingsOpen())" [attr.aria-expanded]="settingsOpen()">
-            <i class="pi pi-sliders-h"></i> <span class="settings-toggle__text">Print options</span>
+            <i class="pi pi-sliders-h"></i> <span class="settings-toggle__text">{{ 'editor.print_options' | translate }}</span>
             <i class="pi" [ngClass]="settingsOpen() ? 'pi-chevron-down' : 'pi-chevron-up'"></i>
           </button>
           <div class="print-bar__settings">
             @if (selectedItem()) {
               <div class="field">
-                <label>Paper size</label>
+                <label>{{ 'common.paper_size' | translate }}</label>
                 <p-select [options]="paperSizes" [(ngModel)]="settingsDraft.paperSize" (onChange)="commitSettings()" size="small" appendTo="body" styleClass="field__control" />
               </div>
               <div class="field">
-                <label>Color</label>
+                <label>{{ 'common.color' | translate }}</label>
                 <p-select [options]="colorModeOptions" optionLabel="label" optionValue="value" [(ngModel)]="settingsDraft.colorMode" (onChange)="commitSettings()" size="small" appendTo="body" styleClass="field__control" />
               </div>
               <div class="field field--copies">
-                <label>Copies</label>
+                <label>{{ 'common.copies' | translate }}</label>
                 <p-inputNumber [(ngModel)]="settingsDraft.copies" [min]="1" [max]="999" [showButtons]="true" buttonLayout="horizontal" incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus" size="small" (onInput)="commitSettings()" />
               </div>
               <div class="field">
-                <label>Sides</label>
+                <label>{{ 'common.sides' | translate }}</label>
                 <p-select [options]="sideModeOptions" optionLabel="label" optionValue="value" [(ngModel)]="settingsDraft.sideMode" (onChange)="commitSettings()" size="small" appendTo="body" styleClass="field__control" />
               </div>
             }
           </div>
           <div class="print-bar__total">
             <div class="total">
-              <span>Order total</span>
+              <span>{{ 'editor.order_total' | translate }}</span>
               <strong>{{ job()!.currency }} {{ job()!.amount }}</strong>
             </div>
-            <p-button label="Confirm &amp; Print" icon="pi pi-print" [loading]="printing()" (onClick)="confirmAndPrint()" />
+            <p-button [label]="'editor.confirm_print' | translate" icon="pi pi-print" [loading]="printing()" (onClick)="confirmAndPrint()" />
           </div>
         </footer>
       }
@@ -1051,12 +1054,12 @@ export class DocumentEditorComponent implements OnInit {
 
   paperSizes: PaperSize[] = ['A4', 'A3', 'LETTER', 'LEGAL'];
   colorModeOptions: { label: string; value: ColorMode }[] = [
-    { label: 'Black & white', value: 'BW' },
-    { label: 'Color', value: 'COLOR' },
+    { get label() { return t('editor.black_white'); }, value: 'BW' },
+    { get label() { return t('common.color'); }, value: 'COLOR' },
   ];
   sideModeOptions: { label: string; value: SideMode }[] = [
-    { label: 'Single-sided', value: 'SIMPLEX' },
-    { label: 'Double-sided', value: 'DUPLEX' },
+    { get label() { return t('editor.single_sided'); }, value: 'SIMPLEX' },
+    { get label() { return t('editor.double_sided'); }, value: 'DUPLEX' },
   ];
   settingsDraft: { paperSize: PaperSize; colorMode: ColorMode; sideMode: SideMode; copies: number } = {
     paperSize: 'A4',
@@ -1098,7 +1101,7 @@ export class DocumentEditorComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.messageService.add({ severity: 'error', summary: 'Could not load this order.' });
+        this.messageService.add({ severity: 'error', get summary() { return t('editor.could_not_load_this_order'); } });
       },
     });
   }
@@ -1158,8 +1161,8 @@ export class DocumentEditorComponent implements OnInit {
         this.previewLoading.set(false);
         this.messageService.add({
           severity: 'warn',
-          summary: 'Preview unavailable',
-          detail: 'Ask your admin to enable document preview for this shop.',
+          get summary() { return t('editor.preview_unavailable'); },
+          get detail() { return t('editor.ask_your_admin_to_enable_document'); },
         });
       },
     });
@@ -1218,7 +1221,7 @@ export class DocumentEditorComponent implements OnInit {
     this.shopkeeperService.reorderItems(this.jobId, items.map((i) => i.id)).subscribe({
       next: (updated) => this.job.set(updated),
       error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Could not reorder documents.' });
+        this.messageService.add({ severity: 'error', get summary() { return t('editor.could_not_reorder_documents'); } });
         this.load();
       },
     });
@@ -1226,20 +1229,20 @@ export class DocumentEditorComponent implements OnInit {
 
   removeItem(item: PrintJobItemRow): void {
     this.confirmationService.confirm({
-      message: `Remove "${item.document?.originalName}" from this order?`,
-      header: 'Remove document',
+      get message() { return t('editor.remove_from_this_order', { originalName: item.document?.originalName }); },
+      get header() { return t('editor.remove_document'); },
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.shopkeeperService.deleteItem(this.jobId, item.id).subscribe({
           next: (updated) => {
             this.job.set(updated);
             this.selectIndex(Math.min(this.selectedIndex(), updated.items.length - 1));
-            this.messageService.add({ severity: 'success', summary: 'Document removed' });
+            this.messageService.add({ severity: 'success', get summary() { return t('editor.document_removed'); } });
           },
           error: (err) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Could not remove document',
+              get summary() { return t('editor.could_not_remove_document'); },
               detail: err?.error?.message,
             });
           },
@@ -1309,7 +1312,7 @@ export class DocumentEditorComponent implements OnInit {
   applyCrop(): void {
     const crop = this.cropDraft();
     if (!crop || crop.width < 0.02 || crop.height < 0.02) {
-      this.messageService.add({ severity: 'warn', summary: 'Draw a larger crop area first.' });
+      this.messageService.add({ severity: 'warn', get summary() { return t('editor.draw_a_larger_crop_area_first'); } });
       return;
     }
     this.editDraft = { ...this.editDraft, crop };
@@ -1337,7 +1340,7 @@ export class DocumentEditorComponent implements OnInit {
         this.savingEdit.set(false);
         this.messageService.add({
           severity: 'error',
-          summary: 'Could not apply edit',
+          get summary() { return t('editor.could_not_apply_edit'); },
           detail: err?.error?.message,
         });
       },
@@ -1356,13 +1359,13 @@ export class DocumentEditorComponent implements OnInit {
         this.savingEdit.set(false);
         this.patchSelectedItem({ editState: res.editState, renderedS3Key: res.renderedS3Key });
         this.loadPreview();
-        this.messageService.add({ severity: 'success', summary: 'Edit saved' });
+        this.messageService.add({ severity: 'success', get summary() { return t('editor.edit_saved'); } });
       },
       error: (err) => {
         this.savingEdit.set(false);
         this.messageService.add({
           severity: 'error',
-          summary: 'Could not save edit',
+          get summary() { return t('editor.could_not_save_edit'); },
           detail: err?.error?.message,
         });
       },
@@ -1387,7 +1390,7 @@ export class DocumentEditorComponent implements OnInit {
         this.editDraft = { ...DEFAULT_EDIT_STATE };
         this.patchSelectedItem({ editState: null, renderedS3Key: null });
         this.loadPreview();
-        this.messageService.add({ severity: 'success', summary: 'Changes undone' });
+        this.messageService.add({ severity: 'success', get summary() { return t('editor.changes_undone'); } });
       },
     });
   }
@@ -1402,7 +1405,7 @@ export class DocumentEditorComponent implements OnInit {
       error: (err) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Could not update print settings',
+          get summary() { return t('editor.could_not_update_print_settings'); },
           detail: err?.error?.message,
         });
       },
@@ -1445,7 +1448,7 @@ export class DocumentEditorComponent implements OnInit {
     this.batchBusy.set(false);
     this.messageService.add({
       severity: failed ? 'warn' : 'success',
-      summary: failed ? `Updated ${done}, failed ${failed}` : `Updated ${done} document${done === 1 ? '' : 's'}`,
+      summary: failed ? t('editor.updated_failed', { done, failed }) : tn('editor.updated_documents', done),
     });
   }
 
@@ -1466,8 +1469,8 @@ export class DocumentEditorComponent implements OnInit {
 
   confirmAndPrint(): void {
     this.confirmationService.confirm({
-      message: `Send ${this.job()!.items.length} document(s) to the printer now?`,
-      header: 'Confirm print',
+      get message() { return t('editor.send_document_s_to_the_printer', { items: this.job()!.items.length }); },
+      get header() { return t('editor.confirm_print_2'); },
       icon: 'pi pi-print',
       accept: () => {
         this.printing.set(true);

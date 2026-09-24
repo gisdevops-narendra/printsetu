@@ -1,5 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { t } from '../../../core/i18n/i18n';
 
 export interface BarDatum {
   /** Shown in the tooltip, e.g. "Mon, 14 Sep". */
@@ -191,7 +192,7 @@ export class BarChartComponent {
   ticks: { value: number; pct: number; label: string }[] = [];
   private step = 1;
 
-  @Input() ariaLabel = 'Bar chart';
+  @Input() ariaLabel = t('shared.bar_chart');
   /** Formats a value for the tooltip and axis (e.g. as rupees). */
   @Input() format: (n: number) => string = (n) => String(n);
 

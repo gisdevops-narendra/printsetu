@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
@@ -15,6 +16,8 @@ import { PrintJobRow, PrintJobStatus } from '../../core/models/models';
 import { StatusTagComponent } from '../../shared/components/status-tag/status-tag.component';
 import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 import { printOptionsLabel } from '../../shared/utils/print-options.util';
+import { t } from '../../core/i18n/i18n';
+import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
 
 const DONE: PrintJobStatus[] = ['PRINTED', 'RETENTION_PENDING', 'DELETED'];
 const isDone = (status: PrintJobStatus) => DONE.includes(status);
@@ -22,7 +25,7 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
 @Component({
   selector: 'app-queue',
   standalone: true,
-  imports: [
+  imports: [AppDatePipe, TranslatePipe, 
     CommonModule,
     TableModule,
     ButtonModule,
@@ -36,15 +39,15 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
   template: `
     <div class="page-header">
       <div>
-        <h1 class="page-title">Print Orders</h1>
-        <p class="page-subtitle m-0">Your customers' orders waiting to be printed.</p>
+        <h1 class="page-title">{{ 'printOrders.print_orders' | translate }}</h1>
+        <p class="page-subtitle m-0">{{ 'printOrders.your_customers_orders_waiting_to_be' | translate }}</p>
       </div>
       <div class="page-actions">
         <p-iconfield>
           <p-inputicon styleClass="pi pi-search" />
-          <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+          <input pInputText type="text" [placeholder]="'common.search' | translate" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
         </p-iconfield>
-        <p-button icon="pi pi-refresh" label="Refresh" severity="secondary" [text]="true" (onClick)="load()" />
+        <p-button icon="pi pi-refresh" [label]="'common.refresh' | translate" severity="secondary" [text]="true" (onClick)="load()" />
       </div>
     </div>
 
@@ -62,12 +65,12 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 8%" pSortableColumn="tokenNumber">Order no. <p-sortIcon field="tokenNumber" /></th>
-          <th style="width: 23%">Documents</th>
-          <th style="width: 17%; border-left: 1px solid var(--hdr-hover)">Options</th>
-          <th style="width: 10%" pSortableColumn="amount">Amount <p-sortIcon field="amount" /></th>
-          <th style="width: 14%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
-          <th style="width: 13%" pSortableColumn="createdAt">Received <p-sortIcon field="createdAt" /></th>
+          <th style="width: 8%" pSortableColumn="tokenNumber">{{ 'common.order_no' | translate }} <p-sortIcon field="tokenNumber" /></th>
+          <th style="width: 23%">{{ 'common.documents' | translate }}</th>
+          <th style="width: 17%; border-left: 1px solid var(--hdr-hover)">{{ 'common.options' | translate }}</th>
+          <th style="width: 10%" pSortableColumn="amount">{{ 'common.amount' | translate }} <p-sortIcon field="amount" /></th>
+          <th style="width: 14%" pSortableColumn="status">{{ 'common.status' | translate }} <p-sortIcon field="status" /></th>
+          <th style="width: 13%" pSortableColumn="createdAt">{{ 'common.received' | translate }} <p-sortIcon field="createdAt" /></th>
           <th style="width: 15%"></th>
         </tr>
       </ng-template>
@@ -92,7 +95,7 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
           </td>
           <td data-label="Amount">{{ job.currency }} {{ job.amount }}</td>
           <td data-label="Status"><app-status-tag [status]="job.status" /></td>
-          <td data-label="Received">{{ job.createdAt | date: 'short' }}</td>
+          <td data-label="Received">{{ job.createdAt | appDate: 'short' }}</td>
           <td class="text-right">
             <div class="flex flex-wrap gap-2 justify-content-end align-items-center row-gap-2">
               @if (!job.done) {
@@ -102,19 +105,19 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
                   severity="secondary"
                   [outlined]="true"
                   (onClick)="openEditor(job)"
-                  pTooltip="View / edit documents"
+                  [pTooltip]="'printOrders.view_edit_documents' | translate"
                 />
               }
               @if (job.done) {
-                <span class="text-xs text-color-secondary"><i class="pi pi-check-circle"></i> {{ job.printedAt | date: 'shortTime' }}</span>
+                <span class="text-xs text-color-secondary"><i class="pi pi-check-circle"></i> {{ job.printedAt | appDate: 'shortTime' }}</span>
               } @else if (readOnly()) {
-                <span class="text-xs paused" title="Your subscription needs attention, so new print requests are paused."><i class="pi pi-pause-circle"></i> Paused</span>
+                <span class="text-xs paused" [title]="'printOrders.your_subscription_needs_attention_so_new' | translate"><i class="pi pi-pause-circle"></i> {{ 'printOrders.paused' | translate }}</span>
               } @else if (job.status === 'PRINT_ELIGIBLE' || job.status === 'AGENT_OFFLINE' || job.status === 'PRINT_FAILED') {
-                <p-button label="PRINT" icon="pi pi-print" size="small" [loading]="sending().has(job.id)" (onClick)="print(job)" />
+                <p-button [label]="'printOrders.print' | translate" icon="pi pi-print" size="small" [loading]="sending().has(job.id)" (onClick)="print(job)" />
               }
               @if (job.status === 'PRINT_UNKNOWN' && !readOnly()) {
-                <p-button label="Mark Printed" size="small" severity="success" [outlined]="true" (onClick)="reconcile(job, 'PRINTED')" />
-                <p-button label="Mark Failed" size="small" severity="danger" [outlined]="true" (onClick)="reconcile(job, 'PRINT_FAILED')" />
+                <p-button [label]="'printOrders.mark_printed' | translate" size="small" severity="success" [outlined]="true" (onClick)="reconcile(job, 'PRINTED')" />
+                <p-button [label]="'printOrders.mark_failed' | translate" size="small" severity="danger" [outlined]="true" (onClick)="reconcile(job, 'PRINT_FAILED')" />
               }
             </div>
           </td>
@@ -123,7 +126,7 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
       <ng-template pTemplate="emptymessage">
         <tr>
           <td colspan="7">
-            <div class="table-empty"><i class="pi pi-inbox"></i><span>No orders waiting right now.</span></div>
+            <div class="table-empty"><i class="pi pi-inbox"></i><span>{{ 'printOrders.no_orders_waiting_right_now' | translate }}</span></div>
           </td>
         </tr>
       </ng-template>
@@ -176,7 +179,7 @@ export class QueueComponent implements OnInit {
   private describe(job: PrintJobRow): string {
     return job.items.length === 1
       ? `"${job.items[0].document?.originalName}"`
-      : `${job.items.length} documents (Order #${job.tokenNumber})`;
+      : t('printOrders.documents_order', { items: job.items.length, tokenNumber: job.tokenNumber });
   }
 
   /** Jobs whose PRINT request is in flight — the button stays busy so a double-click can't send it twice. */
@@ -205,12 +208,12 @@ export class QueueComponent implements OnInit {
 
   reconcile(job: PrintJobRow, outcome: 'PRINTED' | 'PRINT_FAILED'): void {
     this.confirmationService.confirm({
-      message: `Did ${this.describe(job)} actually print? This can't be changed later.`,
-      header: 'Did it print?',
+      get message() { return t('printOrders.did_actually_print_this_cant_be', { job: this.describe(job) }); },
+      get header() { return t('printOrders.did_it_print'); },
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.shopkeeperService.reconcile(job.id, outcome).subscribe(() => {
-          this.messageService.add({ severity: 'success', summary: 'Order updated' });
+          this.messageService.add({ severity: 'success', get summary() { return t('printOrders.order_updated'); } });
           this.load();
         });
       },

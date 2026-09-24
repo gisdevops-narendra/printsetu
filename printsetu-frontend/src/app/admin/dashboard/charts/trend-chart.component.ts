@@ -8,6 +8,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { intlLocale, tn } from '../../../core/i18n/i18n';
 
 export interface TrendPoint {
   /** YYYY-MM-DD */
@@ -29,10 +30,10 @@ function niceTicks(max: number): number[] {
   return Array.from({ length: count + 1 }, (_, i) => Math.round(i * step * 100) / 100);
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** "24 Sep" in the chosen language. */
 function shortDate(date: string): string {
-  const [, m, d] = date.split('-').map(Number);
-  return `${d} ${MONTHS[m - 1]}`;
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(intlLocale(), { day: 'numeric', month: 'short' });
 }
 
 /**
@@ -334,16 +335,16 @@ export class TrendChartComponent implements AfterViewInit, OnDestroy {
   tickLabel(value: number): string {
     if (this.format() === 'inr') {
       return value >= 1000
-        ? `₹${(value / 1000).toLocaleString('en-IN', { maximumFractionDigits: 1 })}k`
+        ? `₹${(value / 1000).toLocaleString(intlLocale(), { maximumFractionDigits: 1 })}k`
         : `₹${value}`;
     }
-    return value.toLocaleString('en-IN');
+    return value.toLocaleString(intlLocale());
   }
 
   valueLabel(value: number): string {
     if (this.format() === 'inr') {
-      return `₹${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      return `₹${value.toLocaleString(intlLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
-    return `${value.toLocaleString('en-IN')} ${value === 1 ? 'order' : 'orders'}`;
+    return tn('common.count.orders', value);
   }
 }

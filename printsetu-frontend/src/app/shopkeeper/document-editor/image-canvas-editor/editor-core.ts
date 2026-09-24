@@ -1,3 +1,4 @@
+import { t } from '../../../core/i18n/i18n';
 /**
  * Types, constants and pure placement maths shared by the interactive image
  * canvas editor and the "apply to all documents" batch renderer, so both
@@ -18,10 +19,10 @@ export const MAX_EXPORT_PIXELS = 6000;
 export const PAPER_SIZES_MM: Record<CanvasEditorPaperKey, { label: string; width: number; height: number }> = {
   A4: { label: 'A4', width: 210, height: 297 },
   A3: { label: 'A3', width: 297, height: 420 },
-  LETTER: { label: 'Letter', width: 215.9, height: 279.4 },
+  LETTER: { get label() { return t('imageEditor.letter'); }, width: 215.9, height: 279.4 },
   '4X6': { label: '4×6"', width: 101.6, height: 152.4 },
   '5X7': { label: '5×7"', width: 127, height: 177.8 },
-  PASSPORT: { label: 'Passport (35×45mm)', width: 35, height: 45 },
+  PASSPORT: { get label() { return t('imageEditor.passport_35_45mm'); }, width: 35, height: 45 },
 };
 
 export interface Placement {

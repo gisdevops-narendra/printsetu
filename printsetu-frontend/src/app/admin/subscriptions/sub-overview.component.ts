@@ -1,9 +1,13 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { TranslatePipe } from '@ngx-translate/core';
+import { CommonModule } from '@angular/common';
 import { BillingService } from '../../core/services/billing.service';
 import { RevenueDashboard } from '../../core/models/billing.models';
 import { BarDatum, BarChartComponent } from '../../shared/components/bar-chart/bar-chart.component';
 import { STATE_META, cycleLabel, money } from '../../shared/billing/billing.util';
+import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
+import { intlLocale } from '../../core/i18n/i18n';
+import { TranslateCountPipe } from '../../core/i18n/translate-count.pipe';
 
 const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPENDED', 'CANCELLED', 'EXPIRED'] as const;
 
@@ -11,7 +15,7 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
 @Component({
   selector: 'app-sub-overview',
   standalone: true,
-  imports: [CommonModule, DatePipe, BarChartComponent],
+  imports: [TranslateCountPipe, AppDatePipe, TranslatePipe, CommonModule, BarChartComponent],
   template: `
     @if (loading()) {
       <div class="kpis">@for (i of [1, 2, 3, 4]; track i) { <div class="pf-skeleton" style="height: 7.5rem"></div> }</div>
@@ -19,22 +23,22 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
     } @else if (error()) {
       <div class="pf-card pf-empty">
         <span class="pf-empty__icon"><i class="pi pi-exclamation-circle"></i></span>
-        <strong>Couldn't load the revenue dashboard</strong>
-        <button type="button" class="pf-btn" (click)="load()"><i class="pi pi-refresh"></i> Try again</button>
+        <strong>{{ 'subscriptions.couldnt_load_the_revenue_dashboard' | translate }}</strong>
+        <button type="button" class="pf-btn" (click)="load()"><i class="pi pi-refresh"></i> {{ 'common.try_again' | translate }}</button>
       </div>
     } @else if (d(); as d) {
       <div class="kpis">
         <article class="kpi">
           <span class="kpi__icon kpi__icon--ok"><i class="pi pi-chart-line"></i></span>
-          <p class="kpi__label">Monthly income <em>from subscriptions</em></p>
+          <p class="kpi__label">{{ 'subscriptions.monthly_income' | translate }} <em>{{ 'subscriptions.from_subscriptions' | translate }}</em></p>
           <strong class="kpi__value">{{ money(d.mrr) }}</strong>
-          <span class="kpi__sub">Yearly income {{ money(d.arr) }}</span>
+          <span class="kpi__sub">{{ 'subscriptions.yearly_income' | translate: { arr: money(d.arr) } }}</span>
         </article>
         <article class="kpi">
           <span class="kpi__icon kpi__icon--info"><i class="pi pi-verified"></i></span>
-          <p class="kpi__label">Active subscriptions</p>
+          <p class="kpi__label">{{ 'subscriptions.active_subscriptions' | translate }}</p>
           <strong class="kpi__value">{{ d.activeSubscriptions.total }}</strong>
-          <span class="kpi__sub">{{ d.activeSubscriptions.daily }} daily &middot; {{ d.activeSubscriptions.monthly }} monthly &middot; {{ d.activeSubscriptions.yearly }} yearly</span>
+          <span class="kpi__sub">{{ 'subscriptions.daily_monthly_yearly' | translate: { daily: d.activeSubscriptions.daily, monthly: d.activeSubscriptions.monthly, yearly: d.activeSubscriptions.yearly } }}</span>
           <div class="split" aria-hidden="true">
             <span class="split__d" [style.flex-grow]="d.activeSubscriptions.daily"></span>
             <span class="split__m" [style.flex-grow]="d.activeSubscriptions.monthly"></span>
@@ -43,38 +47,38 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
         </article>
         <article class="kpi">
           <span class="kpi__icon kpi__icon--warn"><i class="pi pi-wallet"></i></span>
-          <p class="kpi__label">Collected this month</p>
+          <p class="kpi__label">{{ 'subscriptions.collected_this_month' | translate }}</p>
           <strong class="kpi__value">{{ money(d.collectedThisMonth) }}</strong>
-          <span class="kpi__sub">{{ money(d.outstanding.amount) }} still to collect ({{ d.outstanding.invoices }})</span>
+          <span class="kpi__sub">{{ 'subscriptions.still_to_collect' | translate: { amount: money(d.outstanding.amount), invoices: d.outstanding.invoices } }}</span>
         </article>
         <article class="kpi">
           <span class="kpi__icon kpi__icon--bad"><i class="pi pi-user-minus"></i></span>
-          <p class="kpi__label">Shops lost this month</p>
+          <p class="kpi__label">{{ 'subscriptions.shops_lost_this_month' | translate }}</p>
           <strong class="kpi__value">{{ d.churn.thisMonth }}</strong>
-          <span class="kpi__sub">{{ d.churn.cancelled }} cancelled &middot; {{ d.churn.expired }} expired @if (d.churn.lostMrr > 0) { &middot; {{ money(d.churn.lostMrr) }}/mo lost }</span>
+          <span class="kpi__sub">{{ 'subscriptions.cancelled_expired' | translate: { cancelled: d.churn.cancelled, expired: d.churn.expired } }} @if (d.churn.lostMrr > 0) { {{ 'subscriptions.mo_lost' | translate: { lostMrr: money(d.churn.lostMrr) } }} }</span>
         </article>
       </div>
 
       <div class="sections">
         <div class="col">
           <section class="pf-card">
-            <header class="pf-card__head"><div><h3 class="pf-eyebrow">Revenue collected</h3><p class="sub">Last 6 months, after refunds</p></div></header>
-            <app-bar-chart [data]="series()" [format]="fmt" ariaLabel="Revenue collected in the last six months" />
+            <header class="pf-card__head"><div><h3 class="pf-eyebrow">{{ 'subscriptions.revenue_collected' | translate }}</h3><p class="sub">{{ 'subscriptions.last_6_months_after_refunds' | translate }}</p></div></header>
+            <app-bar-chart [data]="series()" [format]="fmt" [ariaLabel]="'subscriptions.revenue_collected_in_the_last_six' | translate" />
           </section>
 
           <section class="pf-card">
-            <header class="pf-card__head"><h3 class="pf-eyebrow">Renewals in the next 7 days</h3></header>
+            <header class="pf-card__head"><h3 class="pf-eyebrow">{{ 'subscriptions.renewals_in_the_next_7_days' | translate }}</h3></header>
             @if (d.upcomingRenewals.length === 0) {
-              <p class="empty">Nothing renews this week.</p>
+              <p class="empty">{{ 'subscriptions.nothing_renews_this_week' | translate }}</p>
             } @else {
               <ul class="list">
                 @for (r of d.upcomingRenewals; track r.shopId) {
                   <li>
                     <div class="list__main">
                       <strong>{{ r.shopName }}</strong>
-                      <span>{{ r.plan }} &middot; {{ cycleLabel(r.cycle).toLowerCase() }}@if (r.isTrial) { &middot; trial ends } @else if (!r.autoRenew) { &middot; won't renew automatically }</span>
+                      <span>{{ r.plan }} &middot; {{ cycleLabel(r.cycle).toLowerCase() }}@if (r.isTrial) { {{ 'subscriptions.trial_ends_2' | translate }} } @else if (!r.autoRenew) { {{ 'subscriptions.wont_renew_automatically' | translate }} }</span>
                     </div>
-                    <div class="list__side"><strong>{{ money(r.amount) }}</strong><span>{{ r.date | date: 'd MMM' }}</span></div>
+                    <div class="list__side"><strong>{{ money(r.amount) }}</strong><span>{{ r.date | appDate: 'd MMM' }}</span></div>
                   </li>
                 }
               </ul>
@@ -84,20 +88,20 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
 
         <div class="col">
           <section class="pf-card">
-            <header class="pf-card__head"><h3 class="pf-eyebrow">Failed payments</h3></header>
+            <header class="pf-card__head"><h3 class="pf-eyebrow">{{ 'subscriptions.failed_payments' | translate }}</h3></header>
             <div class="fail">
-              <div><strong>{{ d.failedPayments.last30Days }}</strong><span>failed in 30 days</span></div>
-              <div><strong>{{ d.failedPayments.shopsAffected }}</strong><span>shops affected</span></div>
+              <div><strong>{{ d.failedPayments.last30Days }}</strong><span>{{ 'subscriptions.failed_in_30_days' | translate }}</span></div>
+              <div><strong>{{ d.failedPayments.shopsAffected }}</strong><span>{{ 'subscriptions.shops_affected' | translate }}</span></div>
               <div>
                 <strong [class.ok]="(d.failedPayments.recoveryRate ?? 0) >= 50">{{ d.failedPayments.recoveryRate === null ? '—' : d.failedPayments.recoveryRate + '%' }}</strong>
-                <span>paid after a failed payment</span>
+                <span>{{ 'subscriptions.paid_after_a_failed_payment' | translate }}</span>
               </div>
             </div>
-            <p class="note">{{ d.failedPayments.recovered }} of {{ d.failedPayments.shopsAffected }} shops paid or were reactivated afterwards. Right now {{ d.failedPayments.currentlyPending }} have extra days to pay and {{ d.failedPayments.currentlyPastDue }} are overdue.</p>
+            <p class="note">{{ 'subscriptions.of_shops_paid_or_were_reactivated' | translate: { recovered: d.failedPayments.recovered, shopsAffected: d.failedPayments.shopsAffected, currentlyPending: d.failedPayments.currentlyPending, currentlyPastDue: d.failedPayments.currentlyPastDue } }}</p>
           </section>
 
           <section class="pf-card">
-            <header class="pf-card__head"><h3 class="pf-eyebrow">Shops by status</h3></header>
+            <header class="pf-card__head"><h3 class="pf-eyebrow">{{ 'subscriptions.shops_by_status' | translate }}</h3></header>
             <ul class="list list--tight">
               @for (s of statuses(); track s.key) {
                 <li>
@@ -106,17 +110,17 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
                 </li>
               }
               <li>
-                <div class="list__main"><span class="swatch swatch--muted"></span><strong>No plan yet</strong></div>
+                <div class="list__main"><span class="swatch swatch--muted"></span><strong>{{ 'subscriptions.no_plan_yet' | translate }}</strong></div>
                 <div class="list__side"><strong>{{ noPlan() }}</strong></div>
               </li>
             </ul>
             @if (d.perPlan.length) {
-              <h3 class="pf-eyebrow sep">Revenue by plan</h3>
+              <h3 class="pf-eyebrow sep">{{ 'subscriptions.revenue_by_plan' | translate }}</h3>
               <ul class="list list--tight">
                 @for (p of d.perPlan; track p.planId) {
                   <li>
-                    <div class="list__main"><strong>{{ p.name }}</strong><span>{{ p.shops }} {{ p.shops === 1 ? 'shop' : 'shops' }}</span></div>
-                    <div class="list__side"><strong>{{ money(p.mrr) }}</strong><span>per month</span></div>
+                    <div class="list__main"><strong>{{ p.name }}</strong><span>{{ 'common.count.shops' | translateCount: p.shops }}</span></div>
+                    <div class="list__side"><strong>{{ money(p.mrr) }}</strong><span>{{ 'subscriptions.per_month' | translate }}</span></div>
                   </li>
                 }
               </ul>
@@ -124,7 +128,7 @@ const STATUS_ORDER = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPEND
           </section>
         </div>
       </div>
-      <p class="foot">Monthly income counts shops that are paying (Active and Payment pending); trials are not counted. Yearly plans count as one twelfth of the yearly price; daily plans as 30 days.</p>
+      <p class="foot">{{ 'subscriptions.monthly_income_counts_shops_that_are' | translate }}</p>
     }
   `,
   styles: [
@@ -414,8 +418,8 @@ export class SubOverviewComponent implements OnInit {
     return (this.d()?.series ?? []).map((s) => {
       const date = new Date(s.month + '-01T00:00:00');
       return {
-        title: date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }),
-        axis: date.toLocaleDateString('en-GB', { month: 'short' }),
+        title: date.toLocaleDateString(intlLocale(), { month: 'long', year: 'numeric' }),
+        axis: date.toLocaleDateString(intlLocale(), { month: 'short' }),
         value: s.collected,
       };
     });

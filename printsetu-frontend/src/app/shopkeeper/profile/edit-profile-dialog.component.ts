@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
@@ -7,6 +8,7 @@ import { MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { DayKey, OpeningHours, ShopProfileInfo, ShopProfileResponse } from '../../core/models/models';
 import { DAY_KEYS, DAY_LABELS, DEFAULT_HOURS } from './profile.util';
+import { t } from '../../core/i18n/i18n';
 
 const DESCRIPTION_MAX = 600;
 
@@ -14,10 +16,10 @@ const DESCRIPTION_MAX = 600;
 @Component({
   selector: 'app-edit-profile-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, DialogModule, ToggleSwitchModule],
+  imports: [TranslatePipe, CommonModule, FormsModule, DialogModule, ToggleSwitchModule],
   template: `
     <p-dialog
-      header="Edit shop profile"
+      [header]="'profile.edit_shop_profile' | translate"
       [visible]="visible"
       (visibleChange)="visibleChange.emit($event)"
       (onShow)="reset()"
@@ -28,51 +30,51 @@ const DESCRIPTION_MAX = 600;
       [contentStyle]="{ 'max-height': '70dvh' }"
     >
       <form class="form" (ngSubmit)="save()" novalidate>
-        <p class="lead">Your shop name, code and owner are managed by the administrator. Everything below is yours to edit.</p>
+        <p class="lead">{{ 'profile.your_shop_name_code_and_owner' | translate }}</p>
 
         <div class="field">
-          <label for="ep-desc">About the shop</label>
-          <textarea id="ep-desc" name="description" rows="4" [(ngModel)]="description" [maxlength]="max" placeholder="What do you specialise in? For example: fast colour prints, photo printing, spiral binding."></textarea>
+          <label for="ep-desc">{{ 'profile.about_the_shop' | translate }}</label>
+          <textarea id="ep-desc" name="description" rows="4" [(ngModel)]="description" [maxlength]="max" [placeholder]="'profile.what_do_you_specialise_in_for' | translate"></textarea>
           <span class="count" [class.is-near]="description.length > max - 40">{{ description.length }} / {{ max }}</span>
         </div>
 
         <div class="pair">
           <div class="field" [class.has-error]="!!errors()['mobile']">
-            <label for="ep-mobile">Contact number</label>
+            <label for="ep-mobile">{{ 'profile.contact_number' | translate }}</label>
             <input id="ep-mobile" name="mobile" type="tel" inputmode="tel" autocomplete="tel" [(ngModel)]="mobile" placeholder="+91 98765 43210" />
             @if (errors()['mobile']) { <span class="err">{{ errors()['mobile'] }}</span> }
           </div>
           <div class="field" [class.has-error]="!!errors()['city']">
-            <label for="ep-city">City</label>
+            <label for="ep-city">{{ 'common.city' | translate }}</label>
             <input id="ep-city" name="city" type="text" autocomplete="address-level2" [(ngModel)]="city" />
             @if (errors()['city']) { <span class="err">{{ errors()['city'] }}</span> }
           </div>
         </div>
 
         <div class="field" [class.has-error]="!!errors()['address']">
-          <label for="ep-address">Address</label>
+          <label for="ep-address">{{ 'common.address' | translate }}</label>
           <textarea id="ep-address" name="address" rows="2" autocomplete="street-address" [(ngModel)]="address"></textarea>
           @if (errors()['address']) { <span class="err">{{ errors()['address'] }}</span> }
         </div>
 
         <fieldset class="hours">
-          <legend>Opening hours</legend>
+          <legend>{{ 'profile.opening_hours' | translate }}</legend>
           <div class="hours__tools">
-            <button type="button" class="link" (click)="copyMondayToWeekdays()">Copy Monday to all weekdays</button>
-            <button type="button" class="link" (click)="applyToAll()">Same hours every day</button>
+            <button type="button" class="link" (click)="copyMondayToWeekdays()">{{ 'profile.copy_monday_to_all_weekdays' | translate }}</button>
+            <button type="button" class="link" (click)="applyToAll()">{{ 'profile.same_hours_every_day' | translate }}</button>
           </div>
           @for (d of days; track d) {
             <div class="hrow" [class.is-closed]="!hours()[d].open" [class.has-error]="!!errors()['hours-' + d]">
               <span class="hrow__day">{{ labels[d] }}</span>
-              <p-toggleswitch [ngModel]="hours()[d].open" (ngModelChange)="setOpen(d, $event)" [ngModelOptions]="{ standalone: true }" [attr.aria-label]="labels[d] + ' open'" />
+              <p-toggleswitch [ngModel]="hours()[d].open" (ngModelChange)="setOpen(d, $event)" [ngModelOptions]="{ standalone: true }" [attr.aria-label]="'profile.day_open_aria' | translate: { day: labels[d] }" />
               @if (hours()[d].open) {
                 <div class="hrow__times">
-                  <input type="time" [ngModel]="hours()[d].from" (ngModelChange)="setTime(d, 'from', $event)" [ngModelOptions]="{ standalone: true }" [attr.aria-label]="labels[d] + ' opens at'" />
-                  <span>to</span>
-                  <input type="time" [ngModel]="hours()[d].to" (ngModelChange)="setTime(d, 'to', $event)" [ngModelOptions]="{ standalone: true }" [attr.aria-label]="labels[d] + ' closes at'" />
+                  <input type="time" [ngModel]="hours()[d].from" (ngModelChange)="setTime(d, 'from', $event)" [ngModelOptions]="{ standalone: true }" [attr.aria-label]="'profile.day_opens_at_aria' | translate: { day: labels[d] }" />
+                  <span>{{ 'profile.to' | translate }}</span>
+                  <input type="time" [ngModel]="hours()[d].to" (ngModelChange)="setTime(d, 'to', $event)" [ngModelOptions]="{ standalone: true }" [attr.aria-label]="'profile.day_closes_at_aria' | translate: { day: labels[d] }" />
                 </div>
               } @else {
-                <span class="hrow__closed">Closed</span>
+                <span class="hrow__closed">{{ 'common.closed' | translate }}</span>
               }
               @if (errors()['hours-' + d]) { <span class="err hrow__err">{{ errors()['hours-' + d] }}</span> }
             </div>
@@ -81,9 +83,9 @@ const DESCRIPTION_MAX = 600;
       </form>
 
       <ng-template #footer>
-        <button type="button" class="pf-btn" (click)="visibleChange.emit(false)" [disabled]="saving()">Cancel</button>
+        <button type="button" class="pf-btn" (click)="visibleChange.emit(false)" [disabled]="saving()">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="pf-btn pf-btn--primary" (click)="save()" [disabled]="saving() || !dirty()">
-          @if (saving()) { <i class="pi pi-spin pi-spinner"></i> Saving… } @else { <i class="pi pi-check"></i> Save changes }
+          @if (saving()) { <i class="pi pi-spin pi-spinner"></i> {{ 'common.saving' | translate }} } @else { <i class="pi pi-check"></i> {{ 'common.save_changes' | translate }} }
         </button>
       </ng-template>
     </p-dialog>
@@ -277,12 +279,12 @@ export class EditProfileDialogComponent {
   // signals cannot track, so they must re-evaluate on every change-detection pass.
   errors(): Record<string, string> {
     const e: Record<string, string> = {};
-    if (!/^[0-9+\-\s()]{7,20}$/.test(this.mobile.trim())) e['mobile'] = 'Enter a valid phone number.';
-    if (this.city.trim().length < 2) e['city'] = 'Enter your city.';
-    if (this.address.trim().length < 3) e['address'] = 'Enter your address.';
+    if (!/^[0-9+\-\s()]{7,20}$/.test(this.mobile.trim())) e['mobile'] = t('profile.enter_a_valid_phone_number');
+    if (this.city.trim().length < 2) e['city'] = t('profile.enter_your_city');
+    if (this.address.trim().length < 3) e['address'] = t('profile.enter_your_address');
     const h = this.hours();
     for (const d of DAY_KEYS) {
-      if (h[d].open && h[d].from >= h[d].to) e['hours-' + d] = 'Closing time must be after opening time.';
+      if (h[d].open && h[d].from >= h[d].to) e['hours-' + d] = t('profile.closing_time_must_be_after_opening');
     }
     return e;
   }
@@ -333,7 +335,7 @@ export class EditProfileDialogComponent {
 
   save(): void {
     if (Object.keys(this.errors()).length > 0) {
-      this.messageService.add({ severity: 'warn', summary: 'Please fix the highlighted fields' });
+      this.messageService.add({ severity: 'warn', get summary() { return t('profile.please_fix_the_highlighted_fields'); } });
       return;
     }
     this.saving.set(true);
@@ -350,7 +352,7 @@ export class EditProfileDialogComponent {
           this.saving.set(false);
           this.saved.emit(res);
           this.visibleChange.emit(false);
-          this.messageService.add({ severity: 'success', summary: 'Profile updated' });
+          this.messageService.add({ severity: 'success', get summary() { return t('profile.profile_updated'); } });
         },
         error: () => this.saving.set(false),
       });

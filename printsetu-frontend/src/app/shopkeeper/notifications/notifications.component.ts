@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
@@ -9,6 +10,8 @@ import { InputIconModule } from 'primeng/inputicon';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { NotificationEventType, NotificationRow } from '../../core/models/models';
+import { t } from '../../core/i18n/i18n';
+import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
 
 type Severity = 'success' | 'info' | 'warn' | 'danger' | 'secondary';
 
@@ -16,40 +19,40 @@ const EVENT_META: Record<
   NotificationEventType,
   { label: string; icon: string; severity: Severity }
 > = {
-  UPLOAD_RECEIVED: { label: 'Document uploaded', icon: 'pi pi-upload', severity: 'info' },
-  PRINT_QUEUED: { label: 'Pending', icon: 'pi pi-clock', severity: 'info' },
-  PRINT_COMPLETED: { label: 'Print completed', icon: 'pi pi-check-circle', severity: 'success' },
-  PRINT_FAILED: { label: 'Print failed', icon: 'pi pi-times-circle', severity: 'danger' },
-  SUBSCRIPTION_RENEWAL_REMINDER: { label: 'Renewal reminder', icon: 'pi pi-calendar', severity: 'info' },
-  SUBSCRIPTION_TRIAL_ENDING: { label: 'Trial ending', icon: 'pi pi-clock', severity: 'info' },
-  SUBSCRIPTION_PAYMENT_FAILED: { label: 'Payment failed', icon: 'pi pi-exclamation-triangle', severity: 'warn' },
-  SUBSCRIPTION_GRACE_REMINDER: { label: 'Payment reminder', icon: 'pi pi-bell', severity: 'warn' },
-  SUBSCRIPTION_FINAL_WARNING: { label: 'Final warning', icon: 'pi pi-exclamation-circle', severity: 'danger' },
-  SUBSCRIPTION_PAST_DUE: { label: 'Payment overdue', icon: 'pi pi-exclamation-circle', severity: 'danger' },
-  SUBSCRIPTION_SUSPENDED: { label: 'Shop suspended', icon: 'pi pi-lock', severity: 'danger' },
-  SUBSCRIPTION_PAID: { label: 'Payment received', icon: 'pi pi-check-circle', severity: 'success' },
-  SUBSCRIPTION_REACTIVATED: { label: 'Shop reactivated', icon: 'pi pi-lock-open', severity: 'success' },
-  SUBSCRIPTION_CANCELLED: { label: 'Subscription cancelled', icon: 'pi pi-ban', severity: 'secondary' },
+  UPLOAD_RECEIVED: { get label() { return t('notifications.document_uploaded'); }, icon: 'pi pi-upload', severity: 'info' },
+  PRINT_QUEUED: { get label() { return t('common.pending'); }, icon: 'pi pi-clock', severity: 'info' },
+  PRINT_COMPLETED: { get label() { return t('notifications.print_completed'); }, icon: 'pi pi-check-circle', severity: 'success' },
+  PRINT_FAILED: { get label() { return t('notifications.print_failed'); }, icon: 'pi pi-times-circle', severity: 'danger' },
+  SUBSCRIPTION_RENEWAL_REMINDER: { get label() { return t('notifications.renewal_reminder'); }, icon: 'pi pi-calendar', severity: 'info' },
+  SUBSCRIPTION_TRIAL_ENDING: { get label() { return t('notifications.trial_ending'); }, icon: 'pi pi-clock', severity: 'info' },
+  SUBSCRIPTION_PAYMENT_FAILED: { get label() { return t('notifications.payment_failed'); }, icon: 'pi pi-exclamation-triangle', severity: 'warn' },
+  SUBSCRIPTION_GRACE_REMINDER: { get label() { return t('notifications.payment_reminder'); }, icon: 'pi pi-bell', severity: 'warn' },
+  SUBSCRIPTION_FINAL_WARNING: { get label() { return t('notifications.final_warning'); }, icon: 'pi pi-exclamation-circle', severity: 'danger' },
+  SUBSCRIPTION_PAST_DUE: { get label() { return t('notifications.payment_overdue'); }, icon: 'pi pi-exclamation-circle', severity: 'danger' },
+  SUBSCRIPTION_SUSPENDED: { get label() { return t('notifications.shop_suspended'); }, icon: 'pi pi-lock', severity: 'danger' },
+  SUBSCRIPTION_PAID: { get label() { return t('notifications.payment_received'); }, icon: 'pi pi-check-circle', severity: 'success' },
+  SUBSCRIPTION_REACTIVATED: { get label() { return t('notifications.shop_reactivated'); }, icon: 'pi pi-lock-open', severity: 'success' },
+  SUBSCRIPTION_CANCELLED: { get label() { return t('notifications.subscription_cancelled'); }, icon: 'pi pi-ban', severity: 'secondary' },
 };
 
 /** SRS §20: the in-application notification baseline's read surface (upload/queue/complete/fail events). */
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, TableModule, TagModule, ButtonModule, InputTextModule, IconFieldModule, InputIconModule],
+  imports: [AppDatePipe, TranslatePipe, CommonModule, TableModule, TagModule, ButtonModule, InputTextModule, IconFieldModule, InputIconModule],
   template: `
     <div class="page-header">
       <div>
-        <h1 class="page-title">Notifications</h1>
-        <p class="page-subtitle m-0">Document and print-job events for your shop, most recent first.</p>
+        <h1 class="page-title">{{ 'common.notifications' | translate }}</h1>
+        <p class="page-subtitle m-0">{{ 'notifications.document_and_print_job_events_for' | translate }}</p>
       </div>
       <div class="page-actions">
         <p-iconfield>
           <p-inputicon styleClass="pi pi-search" />
-          <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+          <input pInputText type="text" [placeholder]="'common.search' | translate" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
         </p-iconfield>
         <p-button
-          label="Clear"
+          [label]="'common.clear' | translate"
           icon="pi pi-trash"
           size="small"
           severity="danger"
@@ -74,8 +77,8 @@ const EVENT_META: Record<
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 60%" pSortableColumn="eventLabel">Event <p-sortIcon field="eventLabel" /></th>
-          <th style="width: 40%" pSortableColumn="createdAt">When <p-sortIcon field="createdAt" /></th>
+          <th style="width: 60%" pSortableColumn="eventLabel">{{ 'notifications.event' | translate }} <p-sortIcon field="eventLabel" /></th>
+          <th style="width: 40%" pSortableColumn="createdAt">{{ 'common.when' | translate }} <p-sortIcon field="createdAt" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-n>
@@ -88,13 +91,13 @@ const EVENT_META: Record<
             />
             @if (n.message) { <p class="notif-msg">{{ n.message }}</p> }
           </td>
-          <td data-label="When">{{ n.createdAt | date: 'medium' }}</td>
+          <td data-label="When">{{ n.createdAt | appDate: 'medium' }}</td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
         <tr>
           <td colspan="2">
-            <div class="table-empty"><i class="pi pi-bell"></i><span>No notifications yet.</span></div>
+            <div class="table-empty"><i class="pi pi-bell"></i><span>{{ 'notifications.no_notifications_yet' | translate }}</span></div>
           </td>
         </tr>
       </ng-template>
@@ -128,12 +131,12 @@ export class NotificationsComponent implements OnInit {
 
   confirmClear(): void {
     this.confirmationService.confirm({
-      message: `Permanently delete all ${this.notifications().length} notification(s)? This cannot be undone.`,
-      header: 'Clear notifications',
+      get message() { return t('notifications.permanently_delete_all_notification_s_this', { notifications: this.notifications().length }); },
+      get header() { return t('notifications.clear_notifications'); },
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.shopkeeperService.clearNotifications().subscribe(() => {
-          this.messageService.add({ severity: 'success', summary: 'Notifications cleared' });
+          this.messageService.add({ severity: 'success', get summary() { return t('notifications.notifications_cleared'); } });
           this.load();
         });
       },

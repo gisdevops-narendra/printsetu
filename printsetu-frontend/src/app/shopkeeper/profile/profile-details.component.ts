@@ -1,37 +1,40 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { MessageService } from 'primeng/api';
 import { DayKey, ShopProfileInfo } from '../../core/models/models';
 import { copyText } from '../../shared/utils/browser.util';
 import { DAY_KEYS, DAY_LABELS, OpenStatus, dayKeyOf, format12h, openStatus } from './profile.util';
+import { t } from '../../core/i18n/i18n';
+import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
 
 /** Everything customers and the owner need to know about the shop, clearly laid out. */
 @Component({
   selector: 'app-profile-details',
   standalone: true,
-  imports: [CommonModule],
+  imports: [AppDatePipe, TranslatePipe, CommonModule],
   template: `
     <div class="sections">
       <!-- ---------- Contact ---------- -->
       <section class="pf-card">
         <header class="pf-card__head">
-          <h3 class="pf-eyebrow">Contact</h3>
-          <button type="button" class="pf-btn pf-btn--quiet" (click)="edit.emit()"><i class="pi pi-pencil"></i> Edit</button>
+          <h3 class="pf-eyebrow">{{ 'common.contact' | translate }}</h3>
+          <button type="button" class="pf-btn pf-btn--quiet" (click)="edit.emit()"><i class="pi pi-pencil"></i> {{ 'common.edit' | translate }}</button>
         </header>
         <ul class="rows">
           <li>
             <span class="rows__icon"><i class="pi pi-user"></i></span>
-            <div class="rows__text"><small>Owner</small><span>{{ shop.ownerName }}</span></div>
+            <div class="rows__text"><small>{{ 'common.owner' | translate }}</small><span>{{ shop.ownerName }}</span></div>
           </li>
           <li>
             <span class="rows__icon"><i class="pi pi-phone"></i></span>
-            <div class="rows__text"><small>Phone</small><a [href]="'tel:' + shop.mobile">{{ shop.mobile }}</a></div>
-            <button type="button" class="icon" (click)="copy(shop.mobile, 'Phone number')" aria-label="Copy phone number"><i class="pi pi-copy"></i></button>
+            <div class="rows__text"><small>{{ 'common.phone' | translate }}</small><a [href]="'tel:' + shop.mobile">{{ shop.mobile }}</a></div>
+            <button type="button" class="icon" (click)="copy(shop.mobile, 'Phone number')" [attr.aria-label]="'profile.copy_phone_number' | translate"><i class="pi pi-copy"></i></button>
           </li>
           <li>
             <span class="rows__icon"><i class="pi pi-envelope"></i></span>
-            <div class="rows__text"><small>Email</small><a [href]="'mailto:' + shop.email">{{ shop.email }}</a></div>
-            <button type="button" class="icon" (click)="copy(shop.email, 'Email')" aria-label="Copy email"><i class="pi pi-copy"></i></button>
+            <div class="rows__text"><small>{{ 'common.email' | translate }}</small><a [href]="'mailto:' + shop.email">{{ shop.email }}</a></div>
+            <button type="button" class="icon" (click)="copy(shop.email, 'Email')" [attr.aria-label]="'profile.copy_email' | translate"><i class="pi pi-copy"></i></button>
           </li>
         </ul>
       </section>
@@ -39,8 +42,8 @@ import { DAY_KEYS, DAY_LABELS, OpenStatus, dayKeyOf, format12h, openStatus } fro
       <!-- ---------- Location ---------- -->
       <section class="pf-card">
         <header class="pf-card__head">
-          <h3 class="pf-eyebrow">Location</h3>
-          <button type="button" class="pf-btn pf-btn--quiet" (click)="edit.emit()"><i class="pi pi-pencil"></i> Edit</button>
+          <h3 class="pf-eyebrow">{{ 'profile.location' | translate }}</h3>
+          <button type="button" class="pf-btn pf-btn--quiet" (click)="edit.emit()"><i class="pi pi-pencil"></i> {{ 'common.edit' | translate }}</button>
         </header>
         <div class="place">
           <span class="rows__icon rows__icon--lg"><i class="pi pi-map-marker"></i></span>
@@ -50,27 +53,27 @@ import { DAY_KEYS, DAY_LABELS, OpenStatus, dayKeyOf, format12h, openStatus } fro
           </div>
         </div>
         <div class="actions">
-          <a class="pf-btn" [href]="mapsUrl()" target="_blank" rel="noopener"><i class="pi pi-external-link"></i> Open in Maps</a>
-          <button type="button" class="pf-btn" (click)="copy(shop.address + ', ' + shop.city, 'Address')"><i class="pi pi-copy"></i> Copy address</button>
+          <a class="pf-btn" [href]="mapsUrl()" target="_blank" rel="noopener"><i class="pi pi-external-link"></i> {{ 'profile.open_in_maps' | translate }}</a>
+          <button type="button" class="pf-btn" (click)="copy(shop.address + ', ' + shop.city, 'Address')"><i class="pi pi-copy"></i> {{ 'profile.copy_address' | translate }}</button>
         </div>
       </section>
 
       <!-- ---------- Opening hours ---------- -->
       <section class="pf-card">
         <header class="pf-card__head">
-          <h3 class="pf-eyebrow">Opening hours</h3>
-          <button type="button" class="pf-btn pf-btn--quiet" (click)="edit.emit()"><i class="pi pi-pencil"></i> {{ shop.openingHours ? 'Edit' : 'Set hours' }}</button>
+          <h3 class="pf-eyebrow">{{ 'profile.opening_hours' | translate }}</h3>
+          <button type="button" class="pf-btn pf-btn--quiet" (click)="edit.emit()"><i class="pi pi-pencil"></i> {{ shop.openingHours ? ('common.edit' | translate) : ('profile.set_hours' | translate) }}</button>
         </header>
         @if (shop.openingHours; as hours) {
           <p class="status" [ngClass]="'status--' + status().state"><span class="status__dot"></span>{{ status().label }}</p>
           <ul class="hours">
             @for (d of days; track d) {
               <li [class.is-today]="d === today()">
-                <span class="hours__day">{{ labels[d] }}@if (d === today()) { <em>Today</em> }</span>
+                <span class="hours__day">{{ labels[d] }}@if (d === today()) { <em>{{ 'common.today' | translate }}</em> }</span>
                 @if (hours[d].open) {
                   <span class="hours__time">{{ time(hours[d].from) }} &ndash; {{ time(hours[d].to) }}</span>
                 } @else {
-                  <span class="hours__closed">Closed</span>
+                  <span class="hours__closed">{{ 'common.closed' | translate }}</span>
                 }
               </li>
             }
@@ -78,9 +81,9 @@ import { DAY_KEYS, DAY_LABELS, OpenStatus, dayKeyOf, format12h, openStatus } fro
         } @else {
           <div class="pf-empty">
             <span class="pf-empty__icon"><i class="pi pi-clock"></i></span>
-            <strong>Opening hours aren't set</strong>
-            <p>Let customers know when you're open.</p>
-            <button type="button" class="pf-btn pf-btn--primary" (click)="edit.emit()">Set opening hours</button>
+            <strong>{{ 'profile.opening_hours_arent_set' | translate }}</strong>
+            <p>{{ 'profile.let_customers_know_when_youre_open' | translate }}</p>
+            <button type="button" class="pf-btn pf-btn--primary" (click)="edit.emit()">{{ 'profile.set_opening_hours' | translate }}</button>
           </div>
         }
       </section>
@@ -88,17 +91,17 @@ import { DAY_KEYS, DAY_LABELS, OpenStatus, dayKeyOf, format12h, openStatus } fro
       <!-- ---------- About ---------- -->
       <section class="pf-card">
         <header class="pf-card__head">
-          <h3 class="pf-eyebrow">About the shop</h3>
-          <button type="button" class="pf-btn pf-btn--quiet" (click)="edit.emit()"><i class="pi pi-pencil"></i> Edit</button>
+          <h3 class="pf-eyebrow">{{ 'profile.about_the_shop' | translate }}</h3>
+          <button type="button" class="pf-btn pf-btn--quiet" (click)="edit.emit()"><i class="pi pi-pencil"></i> {{ 'common.edit' | translate }}</button>
         </header>
         @if (shop.description) {
           <p class="about">{{ shop.description }}</p>
         } @else {
-          <p class="about about--empty">Add a short description, for example what you specialise in.</p>
+          <p class="about about--empty">{{ 'profile.add_a_short_description_for_example' | translate }}</p>
         }
         <dl class="facts">
-          <div><dt>Shop code</dt><dd>{{ shop.shopCode }}</dd></div>
-          <div><dt>Member since</dt><dd>{{ shop.createdAt | date: 'MMM yyyy' }}</dd></div>
+          <div><dt>{{ 'profile.shop_code' | translate }}</dt><dd>{{ shop.shopCode }}</dd></div>
+          <div><dt>{{ 'profile.member_since' | translate }}</dt><dd>{{ shop.createdAt | appDate: 'MMM yyyy' }}</dd></div>
         </dl>
       </section>
     </div>
@@ -338,6 +341,6 @@ export class ProfileDetailsComponent {
 
   async copy(text: string, what: string): Promise<void> {
     const ok = await copyText(text);
-    this.messageService.add(ok ? { severity: 'success', summary: `${what} copied` } : { severity: 'warn', summary: "Couldn't copy automatically" });
+    this.messageService.add(ok ? { severity: 'success', summary: `${what} copied` } : { severity: 'warn', get summary() { return t('profile.couldnt_copy_automatically'); } });
   }
 }

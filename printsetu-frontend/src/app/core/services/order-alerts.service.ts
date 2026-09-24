@@ -2,6 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { NotificationPrefs, PrintJobRow, PrintJobStatus } from '../models/models';
 import { ShopkeeperService } from './shopkeeper.service';
+import { t, tn } from '../i18n/i18n';
 
 const POLL_MS = 15_000;
 /** While a job is on its way to the printer, poll quickly so Pending -> Printing -> Printed shows live. */
@@ -138,8 +139,8 @@ export class OrderAlertsService {
   private announceNew(jobs: PrintJobRow[]): void {
     const first = jobs[0];
     const docs = jobs.reduce((n, j) => n + j.items.length, 0);
-    const title = jobs.length === 1 ? `New print request #${first.tokenNumber}` : `${jobs.length} new print requests`;
-    const detail = jobs.length === 1 ? `${docs} ${docs === 1 ? 'document' : 'documents'} · ₹${first.amount}` : `Tokens ${jobs.map((j) => '#' + j.tokenNumber).join(', ')}`;
+    const title = jobs.length === 1 ? t('app.new_print_request', { tokenNumber: first.tokenNumber }) : t('app.new_print_requests', { jobs: jobs.length });
+    const detail = jobs.length === 1 ? `${tn('common.count.documents', docs)} · ₹${first.amount}` : t('app.tokens', { join: jobs.map((j) => '#' + j.tokenNumber).join(', ') });
     this.messageService.add({ severity: 'info', summary: title, detail, life: 9000 });
     if (this.prefs.newOrderSound) this.chime();
     this.desktop(title, detail);
@@ -147,8 +148,8 @@ export class OrderAlertsService {
 
   private announceProblems(jobs: PrintJobRow[]): void {
     const offline = jobs.some((j) => j.status === 'AGENT_OFFLINE');
-    const title = offline ? 'Printer offline' : 'An order needs checking';
-    const detail = `Token ${jobs.map((j) => '#' + j.tokenNumber).join(', ')}`;
+    const title = offline ? t('app.printer_offline') : t('app.an_order_needs_checking');
+    const detail = t('app.token', { join: jobs.map((j) => '#' + j.tokenNumber).join(', ') });
     this.messageService.add({ severity: 'warn', summary: title, detail, life: 10000 });
     this.desktop(title, detail);
   }

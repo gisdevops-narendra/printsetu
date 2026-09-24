@@ -1,4 +1,5 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -13,11 +14,13 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { PricingRate, PricingTier } from '../../core/models/models';
 import { COLOR_LABELS, PAPER_LABELS, SIDE_LABELS, printOptionsLabel } from '../../shared/utils/print-options.util';
+import { activeLang, t } from '../../core/i18n/i18n';
+import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
 
 @Component({
   selector: 'app-shop-pricing',
   standalone: true,
-  imports: [
+  imports: [AppDatePipe, TranslatePipe, 
     CommonModule,
     FormsModule,
     TableModule,
@@ -30,45 +33,45 @@ import { COLOR_LABELS, PAPER_LABELS, SIDE_LABELS, printOptionsLabel } from '../.
     TooltipModule,
   ],
   template: `
-    <h1 class="page-title">Pricing</h1>
+    <h1 class="page-title">{{ 'common.pricing' | translate }}</h1>
     <p class="page-subtitle">
-      Set your own shop's print prices. Changing a price only affects new orders.
+      {{ 'pricing.set_your_own_shops_print_prices' | translate }}
     </p>
 
     <div class="surface-card-flat p-4 mb-4">
-      <h3 class="mt-0 mb-3 text-base">{{ editingId() ? 'Update rate' : 'Set a new rate' }}</h3>
+      <h3 class="mt-0 mb-3 text-base">{{ editingId() ? ('pricing.update_rate' | translate) : ('pricing.set_a_new_rate' | translate) }}</h3>
       <div class="rate-form">
         <div class="rate-form__field">
-          <label class="text-sm">Paper size</label>
-          <p-select [options]="paperOptions" optionLabel="label" optionValue="value" [(ngModel)]="form.paperSize" [disabled]="!!editingId()" styleClass="w-full" appendTo="body" />
+          <label class="text-sm">{{ 'common.paper_size' | translate }}</label>
+          <p-select [options]="paperOptions()" optionLabel="label" optionValue="value" [(ngModel)]="form.paperSize" [disabled]="!!editingId()" styleClass="w-full" appendTo="body" />
         </div>
         <div class="rate-form__field">
-          <label class="text-sm">Color</label>
-          <p-select [options]="colorOptions" optionLabel="label" optionValue="value" [(ngModel)]="form.colorMode" [disabled]="!!editingId()" styleClass="w-full" appendTo="body" />
+          <label class="text-sm">{{ 'common.color' | translate }}</label>
+          <p-select [options]="colorOptions()" optionLabel="label" optionValue="value" [(ngModel)]="form.colorMode" [disabled]="!!editingId()" styleClass="w-full" appendTo="body" />
         </div>
         <div class="rate-form__field">
-          <label class="text-sm">Sides</label>
-          <p-select [options]="sideOptions" optionLabel="label" optionValue="value" [(ngModel)]="form.sideMode" [disabled]="!!editingId()" styleClass="w-full" appendTo="body" />
+          <label class="text-sm">{{ 'common.sides' | translate }}</label>
+          <p-select [options]="sideOptions()" optionLabel="label" optionValue="value" [(ngModel)]="form.sideMode" [disabled]="!!editingId()" styleClass="w-full" appendTo="body" />
         </div>
         <div class="rate-form__field">
-          <label class="text-sm">Price per page (₹)</label>
+          <label class="text-sm">{{ 'pricing.price_per_page' | translate }}</label>
           <p-inputNumber [(ngModel)]="form.pricePerPage" mode="decimal" [minFractionDigits]="2" styleClass="w-full" inputStyleClass="w-full" />
         </div>
         <div class="rate-form__actions">
-          <p-button [label]="editingId() ? 'Update rate' : 'Save rate'" (onClick)="save()" [loading]="saving()" />
+          <p-button [label]="editingId() ? ('pricing.update_rate' | translate) : ('pricing.save_rate' | translate)" (onClick)="save()" [loading]="saving()" />
           @if (editingId()) {
-            <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="cancelEdit()" />
+            <p-button [label]="'common.cancel' | translate" severity="secondary" [text]="true" (onClick)="cancelEdit()" />
           }
         </div>
       </div>
     </div>
 
     <div class="page-header">
-      <h3 class="m-0 text-base">Current rates</h3>
+      <h3 class="m-0 text-base">{{ 'pricing.current_rates' | translate }}</h3>
       <div class="page-actions">
         <p-iconfield>
           <p-inputicon styleClass="pi pi-search" />
-          <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+          <input pInputText type="text" [placeholder]="'common.search' | translate" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
         </p-iconfield>
       </div>
     </div>
@@ -85,11 +88,11 @@ import { COLOR_LABELS, PAPER_LABELS, SIDE_LABELS, printOptionsLabel } from '../.
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 16%" pSortableColumn="paperSize">Paper <p-sortIcon field="paperSize" /></th>
-          <th style="width: 16%" pSortableColumn="colorMode">Color <p-sortIcon field="colorMode" /></th>
-          <th style="width: 16%" pSortableColumn="sideMode">Sides <p-sortIcon field="sideMode" /></th>
-          <th style="width: 16%" pSortableColumn="pricePerPage">Price / page <p-sortIcon field="pricePerPage" /></th>
-          <th style="width: 22%" pSortableColumn="effectiveFrom">Price since <p-sortIcon field="effectiveFrom" /></th>
+          <th style="width: 16%" pSortableColumn="paperSize">{{ 'common.paper' | translate }} <p-sortIcon field="paperSize" /></th>
+          <th style="width: 16%" pSortableColumn="colorMode">{{ 'common.color' | translate }} <p-sortIcon field="colorMode" /></th>
+          <th style="width: 16%" pSortableColumn="sideMode">{{ 'common.sides' | translate }} <p-sortIcon field="sideMode" /></th>
+          <th style="width: 16%" pSortableColumn="pricePerPage">{{ 'pricing.price_page' | translate }} <p-sortIcon field="pricePerPage" /></th>
+          <th style="width: 22%" pSortableColumn="effectiveFrom">{{ 'pricing.price_since' | translate }} <p-sortIcon field="effectiveFrom" /></th>
           <th style="width: 14%"></th>
         </tr>
       </ng-template>
@@ -99,14 +102,14 @@ import { COLOR_LABELS, PAPER_LABELS, SIDE_LABELS, printOptionsLabel } from '../.
           <td data-label="Color">{{ colorLabels[rate.colorMode] }}</td>
           <td data-label="Sides">{{ sideLabels[rate.sideMode] }}</td>
           <td data-label="Price / page">₹{{ rate.pricePerPage }}</td>
-          <td data-label="Price since">{{ rate.effectiveFrom | date: 'medium' }}</td>
+          <td data-label="Price since">{{ rate.effectiveFrom | appDate: 'medium' }}</td>
           <td class="flex gap-2 justify-content-end">
             <p-button
               icon="pi pi-pencil"
               size="small"
               [text]="true"
               (onClick)="edit(rate)"
-              pTooltip="Edit"
+              [pTooltip]="'common.edit' | translate"
             />
             <p-button
               icon="pi pi-trash"
@@ -114,7 +117,7 @@ import { COLOR_LABELS, PAPER_LABELS, SIDE_LABELS, printOptionsLabel } from '../.
               severity="danger"
               [text]="true"
               (onClick)="confirmDelete(rate)"
-              pTooltip="Remove"
+              [pTooltip]="'common.remove' | translate"
             />
           </td>
         </tr>
@@ -122,7 +125,7 @@ import { COLOR_LABELS, PAPER_LABELS, SIDE_LABELS, printOptionsLabel } from '../.
       <ng-template pTemplate="emptymessage">
         <tr>
           <td colspan="6">
-            <div class="table-empty"><i class="pi pi-tag"></i><span>No prices set yet.</span></div>
+            <div class="table-empty"><i class="pi pi-tag"></i><span>{{ 'pricing.no_prices_set_yet' | translate }}</span></div>
           </td>
         </tr>
       </ng-template>
@@ -130,59 +133,55 @@ import { COLOR_LABELS, PAPER_LABELS, SIDE_LABELS, printOptionsLabel } from '../.
 
     <div class="tier-intro">
       <h3 class="m-0 text-base">
-        Lower price for bigger orders <span class="text-sm text-color-secondary font-normal">(optional)</span>
+        {{ 'pricing.lower_price_for_bigger_orders' | translate }} <span class="text-sm text-color-secondary font-normal">{{ 'pricing.optional' | translate }}</span>
       </h3>
       <p class="m-0 mt-2 text-sm text-color-secondary">
-        Charge less per page for bigger orders, e.g. A4 B&amp;W: 1–5 pages at ₹2, 6 pages and above at ₹1.
-        The order's total pages (pages × copies of every document with the same paper, color and sides)
-        picks one range, and every page is charged at that range's price. A page count no range covers
-        uses the normal price above.
+        {{ 'pricing.charge_less_per_page_for_bigger' | translate }}
       </p>
     </div>
 
     <div class="surface-card-flat p-4 mb-4">
-      <h3 class="mt-0 mb-3 text-base">{{ editingTierId() ? 'Update page range' : 'Add a page range' }}</h3>
+      <h3 class="mt-0 mb-3 text-base">{{ editingTierId() ? ('pricing.update_page_range' | translate) : ('pricing.add_a_page_range' | translate) }}</h3>
       <div class="rate-form">
         <div class="rate-form__field">
-          <label class="text-sm">Paper size</label>
-          <p-select [options]="paperOptions" optionLabel="label" optionValue="value" [(ngModel)]="tierForm.paperSize" [disabled]="!!editingTierId()" styleClass="w-full" appendTo="body" />
+          <label class="text-sm">{{ 'common.paper_size' | translate }}</label>
+          <p-select [options]="paperOptions()" optionLabel="label" optionValue="value" [(ngModel)]="tierForm.paperSize" [disabled]="!!editingTierId()" styleClass="w-full" appendTo="body" />
         </div>
         <div class="rate-form__field">
-          <label class="text-sm">Color</label>
-          <p-select [options]="colorOptions" optionLabel="label" optionValue="value" [(ngModel)]="tierForm.colorMode" [disabled]="!!editingTierId()" styleClass="w-full" appendTo="body" />
+          <label class="text-sm">{{ 'common.color' | translate }}</label>
+          <p-select [options]="colorOptions()" optionLabel="label" optionValue="value" [(ngModel)]="tierForm.colorMode" [disabled]="!!editingTierId()" styleClass="w-full" appendTo="body" />
         </div>
         <div class="rate-form__field">
-          <label class="text-sm">Sides</label>
-          <p-select [options]="sideOptions" optionLabel="label" optionValue="value" [(ngModel)]="tierForm.sideMode" [disabled]="!!editingTierId()" styleClass="w-full" appendTo="body" />
+          <label class="text-sm">{{ 'common.sides' | translate }}</label>
+          <p-select [options]="sideOptions()" optionLabel="label" optionValue="value" [(ngModel)]="tierForm.sideMode" [disabled]="!!editingTierId()" styleClass="w-full" appendTo="body" />
         </div>
         <div class="rate-form__field">
-          <label class="text-sm">From pages</label>
+          <label class="text-sm">{{ 'pricing.from_pages' | translate }}</label>
           <p-inputNumber [(ngModel)]="tierForm.minPages" [min]="1" [useGrouping]="false" styleClass="w-full" inputStyleClass="w-full" />
         </div>
         <div class="rate-form__field">
-          <label class="text-sm">To pages</label>
-          <p-inputNumber [(ngModel)]="tierForm.maxPages" [min]="1" [useGrouping]="false" placeholder="No limit" styleClass="w-full" inputStyleClass="w-full" />
+          <label class="text-sm">{{ 'pricing.to_pages' | translate }}</label>
+          <p-inputNumber [(ngModel)]="tierForm.maxPages" [min]="1" [useGrouping]="false" [placeholder]="'pricing.no_limit' | translate" styleClass="w-full" inputStyleClass="w-full" />
         </div>
         <div class="rate-form__field">
-          <label class="text-sm">Price per page (₹)</label>
+          <label class="text-sm">{{ 'pricing.price_per_page' | translate }}</label>
           <p-inputNumber [(ngModel)]="tierForm.pricePerPage" mode="decimal" [minFractionDigits]="2" styleClass="w-full" inputStyleClass="w-full" />
         </div>
         <div class="rate-form__actions">
           <p-button
-            [label]="editingTierId() ? 'Update range' : 'Add range'"
+            [label]="editingTierId() ? ('pricing.update_range' | translate) : ('pricing.add_range' | translate)"
             (onClick)="saveTier()"
             [loading]="savingTier()"
             [disabled]="!tierComboHasRate()"
           />
           @if (editingTierId()) {
-            <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="cancelTierEdit()" />
+            <p-button [label]="'common.cancel' | translate" severity="secondary" [text]="true" (onClick)="cancelTierEdit()" />
           }
         </div>
       </div>
       @if (!tierComboHasRate()) {
         <p class="m-0 mt-3 text-sm text-color-secondary">
-          <i class="pi pi-info-circle mr-1"></i>Set a normal price for {{ optionsLabel($any(tierForm)) }} first. It's used
-          for any page count your ranges don't cover.
+          <i class="pi pi-info-circle mr-1"></i>{{ 'pricing.set_a_normal_price_for_first' | translate: { tierForm: optionsLabel($any(tierForm)) } }}
         </p>
       }
     </div>
@@ -195,10 +194,10 @@ import { COLOR_LABELS, PAPER_LABELS, SIDE_LABELS, printOptionsLabel } from '../.
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 30%">Paper / color / sides</th>
-          <th style="width: 20%">Pages in order</th>
-          <th style="width: 18%">Price / page</th>
-          <th style="width: 18%">Normal price</th>
+          <th style="width: 30%">{{ 'pricing.paper_color_sides' | translate }}</th>
+          <th style="width: 20%">{{ 'pricing.pages_in_order' | translate }}</th>
+          <th style="width: 18%">{{ 'pricing.price_page' | translate }}</th>
+          <th style="width: 18%">{{ 'pricing.normal_price' | translate }}</th>
           <th style="width: 14%"></th>
         </tr>
       </ng-template>
@@ -211,14 +210,14 @@ import { COLOR_LABELS, PAPER_LABELS, SIDE_LABELS, printOptionsLabel } from '../.
             {{ fixedRateFor(tier) !== null ? '₹' + fixedRateFor(tier) : '—' }}
           </td>
           <td class="flex gap-2 justify-content-end">
-            <p-button icon="pi pi-pencil" size="small" [text]="true" (onClick)="editTier(tier)" pTooltip="Edit" />
+            <p-button icon="pi pi-pencil" size="small" [text]="true" (onClick)="editTier(tier)" [pTooltip]="'common.edit' | translate" />
             <p-button
               icon="pi pi-trash"
               size="small"
               severity="danger"
               [text]="true"
               (onClick)="confirmDeleteTier(tier)"
-              pTooltip="Remove"
+              [pTooltip]="'common.remove' | translate"
             />
           </td>
         </tr>
@@ -227,7 +226,7 @@ import { COLOR_LABELS, PAPER_LABELS, SIDE_LABELS, printOptionsLabel } from '../.
         <tr>
           <td colspan="5">
             <div class="table-empty">
-              <i class="pi pi-chart-bar"></i><span>No page ranges — every order is charged the normal price.</span>
+              <i class="pi pi-chart-bar"></i><span>{{ 'pricing.no_page_ranges_every_order_is' | translate }}</span>
             </div>
           </td>
         </tr>
@@ -291,9 +290,10 @@ export class ShopPricingComponent implements OnInit {
   readonly paperLabels: Record<string, string> = PAPER_LABELS;
   readonly colorLabels: Record<string, string> = COLOR_LABELS;
   readonly sideLabels: Record<string, string> = SIDE_LABELS;
-  readonly paperOptions = Object.entries(PAPER_LABELS).map(([value, label]) => ({ value, label }));
-  readonly colorOptions = Object.entries(COLOR_LABELS).map(([value, label]) => ({ value, label }));
-  readonly sideOptions = Object.entries(SIDE_LABELS).map(([value, label]) => ({ value, label }));
+  // Recomputed when the language changes (the label maps translate on read).
+  readonly paperOptions = computed(() => (activeLang(), Object.entries(PAPER_LABELS).map(([value, label]) => ({ value, label }))));
+  readonly colorOptions = computed(() => (activeLang(), Object.entries(COLOR_LABELS).map(([value, label]) => ({ value, label }))));
+  readonly sideOptions = computed(() => (activeLang(), Object.entries(SIDE_LABELS).map(([value, label]) => ({ value, label }))));
   readonly optionsLabel = printOptionsLabel;
 
   form: { paperSize: string; colorMode: string; sideMode: string; pricePerPage: number | null } = {
@@ -362,7 +362,7 @@ export class ShopPricingComponent implements OnInit {
       .subscribe({
         next: () => {
           this.saving.set(false);
-          this.messageService.add({ severity: 'success', summary: 'Rate saved' });
+          this.messageService.add({ severity: 'success', get summary() { return t('pricing.rate_saved'); } });
           this.cancelEdit();
           this.load();
         },
@@ -372,12 +372,12 @@ export class ShopPricingComponent implements OnInit {
 
   confirmDelete(rate: PricingRate): void {
     this.confirmationService.confirm({
-      message: `Remove the ${printOptionsLabel(rate)} price? Customers can't choose this option until you set a new price, and its page ranges are removed too.`,
-      header: 'Confirm',
+      get message() { return t('pricing.remove_the_price_customers_cant_choose', { rate: printOptionsLabel(rate) }); },
+      get header() { return t('common.confirm'); },
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.shopkeeperService.deletePricing(rate.id).subscribe(() => {
-          this.messageService.add({ severity: 'success', summary: 'Rate removed' });
+          this.messageService.add({ severity: 'success', get summary() { return t('pricing.rate_removed'); } });
           if (this.editingId() === rate.id) this.cancelEdit();
           this.load();
           this.loadTiers();
@@ -400,7 +400,7 @@ export class ShopPricingComponent implements OnInit {
   }
 
   rangeLabel(tier: PricingTier): string {
-    if (tier.maxPages === null) return `${tier.minPages} and above`;
+    if (tier.maxPages === null) return t('pricing.and_above', { minPages: tier.minPages });
     if (tier.maxPages === tier.minPages) return `${tier.minPages}`;
     return `${tier.minPages}–${tier.maxPages}`;
   }
@@ -436,11 +436,11 @@ export class ShopPricingComponent implements OnInit {
   saveTier(): void {
     const { minPages, maxPages, pricePerPage } = this.tierForm;
     if (!minPages || !pricePerPage) {
-      this.messageService.add({ severity: 'warn', summary: 'Enter "From pages" and a price per page' });
+      this.messageService.add({ severity: 'warn', get summary() { return t('pricing.enter_from_pages_and_a_price'); } });
       return;
     }
     if (maxPages !== null && maxPages < minPages) {
-      this.messageService.add({ severity: 'warn', summary: '"To pages" must be at least "From pages"' });
+      this.messageService.add({ severity: 'warn', get summary() { return t('pricing.to_pages_must_be_at_least'); } });
       return;
     }
     const range = { minPages, maxPages, pricePerPage };
@@ -457,7 +457,7 @@ export class ShopPricingComponent implements OnInit {
     request.subscribe({
       next: () => {
         this.savingTier.set(false);
-        this.messageService.add({ severity: 'success', summary: editingId ? 'Page range updated' : 'Page range added' });
+        this.messageService.add({ severity: 'success', summary: editingId ? t('pricing.page_range_updated') : t('pricing.page_range_added') });
         this.cancelTierEdit();
         this.loadTiers();
       },
@@ -467,12 +467,12 @@ export class ShopPricingComponent implements OnInit {
 
   confirmDeleteTier(tier: PricingTier): void {
     this.confirmationService.confirm({
-      message: `Remove the ${this.rangeLabel(tier)} pages range for ${printOptionsLabel(tier)}? Orders in that range will be charged the normal price.`,
-      header: 'Confirm',
+      get message() { return t('pricing.remove_the_pages_range_for_orders', { tier: this.rangeLabel(tier), tier2: printOptionsLabel(tier) }); },
+      get header() { return t('common.confirm'); },
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.shopkeeperService.deletePricingTier(tier.id).subscribe(() => {
-          this.messageService.add({ severity: 'success', summary: 'Page range removed' });
+          this.messageService.add({ severity: 'success', get summary() { return t('pricing.page_range_removed'); } });
           if (this.editingTierId() === tier.id) this.cancelTierEdit();
           this.loadTiers();
         });

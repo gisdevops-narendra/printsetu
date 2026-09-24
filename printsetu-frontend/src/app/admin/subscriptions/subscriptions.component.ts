@@ -1,4 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ScrollActiveTabDirective } from '../../shared/directives/scroll-active-tab.directive';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -7,31 +8,32 @@ import { SubPlansComponent } from './sub-plans.component';
 import { SubShopsComponent } from './sub-shops.component';
 import { SubPaymentsComponent } from './sub-payments.component';
 import { SubSettingsComponent } from './sub-settings.component';
+import { t } from '../../core/i18n/i18n';
 
 type Tab = 'overview' | 'plans' | 'shops' | 'payments' | 'settings';
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
-  { key: 'overview', label: 'Revenue', icon: 'pi-chart-line' },
-  { key: 'plans', label: 'Plans', icon: 'pi-tags' },
-  { key: 'shops', label: 'Shop subscriptions', icon: 'pi-building' },
-  { key: 'payments', label: 'Payments', icon: 'pi-receipt' },
-  { key: 'settings', label: 'Rules & reminders', icon: 'pi-sliders-h' },
+  { key: 'overview', get label() { return t('common.revenue'); }, icon: 'pi-chart-line' },
+  { key: 'plans', get label() { return t('subscriptions.plans'); }, icon: 'pi-tags' },
+  { key: 'shops', get label() { return t('subscriptions.shop_subscriptions'); }, icon: 'pi-building' },
+  { key: 'payments', get label() { return t('subscriptions.payments'); }, icon: 'pi-receipt' },
+  { key: 'settings', get label() { return t('subscriptions.rules_reminders'); }, icon: 'pi-sliders-h' },
 ];
 
 /** Admin billing hub. Only reachable by admins (route guard + API roles). */
 @Component({
   selector: 'app-subscriptions',
   standalone: true,
-  imports: [ScrollActiveTabDirective, CommonModule, SubOverviewComponent, SubPlansComponent, SubShopsComponent, SubPaymentsComponent, SubSettingsComponent],
+  imports: [TranslatePipe, ScrollActiveTabDirective, CommonModule, SubOverviewComponent, SubPlansComponent, SubShopsComponent, SubPaymentsComponent, SubSettingsComponent],
   template: `
     <div class="page-header">
       <div>
-        <h1 class="page-title">Subscriptions</h1>
-        <p class="page-subtitle m-0">Plans, shop subscriptions, payments and what happens when a payment is missed.</p>
+        <h1 class="page-title">{{ 'common.subscriptions' | translate }}</h1>
+        <p class="page-subtitle m-0">{{ 'subscriptions.plans_shop_subscriptions_payments_and_what' | translate }}</p>
       </div>
     </div>
 
-    <nav class="tabs" appScrollActiveTab role="tablist" aria-label="Subscription sections">
+    <nav class="tabs" appScrollActiveTab role="tablist" [attr.aria-label]="'subscriptions.subscription_sections' | translate">
       @for (t of tabs; track t.key) {
         <button type="button" role="tab" class="tab" [class.is-on]="tab() === t.key" [attr.aria-selected]="tab() === t.key" (click)="select(t.key)">
           <i class="pi" [ngClass]="t.icon"></i><span>{{ t.label }}</span>

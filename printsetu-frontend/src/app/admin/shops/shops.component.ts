@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -14,11 +15,12 @@ import { ConfirmationService } from 'primeng/api';
 import { AdminService } from '../../core/services/admin.service';
 import { Shop } from '../../core/models/models';
 import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
+import { t } from '../../core/i18n/i18n';
 
 @Component({
   selector: 'app-shops',
   standalone: true,
-  imports: [
+  imports: [TranslatePipe, 
     CommonModule,
     FormsModule,
     RouterLink,
@@ -34,13 +36,13 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
   template: `
     <div class="page-header">
       <div>
-        <h1 class="page-title">Shops</h1>
-        <p class="page-subtitle m-0">Every shop on the platform. Shops register themselves from the sign-in page.</p>
+        <h1 class="page-title">{{ 'common.shops' | translate }}</h1>
+        <p class="page-subtitle m-0">{{ 'adminShops.every_shop_on_the_platform_shops' | translate }}</p>
       </div>
       <div class="page-actions">
         <p-iconfield>
           <p-inputicon styleClass="pi pi-search" />
-          <input pInputText type="text" placeholder="Search" [value]="search()" (input)="onSearch($any($event.target).value)" />
+          <input pInputText type="text" [placeholder]="'common.search' | translate" [value]="search()" (input)="onSearch($any($event.target).value)" />
         </p-iconfield>
       </div>
     </div>
@@ -60,11 +62,11 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 20%" pSortableColumn="shopCode">Shop Code <p-sortIcon field="shopCode" /></th>
-          <th style="width: 24%" pSortableColumn="name">Name <p-sortIcon field="name" /></th>
-          <th style="width: 18%" pSortableColumn="ownerName">Owner <p-sortIcon field="ownerName" /></th>
-          <th style="width: 14%" pSortableColumn="city">City <p-sortIcon field="city" /></th>
-          <th style="width: 12%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
+          <th style="width: 20%" pSortableColumn="shopCode">{{ 'adminShops.shop_code' | translate }} <p-sortIcon field="shopCode" /></th>
+          <th style="width: 24%" pSortableColumn="name">{{ 'common.name' | translate }} <p-sortIcon field="name" /></th>
+          <th style="width: 18%" pSortableColumn="ownerName">{{ 'common.owner' | translate }} <p-sortIcon field="ownerName" /></th>
+          <th style="width: 14%" pSortableColumn="city">{{ 'common.city' | translate }} <p-sortIcon field="city" /></th>
+          <th style="width: 12%" pSortableColumn="status">{{ 'common.status' | translate }} <p-sortIcon field="status" /></th>
           <th style="width: 12%"></th>
         </tr>
       </ng-template>
@@ -98,7 +100,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
               size="small"
               [text]="true"
               [routerLink]="['/admin/shops', shop.id, 'qr']"
-              pTooltip="QR code"
+              [pTooltip]="'adminShops.qr_code' | translate"
             />
             <p-button
               [icon]="shop.status === 'ACTIVE' ? 'pi pi-ban' : 'pi pi-check'"
@@ -106,7 +108,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
               [text]="true"
               [severity]="shop.status === 'ACTIVE' ? 'danger' : 'success'"
               (onClick)="toggleStatus(shop)"
-              [pTooltip]="shop.status === 'ACTIVE' ? 'Deactivate' : 'Activate'"
+              [pTooltip]="shop.status === 'ACTIVE' ? ('adminShops.deactivate' | translate) : ('adminShops.activate' | translate)"
             />
           </td>
         </tr>
@@ -116,7 +118,7 @@ import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
           <td colspan="6">
             <div class="table-empty">
               <i class="pi pi-building"></i>
-              <span>No shops have registered yet.</span>
+              <span>{{ 'adminShops.no_shops_have_registered_yet' | translate }}</span>
             </div>
           </td>
         </tr>
@@ -174,7 +176,7 @@ export class ShopsComponent implements OnInit, OnDestroy {
       message: `${next === 'ACTIVE' ? 'Activate' : 'Deactivate'} "${shop.name}"? ${
         next === 'INACTIVE' ? 'Customers will no longer be able to submit new print requests.' : ''
       }`,
-      header: 'Confirm',
+      get header() { return t('common.confirm'); },
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.adminService.setShopStatus(shop.id, next).subscribe(() => this.load());

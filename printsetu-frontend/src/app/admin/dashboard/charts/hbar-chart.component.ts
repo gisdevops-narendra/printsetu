@@ -1,5 +1,6 @@
 import { Component, computed, input, output } from '@angular/core';
 import { TooltipModule } from 'primeng/tooltip';
+import { t, intlLocale } from '../../../core/i18n/i18n';
 
 export interface HBarSeries {
   name: string;
@@ -210,7 +211,7 @@ export class HBarChartComponent {
   rows = input.required<HBarRow[]>();
   series = input.required<HBarSeries[]>();
   format = input<'count' | 'inr' | 'pages'>('count');
-  emptyText = input('Nothing in this period.');
+  emptyText = input(t('adminDashboard.nothing_in_this_period'));
   /** Row labels become buttons that emit the row's id. */
   selectable = input(false);
   rowSelect = output<string>();
@@ -227,8 +228,8 @@ export class HBarChartComponent {
 
   fmt(value: number): string {
     if (this.format() === 'inr') {
-      return `₹${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      return `₹${value.toLocaleString(intlLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
-    return value.toLocaleString('en-IN');
+    return value.toLocaleString(intlLocale());
   }
 }

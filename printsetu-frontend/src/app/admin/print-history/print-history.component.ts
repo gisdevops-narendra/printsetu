@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -12,11 +13,13 @@ import { PrintJobRow } from '../../core/models/models';
 import { StatusTagComponent } from '../../shared/components/status-tag/status-tag.component';
 import { EllipsisDirective } from '../../shared/directives/ellipsis.directive';
 import { printOptionsLabel } from '../../shared/utils/print-options.util';
+import { t } from '../../core/i18n/i18n';
+import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
 
 @Component({
   selector: 'app-print-history',
   standalone: true,
-  imports: [
+  imports: [AppDatePipe, TranslatePipe, 
     CommonModule,
     TableModule,
     ButtonModule,
@@ -30,23 +33,23 @@ import { printOptionsLabel } from '../../shared/utils/print-options.util';
   template: `
     <div class="page-header">
       <div>
-        <h1 class="page-title">Print History</h1>
-        <p class="page-subtitle m-0">All orders across every shop, most recent first.</p>
+        <h1 class="page-title">{{ 'adminHistory.print_history' | translate }}</h1>
+        <p class="page-subtitle m-0">{{ 'adminHistory.all_orders_across_every_shop_most' | translate }}</p>
       </div>
       <div class="page-actions">
         <p-iconfield>
           <p-inputicon styleClass="pi pi-search" />
-          <input pInputText type="text" placeholder="Search" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+          <input pInputText type="text" [placeholder]="'common.search' | translate" (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
         </p-iconfield>
         <p-button
-          label="Clear"
+          [label]="'common.clear' | translate"
           icon="pi pi-trash"
           size="small"
           severity="danger"
           [outlined]="true"
           [disabled]="jobs().length === 0"
           (onClick)="confirmClear()"
-          pTooltip="Permanently deletes completed and cancelled orders across all shops. Orders still in progress are kept."
+          [pTooltip]="'adminHistory.permanently_deletes_completed_and_cancelled_orders' | translate"
         />
       </div>
     </div>
@@ -66,13 +69,13 @@ import { printOptionsLabel } from '../../shared/utils/print-options.util';
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 8%" pSortableColumn="tokenNumber">Order no. <p-sortIcon field="tokenNumber" /></th>
-          <th style="width: 14%" pSortableColumn="shop.name">Shop <p-sortIcon field="shop.name" /></th>
-          <th style="width: 20%">Documents</th>
-          <th style="width: 16%; border-left: 1px solid var(--bd-f1f5f9)">Options</th>
-          <th style="width: 9%" pSortableColumn="amount">Amount <p-sortIcon field="amount" /></th>
-          <th style="width: 14%" pSortableColumn="status">Status <p-sortIcon field="status" /></th>
-          <th style="width: 19%" pSortableColumn="createdAt">Created <p-sortIcon field="createdAt" /></th>
+          <th style="width: 8%" pSortableColumn="tokenNumber">{{ 'common.order_no' | translate }} <p-sortIcon field="tokenNumber" /></th>
+          <th style="width: 14%" pSortableColumn="shop.name">{{ 'common.shop' | translate }} <p-sortIcon field="shop.name" /></th>
+          <th style="width: 20%">{{ 'common.documents' | translate }}</th>
+          <th style="width: 16%; border-left: 1px solid var(--bd-f1f5f9)">{{ 'common.options' | translate }}</th>
+          <th style="width: 9%" pSortableColumn="amount">{{ 'common.amount' | translate }} <p-sortIcon field="amount" /></th>
+          <th style="width: 14%" pSortableColumn="status">{{ 'common.status' | translate }} <p-sortIcon field="status" /></th>
+          <th style="width: 19%" pSortableColumn="createdAt">{{ 'common.created' | translate }} <p-sortIcon field="createdAt" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-job>
@@ -101,13 +104,13 @@ import { printOptionsLabel } from '../../shared/utils/print-options.util';
           </td>
           <td data-label="Amount">{{ job.currency }} {{ job.amount }}</td>
           <td data-label="Status"><app-status-tag [status]="job.status" /></td>
-          <td data-label="Created">{{ job.createdAt | date: 'medium' }}</td>
+          <td data-label="Created">{{ job.createdAt | appDate: 'medium' }}</td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
         <tr>
           <td colspan="7">
-            <div class="table-empty"><i class="pi pi-history"></i><span>No orders yet.</span></div>
+            <div class="table-empty"><i class="pi pi-history"></i><span>{{ 'adminHistory.no_orders_yet' | translate }}</span></div>
           </td>
         </tr>
       </ng-template>
@@ -145,13 +148,12 @@ export class PrintHistoryComponent implements OnInit {
 
   confirmClear(): void {
     this.confirmationService.confirm({
-      message:
-        'Permanently delete completed and cancelled orders across every shop? Orders still in progress are kept. This cannot be undone.',
-      header: 'Clear print history',
+      get message() { return t('adminHistory.permanently_delete_completed_and_cancelled_orders'); },
+      get header() { return t('adminHistory.clear_print_history'); },
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.adminService.clearPrintHistory().subscribe((res) => {
-          this.messageService.add({ severity: 'success', summary: `Cleared ${res.cleared} order(s)` });
+          this.messageService.add({ severity: 'success', get summary() { return t('adminHistory.cleared_order_s', { cleared: res.cleared }); } });
           this.load();
         });
       },

@@ -1,10 +1,13 @@
 import { Component, ElementRef, ViewChild, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthService, PasswordChangeRequiredError } from '../../core/auth/auth.service';
 import { environment } from '../../../environments/environment';
+import { t } from '../../core/i18n/i18n';
+import { LanguagePickerComponent } from '../../shared/components/app-header/language-picker.component';
 
 type RegField = 'shopName' | 'ownerName' | 'email' | 'mobile' | 'address' | 'city' | 'password' | 'confirm';
 
@@ -32,9 +35,11 @@ interface DemoAccount {
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [TranslatePipe, CommonModule, FormsModule, LanguagePickerComponent],
   template: `
     <div class="auth">
+      <!-- Language can be picked before signing in (remembered in this browser). -->
+      <app-language-picker class="lang-corner" />
       <!-- ================= Brand ================= -->
       <aside class="brand">
         <div class="brand__glow brand__glow--a" aria-hidden="true"></div>
@@ -58,31 +63,31 @@ interface DemoAccount {
         </div>
 
         <div class="brand__body">
-          <h2 class="brand__headline">Print, without the wait.</h2>
+          <h2 class="brand__headline">{{ 'login.print_without_the_wait' | translate }}</h2>
           <p class="brand__desc">
-            PrintSetu connects customers and print shops. Scan a code, upload a file, and it lands in the shop's print orders, ready to print.
+            {{ 'login.printsetu_connects_customers_and_print_shops' | translate }}
           </p>
 
           <ul class="points">
-            <li><i class="pi pi-qrcode"></i><span>Customers upload from their phone with a QR code</span></li>
-            <li><i class="pi pi-inbox"></i><span>Live print orders with previews and quick edits</span></li>
-            <li><i class="pi pi-print"></i><span>Orders go to your printer automatically</span></li>
+            <li><i class="pi pi-qrcode"></i><span>{{ 'login.customers_upload_from_their_phone_with' | translate }}</span></li>
+            <li><i class="pi pi-inbox"></i><span>{{ 'login.live_print_orders_with_previews_and' | translate }}</span></li>
+            <li><i class="pi pi-print"></i><span>{{ 'login.orders_go_to_your_printer_automatically' | translate }}</span></li>
           </ul>
 
           <div class="visual" aria-hidden="true">
             <div class="glass glass--a">
               <span class="glass__icon glass__icon--ok"><i class="pi pi-check"></i></span>
-              <div class="glass__text"><b>#42 &middot; Invoice_Sep.pdf</b><small>A4 &middot; B&amp;W &middot; 2 copies</small></div>
-              <span class="tag">Ready to print</span>
+              <div class="glass__text"><b>{{ 'login.42_invoice_sep_pdf' | translate }}</b><small>{{ 'login.a4_b_w_2_copies' | translate }}</small></div>
+              <span class="tag">{{ 'login.ready_to_print' | translate }}</span>
             </div>
             <div class="glass glass--b">
               <span class="qrmini"></span>
-              <div class="glass__text"><b>Scan to print</b><small>No app, no sign-up</small></div>
+              <div class="glass__text"><b>{{ 'login.scan_to_print' | translate }}</b><small>{{ 'login.no_app_no_sign_up' | translate }}</small></div>
             </div>
           </div>
         </div>
 
-        <p class="brand__foot">Trusted by print shops everywhere</p>
+        <p class="brand__foot">{{ 'login.trusted_by_print_shops_everywhere' | translate }}</p>
       </aside>
 
       <!-- ================= Form ================= -->
@@ -90,14 +95,14 @@ interface DemoAccount {
         <div class="sheet">
           @if (mode() === 'login') {
             <header class="sheet__head">
-              <h1 class="sheet__title">Welcome back</h1>
-              <p class="sheet__sub">Sign in to manage your print orders.</p>
+              <h1 class="sheet__title">{{ 'login.welcome_back' | translate }}</h1>
+              <p class="sheet__sub">{{ 'login.sign_in_to_manage_your_print' | translate }}</p>
             </header>
 
             <form (ngSubmit)="submit()" novalidate class="form" [class.is-busy]="loading()">
               <!-- Email -->
               <div class="field" [class.has-error]="showUsernameError()">
-                <label class="field__label" for="username">Email or username</label>
+                <label class="field__label" for="username">{{ 'login.email_or_username' | translate }}</label>
                 <div class="control">
                   <i class="pi pi-user control__icon" aria-hidden="true"></i>
                   <input
@@ -106,7 +111,7 @@ interface DemoAccount {
                     name="username"
                     type="text"
                     class="control__input"
-                    placeholder="you@shop.com"
+                    [placeholder]="'login.you_shop_com' | translate"
                     autocomplete="username"
                     autocapitalize="none"
                     autocorrect="off"
@@ -120,15 +125,15 @@ interface DemoAccount {
                   />
                 </div>
                 @if (showUsernameError()) {
-                  <p class="field__error" id="username-error"><i class="pi pi-info-circle"></i> Enter your email or username.</p>
+                  <p class="field__error" id="username-error"><i class="pi pi-info-circle"></i> {{ 'login.enter_your_email_or_username' | translate }}</p>
                 }
               </div>
 
               <!-- Password -->
               <div class="field" [class.has-error]="showPasswordError()">
                 <div class="field__row">
-                  <label class="field__label" for="password">Password</label>
-                  <button type="button" class="link" (click)="helpOpen.set(!helpOpen())" [attr.aria-expanded]="helpOpen()">Forgot password?</button>
+                  <label class="field__label" for="password">{{ 'login.password' | translate }}</label>
+                  <button type="button" class="link" (click)="helpOpen.set(!helpOpen())" [attr.aria-expanded]="helpOpen()">{{ 'login.forgot_password' | translate }}</button>
                 </div>
                 <div class="control">
                   <i class="pi pi-lock control__icon" aria-hidden="true"></i>
@@ -137,7 +142,7 @@ interface DemoAccount {
                     id="password"
                     name="password"
                     class="control__input control__input--pw"
-                    placeholder="Your password"
+                    [placeholder]="'login.your_password' | translate"
                     autocomplete="current-password"
                     [type]="showPassword() ? 'text' : 'password'"
                     [(ngModel)]="password"
@@ -148,19 +153,19 @@ interface DemoAccount {
                     [attr.aria-invalid]="showPasswordError()"
                     [attr.aria-describedby]="showPasswordError() ? 'password-error' : null"
                   />
-                  <button type="button" class="control__toggle" (click)="showPassword.set(!showPassword())" [attr.aria-pressed]="showPassword()" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+                  <button type="button" class="control__toggle" (click)="showPassword.set(!showPassword())" [attr.aria-pressed]="showPassword()" [attr.aria-label]="showPassword() ? ('login.hide_password' | translate) : ('login.show_password' | translate)">
                     <i class="pi" [ngClass]="showPassword() ? 'pi-eye-slash' : 'pi-eye'"></i>
                   </button>
                 </div>
                 @if (showPasswordError()) {
-                  <p class="field__error" id="password-error"><i class="pi pi-info-circle"></i> Enter your password.</p>
+                  <p class="field__error" id="password-error"><i class="pi pi-info-circle"></i> {{ 'login.enter_your_password' | translate }}</p>
                 } @else if (capsOn()) {
-                  <p class="field__hint"><i class="pi pi-exclamation-triangle"></i> Caps Lock is on</p>
+                  <p class="field__hint"><i class="pi pi-exclamation-triangle"></i> {{ 'login.caps_lock_is_on' | translate }}</p>
                 }
                 @if (helpOpen()) {
                   <p class="help" role="note">
                     <i class="pi pi-info-circle"></i>
-                    Passwords are managed by your administrator. Ask them to reset yours, then sign in with the new one.
+                    {{ 'login.passwords_are_managed_by_your_administrator' | translate }}
                   </p>
                 }
               </div>
@@ -176,9 +181,9 @@ interface DemoAccount {
               <button type="submit" class="submit" [disabled]="loading()">
                 @if (loading()) {
                   <span class="spinner" aria-hidden="true"></span>
-                  <span>Signing in…</span>
+                  <span>{{ 'login.signing_in' | translate }}</span>
                 } @else {
-                  <span>Sign in</span>
+                  <span>{{ 'login.sign_in' | translate }}</span>
                   <i class="pi pi-arrow-right"></i>
                 }
               </button>
@@ -186,7 +191,7 @@ interface DemoAccount {
 
             @if (demoAccounts.length) {
               <div class="demo">
-                <p class="demo__label"><span>Demo accounts</span></p>
+                <p class="demo__label"><span>{{ 'login.demo_accounts' | translate }}</span></p>
                 <div class="demo__row">
                   @for (d of demoAccounts; track d.label) {
                     <button type="button" class="chip" (click)="useDemo(d)">
@@ -198,26 +203,26 @@ interface DemoAccount {
             }
 
             <p class="switch">
-              New to PrintSetu?
-              <button type="button" class="link" (click)="startRegister()">Create account / Register shop</button>
+              {{ 'login.new_to_printsetu' | translate }}
+              <button type="button" class="link" (click)="startRegister()">{{ 'login.create_account_register_shop' | translate }}</button>
             </p>
 
             <p class="secure">
               <i class="pi pi-lock"></i>
-              {{ secureConnection ? 'Encrypted connection' : 'Private session' }} &middot; you stay signed in until you sign out
+              {{ 'login.you_stay_signed_in_until_you' | translate: { connection: (secureConnection ? ('login.encrypted_connection' | translate) : ('login.private_session' | translate)) } }}
             </p>
           } @else if (mode() === 'register') {
             <header class="sheet__head">
-              <h1 class="sheet__title">Register your shop</h1>
-              <p class="sheet__sub">Create your shop and your sign-in in one step. You'll choose your own password.</p>
+              <h1 class="sheet__title">{{ 'login.register_your_shop' | translate }}</h1>
+              <p class="sheet__sub">{{ 'login.create_your_shop_and_your_sign' | translate }}</p>
             </header>
 
             <form (ngSubmit)="submitRegister()" novalidate class="form" [class.is-busy]="loading()">
               <div class="field" [class.has-error]="showRegError('shopName')">
-                <label class="field__label" for="regShopName">Shop name</label>
+                <label class="field__label" for="regShopName">{{ 'login.shop_name' | translate }}</label>
                 <div class="control">
                   <i class="pi pi-shop control__icon" aria-hidden="true"></i>
-                  <input #regFirstInput id="regShopName" name="regShopName" type="text" class="control__input" placeholder="e.g. Sai Xerox &amp; Prints" autocomplete="organization" [(ngModel)]="reg.shopName" (blur)="touchReg('shopName')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('shopName')" />
+                  <input #regFirstInput id="regShopName" name="regShopName" type="text" class="control__input" [placeholder]="'login.e_g_sai_xerox_prints' | translate" autocomplete="organization" [(ngModel)]="reg.shopName" (blur)="touchReg('shopName')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('shopName')" />
                 </div>
                 @if (showRegError('shopName')) {
                   <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('shopName') }}</p>
@@ -225,10 +230,10 @@ interface DemoAccount {
               </div>
 
               <div class="field" [class.has-error]="showRegError('ownerName')">
-                <label class="field__label" for="regOwnerName">Your name</label>
+                <label class="field__label" for="regOwnerName">{{ 'login.your_name' | translate }}</label>
                 <div class="control">
                   <i class="pi pi-user control__icon" aria-hidden="true"></i>
-                  <input id="regOwnerName" name="regOwnerName" type="text" class="control__input" placeholder="Shop owner's full name" autocomplete="name" [(ngModel)]="reg.ownerName" (blur)="touchReg('ownerName')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('ownerName')" />
+                  <input id="regOwnerName" name="regOwnerName" type="text" class="control__input" [placeholder]="'login.shop_owners_full_name' | translate" autocomplete="name" [(ngModel)]="reg.ownerName" (blur)="touchReg('ownerName')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('ownerName')" />
                 </div>
                 @if (showRegError('ownerName')) {
                   <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('ownerName') }}</p>
@@ -236,23 +241,23 @@ interface DemoAccount {
               </div>
 
               <div class="field" [class.has-error]="showRegError('email')">
-                <label class="field__label" for="regEmail">Email</label>
+                <label class="field__label" for="regEmail">{{ 'common.email' | translate }}</label>
                 <div class="control">
                   <i class="pi pi-envelope control__icon" aria-hidden="true"></i>
-                  <input id="regEmail" name="regEmail" type="email" class="control__input" placeholder="you@shop.com" autocomplete="email" autocapitalize="none" spellcheck="false" [(ngModel)]="reg.email" (blur)="touchReg('email')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('email')" />
+                  <input id="regEmail" name="regEmail" type="email" class="control__input" [placeholder]="'login.you_shop_com' | translate" autocomplete="email" autocapitalize="none" spellcheck="false" [(ngModel)]="reg.email" (blur)="touchReg('email')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('email')" />
                 </div>
                 @if (showRegError('email')) {
                   <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('email') }}</p>
                 } @else {
-                  <p class="field__note">You'll sign in with this email.</p>
+                  <p class="field__note">{{ 'login.youll_sign_in_with_this_email' | translate }}</p>
                 }
               </div>
 
               <div class="field" [class.has-error]="showRegError('mobile')">
-                <label class="field__label" for="regMobile">Mobile</label>
+                <label class="field__label" for="regMobile">{{ 'login.mobile' | translate }}</label>
                 <div class="control">
                   <i class="pi pi-phone control__icon" aria-hidden="true"></i>
-                  <input id="regMobile" name="regMobile" type="tel" inputmode="tel" class="control__input" placeholder="10-digit mobile number" autocomplete="tel" [(ngModel)]="reg.mobile" (blur)="touchReg('mobile')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('mobile')" />
+                  <input id="regMobile" name="regMobile" type="tel" inputmode="tel" class="control__input" [placeholder]="'login.10_digit_mobile_number' | translate" autocomplete="tel" [(ngModel)]="reg.mobile" (blur)="touchReg('mobile')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('mobile')" />
                 </div>
                 @if (showRegError('mobile')) {
                   <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('mobile') }}</p>
@@ -260,10 +265,10 @@ interface DemoAccount {
               </div>
 
               <div class="field" [class.has-error]="showRegError('address')">
-                <label class="field__label" for="regAddress">Shop address</label>
+                <label class="field__label" for="regAddress">{{ 'login.shop_address' | translate }}</label>
                 <div class="control">
                   <i class="pi pi-map-marker control__icon" aria-hidden="true"></i>
-                  <input id="regAddress" name="regAddress" type="text" class="control__input" placeholder="Shop no., street, area" autocomplete="street-address" [(ngModel)]="reg.address" (blur)="touchReg('address')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('address')" />
+                  <input id="regAddress" name="regAddress" type="text" class="control__input" [placeholder]="'login.shop_no_street_area' | translate" autocomplete="street-address" [(ngModel)]="reg.address" (blur)="touchReg('address')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('address')" />
                 </div>
                 @if (showRegError('address')) {
                   <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('address') }}</p>
@@ -271,10 +276,10 @@ interface DemoAccount {
               </div>
 
               <div class="field" [class.has-error]="showRegError('city')">
-                <label class="field__label" for="regCity">City</label>
+                <label class="field__label" for="regCity">{{ 'common.city' | translate }}</label>
                 <div class="control">
                   <i class="pi pi-building control__icon" aria-hidden="true"></i>
-                  <input id="regCity" name="regCity" type="text" class="control__input" placeholder="City" autocomplete="address-level2" [(ngModel)]="reg.city" (blur)="touchReg('city')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('city')" />
+                  <input id="regCity" name="regCity" type="text" class="control__input" [placeholder]="'common.city' | translate" autocomplete="address-level2" [(ngModel)]="reg.city" (blur)="touchReg('city')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('city')" />
                 </div>
                 @if (showRegError('city')) {
                   <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('city') }}</p>
@@ -282,26 +287,26 @@ interface DemoAccount {
               </div>
 
               <div class="field" [class.has-error]="showRegError('password')">
-                <label class="field__label" for="regPassword">Password</label>
+                <label class="field__label" for="regPassword">{{ 'login.password' | translate }}</label>
                 <div class="control">
                   <i class="pi pi-lock control__icon" aria-hidden="true"></i>
-                  <input id="regPassword" name="regPassword" class="control__input control__input--pw" placeholder="At least 8 characters" autocomplete="new-password" [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="reg.password" (blur)="touchReg('password')" (ngModelChange)="clearError()" (keyup)="checkCaps($event)" (keydown)="checkCaps($event)" [attr.aria-invalid]="showRegError('password')" />
-                  <button type="button" class="control__toggle" (click)="showPassword.set(!showPassword())" [attr.aria-pressed]="showPassword()" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+                  <input id="regPassword" name="regPassword" class="control__input control__input--pw" [placeholder]="'login.at_least_8_characters' | translate" autocomplete="new-password" [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="reg.password" (blur)="touchReg('password')" (ngModelChange)="clearError()" (keyup)="checkCaps($event)" (keydown)="checkCaps($event)" [attr.aria-invalid]="showRegError('password')" />
+                  <button type="button" class="control__toggle" (click)="showPassword.set(!showPassword())" [attr.aria-pressed]="showPassword()" [attr.aria-label]="showPassword() ? ('login.hide_password' | translate) : ('login.show_password' | translate)">
                     <i class="pi" [ngClass]="showPassword() ? 'pi-eye-slash' : 'pi-eye'"></i>
                   </button>
                 </div>
                 @if (showRegError('password')) {
                   <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('password') }}</p>
                 } @else if (capsOn()) {
-                  <p class="field__hint"><i class="pi pi-exclamation-triangle"></i> Caps Lock is on</p>
+                  <p class="field__hint"><i class="pi pi-exclamation-triangle"></i> {{ 'login.caps_lock_is_on' | translate }}</p>
                 }
               </div>
 
               <div class="field" [class.has-error]="showRegError('confirm')">
-                <label class="field__label" for="regConfirm">Confirm password</label>
+                <label class="field__label" for="regConfirm">{{ 'login.confirm_password' | translate }}</label>
                 <div class="control">
                   <i class="pi pi-lock control__icon" aria-hidden="true"></i>
-                  <input id="regConfirm" name="regConfirm" class="control__input" placeholder="Type it again" autocomplete="new-password" [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="reg.confirm" (blur)="touchReg('confirm')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('confirm')" />
+                  <input id="regConfirm" name="regConfirm" class="control__input" [placeholder]="'login.type_it_again' | translate" autocomplete="new-password" [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="reg.confirm" (blur)="touchReg('confirm')" (ngModelChange)="clearError()" [attr.aria-invalid]="showRegError('confirm')" />
                 </div>
                 @if (showRegError('confirm')) {
                   <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('confirm') }}</p>
@@ -318,27 +323,27 @@ interface DemoAccount {
               <button type="submit" class="submit" [disabled]="loading()">
                 @if (loading()) {
                   <span class="spinner" aria-hidden="true"></span>
-                  <span>Creating your shop…</span>
+                  <span>{{ 'login.creating_your_shop' | translate }}</span>
                 } @else {
-                  <span>Create account</span>
+                  <span>{{ 'login.create_account' | translate }}</span>
                   <i class="pi pi-arrow-right"></i>
                 }
               </button>
             </form>
 
             <p class="switch">
-              Already registered?
-              <button type="button" class="link" (click)="backToLogin()">Sign in</button>
+              {{ 'login.already_registered' | translate }}
+              <button type="button" class="link" (click)="backToLogin()">{{ 'login.sign_in' | translate }}</button>
             </p>
           } @else {
             <header class="sheet__head">
-              <h1 class="sheet__title">Set a new password</h1>
-              <p class="sheet__sub">This account still has the temporary password your administrator issued. Choose a new one to continue.</p>
+              <h1 class="sheet__title">{{ 'login.set_a_new_password' | translate }}</h1>
+              <p class="sheet__sub">{{ 'login.this_account_still_has_the_temporary' | translate }}</p>
             </header>
 
             <form (ngSubmit)="submitPasswordChange()" novalidate class="form" [class.is-busy]="loading()">
               <div class="field" [class.has-error]="showNewPasswordError()">
-                <label class="field__label" for="newPassword">New password</label>
+                <label class="field__label" for="newPassword">{{ 'login.new_password' | translate }}</label>
                 <div class="control">
                   <i class="pi pi-lock control__icon" aria-hidden="true"></i>
                   <input
@@ -346,7 +351,7 @@ interface DemoAccount {
                     id="newPassword"
                     name="newPassword"
                     class="control__input control__input--pw"
-                    placeholder="At least 8 characters"
+                    [placeholder]="'login.at_least_8_characters' | translate"
                     autocomplete="new-password"
                     [type]="showPassword() ? 'text' : 'password'"
                     [(ngModel)]="newPassword"
@@ -354,7 +359,7 @@ interface DemoAccount {
                     (ngModelChange)="clearError()"
                     [attr.aria-invalid]="showNewPasswordError()"
                   />
-                  <button type="button" class="control__toggle" (click)="showPassword.set(!showPassword())" [attr.aria-pressed]="showPassword()" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+                  <button type="button" class="control__toggle" (click)="showPassword.set(!showPassword())" [attr.aria-pressed]="showPassword()" [attr.aria-label]="showPassword() ? ('login.hide_password' | translate) : ('login.show_password' | translate)">
                     <i class="pi" [ngClass]="showPassword() ? 'pi-eye-slash' : 'pi-eye'"></i>
                   </button>
                 </div>
@@ -364,14 +369,14 @@ interface DemoAccount {
               </div>
 
               <div class="field" [class.has-error]="showConfirmPasswordError()">
-                <label class="field__label" for="confirmPassword">Confirm new password</label>
+                <label class="field__label" for="confirmPassword">{{ 'login.confirm_new_password' | translate }}</label>
                 <div class="control">
                   <i class="pi pi-lock control__icon" aria-hidden="true"></i>
                   <input
                     id="confirmPassword"
                     name="confirmPassword"
                     class="control__input"
-                    placeholder="Type it again"
+                    [placeholder]="'login.type_it_again' | translate"
                     autocomplete="new-password"
                     [type]="showPassword() ? 'text' : 'password'"
                     [(ngModel)]="confirmPassword"
@@ -381,7 +386,7 @@ interface DemoAccount {
                   />
                 </div>
                 @if (showConfirmPasswordError()) {
-                  <p class="field__error"><i class="pi pi-info-circle"></i> Passwords don't match.</p>
+                  <p class="field__error"><i class="pi pi-info-circle"></i> {{ 'login.passwords_dont_match' | translate }}</p>
                 }
               </div>
 
@@ -395,14 +400,14 @@ interface DemoAccount {
               <button type="submit" class="submit" [disabled]="loading()">
                 @if (loading()) {
                   <span class="spinner" aria-hidden="true"></span>
-                  <span>Setting password…</span>
+                  <span>{{ 'login.setting_password' | translate }}</span>
                 } @else {
-                  <span>Set password and sign in</span>
+                  <span>{{ 'login.set_password_and_sign_in' | translate }}</span>
                   <i class="pi pi-arrow-right"></i>
                 }
               </button>
 
-              <button type="button" class="link" (click)="cancelPasswordChange()">&larr; Back to sign in</button>
+              <button type="button" class="link" (click)="cancelPasswordChange()">{{ 'login.back_to_sign_in' | translate }}</button>
             </form>
           }
         </div>
@@ -411,8 +416,15 @@ interface DemoAccount {
   `,
   styles: [
     `
+      .lang-corner {
+        position: absolute;
+        top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+        right: 0.75rem;
+        z-index: 5;
+      }
       :host {
         display: block;
+        position: relative;
         height: 100vh;
         height: 100dvh;
         overflow: hidden; /* the document itself must never scroll */
@@ -441,7 +453,7 @@ interface DemoAccount {
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: auto 1fr;
         background: #fff;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-family: 'Inter', 'Noto Sans Devanagari', 'Noto Sans Gujarati', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         color: var(--ink);
       }
 
@@ -1287,8 +1299,8 @@ export class LoginComponent {
   readonly demoAccounts: DemoAccount[] = environment.production
     ? []
     : [
-        { label: 'Admin', icon: 'pi-shield', username: 'admin', password: 'admin' },
-        { label: 'Shopkeeper', icon: 'pi-shop', username: 'shopkeeper.demo@printsetu.local', password: 'Shop@12345' },
+        { get label() { return t('login.admin'); }, icon: 'pi-shield', username: 'admin', password: 'admin' },
+        { get label() { return t('login.shopkeeper'); }, icon: 'pi-shop', username: 'shopkeeper.demo@printsetu.local', password: 'Shop@12345' },
       ];
 
   constructor(
@@ -1364,9 +1376,9 @@ export class LoginComponent {
   }
 
   newPasswordErrorText(): string {
-    if (!this.newPassword) return 'Enter a new password.';
-    if (this.newPassword.length < 8) return 'Password must be at least 8 characters.';
-    if (this.newPassword === this.password) return 'Choose a password different from the temporary one.';
+    if (!this.newPassword) return t('login.enter_a_new_password');
+    if (this.newPassword.length < 8) return t('login.password_must_be_at_least_8');
+    if (this.newPassword === this.password) return t('login.choose_a_password_different_from_the');
     return '';
   }
 
@@ -1437,25 +1449,25 @@ export class LoginComponent {
     const value = this.reg[field].trim();
     switch (field) {
       case 'shopName':
-        return value ? '' : 'Enter your shop name.';
+        return value ? '' : t('login.enter_your_shop_name');
       case 'ownerName':
-        return value ? '' : 'Enter your name.';
+        return value ? '' : t('login.enter_your_name');
       case 'email':
-        if (!value) return 'Enter your email.';
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? '' : 'Enter a valid email address.';
+        if (!value) return t('login.enter_your_email');
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? '' : t('login.enter_a_valid_email_address');
       case 'mobile':
-        if (!value) return 'Enter your mobile number.';
-        return /^\+?[\d\s-]{10,15}$/.test(value) ? '' : 'Enter a valid mobile number.';
+        if (!value) return t('login.enter_your_mobile_number');
+        return /^\+?[\d\s-]{10,15}$/.test(value) ? '' : t('login.enter_a_valid_mobile_number');
       case 'address':
-        return value ? '' : 'Enter your shop address.';
+        return value ? '' : t('login.enter_your_shop_address');
       case 'city':
-        return value ? '' : 'Enter your city.';
+        return value ? '' : t('login.enter_your_city');
       case 'password':
-        if (!this.reg.password) return 'Choose a password.';
-        return this.reg.password.length >= 8 ? '' : 'Password must be at least 8 characters.';
+        if (!this.reg.password) return t('login.choose_a_password');
+        return this.reg.password.length >= 8 ? '' : t('login.password_must_be_at_least_8');
       case 'confirm':
-        if (!this.reg.confirm) return 'Type your password again.';
-        return this.reg.confirm === this.reg.password ? '' : "Passwords don't match.";
+        if (!this.reg.confirm) return t('login.type_your_password_again');
+        return this.reg.confirm === this.reg.password ? '' : t('login.passwords_dont_match');
     }
   }
 
@@ -1495,29 +1507,29 @@ export class LoginComponent {
 
   private describeRegistration(err: unknown): string {
     if (err instanceof HttpErrorResponse) {
-      if (err.status === 0) return "We can't reach the server. Check your internet connection and try again.";
-      if (err.status === 429) return 'Too many attempts. Please wait a minute and try again.';
-      if (err.status === 409) return err.error?.message || 'An account with this email already exists. Sign in instead.';
+      if (err.status === 0) return t('login.we_cant_reach_the_server_check');
+      if (err.status === 429) return t('login.too_many_attempts_please_wait_a');
+      if (err.status === 409) return err.error?.message || t('login.an_account_with_this_email_already');
       if (err.status === 400) {
         const message = err.error?.message;
-        return (Array.isArray(message) ? message[0] : message) || 'Please check your details and try again.';
+        return (Array.isArray(message) ? message[0] : message) || t('login.please_check_your_details_and_try');
       }
-      return 'Something went wrong on our side. Please try again in a moment.';
+      return t('login.something_went_wrong_on_our_side');
     }
     if (err instanceof Error) return err.message;
-    return "We couldn't create your account. Please try again.";
+    return t('login.we_couldnt_create_your_account_please');
   }
 
   /** Human, specific-enough messages; never leaks which of the two fields was wrong. */
   private describe(err: unknown): string {
     if (err instanceof HttpErrorResponse) {
-      if (err.status === 0) return "We can't reach the server. Check your internet connection and try again.";
-      if (err.status === 429) return 'Too many sign-in attempts. Please wait a minute and try again.';
-      if (err.status >= 500) return 'Something went wrong on our side. Please try again in a moment.';
-      if (err.status === 400) return err.error?.message || 'That password is not valid. Please try a different one.';
-      return "That email or password doesn't match. Please check and try again.";
+      if (err.status === 0) return t('login.we_cant_reach_the_server_check');
+      if (err.status === 429) return t('login.too_many_sign_in_attempts_please');
+      if (err.status >= 500) return t('login.something_went_wrong_on_our_side');
+      if (err.status === 400) return err.error?.message || t('login.that_password_is_not_valid_please');
+      return t('login.that_email_or_password_doesnt_match');
     }
     if (err instanceof Error) return err.message;
-    return "We couldn't sign you in. Please try again.";
+    return t('login.we_couldnt_sign_you_in_please');
   }
 }

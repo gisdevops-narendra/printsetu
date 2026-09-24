@@ -6,6 +6,7 @@
  */
 
 import type { ColorEffect, FitMode } from './editor-core';
+import { t } from '../../../core/i18n/i18n';
 
 const PRESETS_KEY = 'printsetu.editor.presets.v1';
 const STAMP_KEY = 'printsetu.editor.stamp.v1';
@@ -44,21 +45,21 @@ export interface EditorPreset {
 export const BUILTIN_PRESETS: EditorPreset[] = [
   {
     id: 'builtin-scan',
-    name: 'Clean document scan',
+    get name() { return t('imageEditor.clean_document_scan'); },
     builtin: true,
     adjust: { brightness: 12, contrast: 35, saturation: 0, effect: 'bw' },
     layout: { fitMode: 'fit', marginMm: 8, borderMm: 0, borderColor: '#000000' },
   },
   {
     id: 'builtin-photo',
-    name: 'Vivid photo',
+    get name() { return t('imageEditor.vivid_photo'); },
     builtin: true,
     adjust: { brightness: 4, contrast: 12, saturation: 22, effect: 'none' },
     layout: { fitMode: 'fill', marginMm: 0, borderMm: 0, borderColor: '#000000' },
   },
   {
     id: 'builtin-id',
-    name: 'Grayscale ID copy',
+    get name() { return t('imageEditor.grayscale_id_copy'); },
     builtin: true,
     adjust: { brightness: 6, contrast: 20, saturation: 0, effect: 'grayscale' },
     layout: { fitMode: 'fit', marginMm: 10, borderMm: 0.5, borderColor: '#000000' },

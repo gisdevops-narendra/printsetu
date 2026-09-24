@@ -1,10 +1,14 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { PrintJobRow, PrintJobStatus } from '../../core/models/models';
 import { StatusTagComponent } from '../../shared/components/status-tag/status-tag.component';
 import { rupees } from './profile.util';
+import { t } from '../../core/i18n/i18n';
+import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
+import { TranslateCountPipe } from '../../core/i18n/translate-count.pipe';
 
 type Filter = 'all' | 'progress' | 'completed' | 'failed' | 'cancelled';
 
@@ -21,22 +25,22 @@ const PAGE = 8;
 @Component({
   selector: 'app-profile-history',
   standalone: true,
-  imports: [CommonModule, RouterLink, StatusTagComponent],
+  imports: [TranslateCountPipe, AppDatePipe, TranslatePipe, CommonModule, RouterLink, StatusTagComponent],
   template: `
     <section class="pf-card">
       <header class="pf-card__head">
         <div>
-          <h3 class="pf-eyebrow">Order history</h3>
+          <h3 class="pf-eyebrow">{{ 'profile.order_history' | translate }}</h3>
           @if (!loading() && total() > 0) {
-            <p class="summary">Showing your latest {{ jobs().length }}{{ total() > jobs().length ? ' of ' + total() : '' }} orders</p>
+            <p class="summary">{{ total() > jobs().length ? ('profile.showing_latest_of' | translate: { shown: jobs().length, total: total() }) : ('profile.showing_latest' | translate: { shown: jobs().length }) }}</p>
           }
         </div>
-        <a routerLink="/shop/history" class="pf-btn">Full history <i class="pi pi-arrow-right"></i></a>
+        <a routerLink="/shop/history" class="pf-btn">{{ 'profile.full_history' | translate }} <i class="pi pi-arrow-right"></i></a>
       </header>
 
       <!-- filters + search -->
       <div class="toolbar">
-        <div class="chips" role="tablist" aria-label="Filter by status">
+        <div class="chips" role="tablist" [attr.aria-label]="'profile.filter_by_status' | translate">
           @for (f of filters; track f.key) {
             <button type="button" role="tab" class="chip" [class.is-on]="filter() === f.key" [attr.aria-selected]="filter() === f.key" (click)="setFilter(f.key)">
               {{ f.label }}<span class="chip__n">{{ counts()[f.key] }}</span>
@@ -45,7 +49,7 @@ const PAGE = 8;
         </div>
         <label class="search">
           <i class="pi pi-search"></i>
-          <input type="search" placeholder="Search order number or file name" [value]="query()" (input)="onSearch($any($event.target).value)" aria-label="Search orders" />
+          <input type="search" [placeholder]="'profile.search_order_number_or_file_name' | translate" [value]="query()" (input)="onSearch($any($event.target).value)" [attr.aria-label]="'profile.search_orders' | translate" />
         </label>
       </div>
 
@@ -54,21 +58,21 @@ const PAGE = 8;
       } @else if (error()) {
         <div class="pf-empty">
           <span class="pf-empty__icon"><i class="pi pi-exclamation-circle"></i></span>
-          <strong>Couldn't load your orders</strong>
-          <button type="button" class="pf-btn" (click)="load()"><i class="pi pi-refresh"></i> Try again</button>
+          <strong>{{ 'profile.couldnt_load_your_orders' | translate }}</strong>
+          <button type="button" class="pf-btn" (click)="load()"><i class="pi pi-refresh"></i> {{ 'common.try_again' | translate }}</button>
         </div>
       } @else if (jobs().length === 0) {
         <div class="pf-empty">
           <span class="pf-empty__icon"><i class="pi pi-history"></i></span>
-          <strong>No orders yet</strong>
-          <p>Orders appear here as customers send files to your shop.</p>
+          <strong>{{ 'profile.no_orders_yet' | translate }}</strong>
+          <p>{{ 'profile.orders_appear_here_as_customers_send' | translate }}</p>
         </div>
       } @else if (visible().length === 0) {
         <div class="pf-empty">
           <span class="pf-empty__icon"><i class="pi pi-filter"></i></span>
-          <strong>Nothing matches</strong>
-          <p>Try a different status or clear the search.</p>
-          <button type="button" class="pf-btn" (click)="reset()">Clear filters</button>
+          <strong>{{ 'profile.nothing_matches' | translate }}</strong>
+          <p>{{ 'profile.try_a_different_status_or_clear' | translate }}</p>
+          <button type="button" class="pf-btn" (click)="reset()">{{ 'profile.clear_filters' | translate }}</button>
         </div>
       } @else {
         <ul class="list">
@@ -76,8 +80,8 @@ const PAGE = 8;
             <li class="row">
               <span class="row__token">#{{ j.tokenNumber }}</span>
               <div class="row__main">
-                <span class="row__name" [title]="names(j)">{{ firstName(j) }}@if (j.items.length > 1) { <em>+{{ j.items.length - 1 }} more</em> }</span>
-                <span class="row__meta">{{ j.createdAt | date: 'MMM d, h:mm a' }} &middot; {{ pages(j) }} {{ pages(j) === 1 ? 'page' : 'pages' }}</span>
+                <span class="row__name" [title]="names(j)">{{ firstName(j) }}@if (j.items.length > 1) { <em>{{ 'profile.more' | translate: { items: j.items.length - 1 } }}</em> }</span>
+                <span class="row__meta">{{ j.createdAt | appDate: 'MMM d, h:mm a' }} &middot; {{ 'common.count.pages' | translateCount: pages(j) }}</span>
               </div>
               <span class="row__amount">{{ money(j.amount) }}</span>
               <app-status-tag [status]="j.status" />
@@ -86,7 +90,7 @@ const PAGE = 8;
         </ul>
         @if (visible().length > shown().length) {
           <button type="button" class="pf-btn more" (click)="limit.set(limit() + PAGE)">
-            Show {{ Math.min(PAGE, visible().length - shown().length) }} more
+            {{ 'profile.show_more' | translate: { count: Math.min(PAGE, visible().length - shown().length) } }}
           </button>
         }
       }
@@ -273,11 +277,11 @@ export class ProfileHistoryComponent implements OnInit {
   readonly PAGE = PAGE;
   readonly Math = Math;
   readonly filters: { key: Filter; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'progress', label: 'In progress' },
-    { key: 'completed', label: 'Completed' },
-    { key: 'failed', label: 'Failed' },
-    { key: 'cancelled', label: 'Cancelled' },
+    { key: 'all', get label() { return t('profile.all'); } },
+    { key: 'progress', get label() { return t('profile.in_progress'); } },
+    { key: 'completed', get label() { return t('profile.completed'); } },
+    { key: 'failed', get label() { return t('common.failed'); } },
+    { key: 'cancelled', get label() { return t('common.cancelled'); } },
   ];
 
   loading = signal(true);
@@ -344,11 +348,11 @@ export class ProfileHistoryComponent implements OnInit {
   }
 
   firstName(j: PrintJobRow): string {
-    return j.items[0]?.document?.originalName ?? 'Document';
+    return j.items[0]?.document?.originalName ?? t('profile.document');
   }
 
   names(j: PrintJobRow): string {
-    return j.items.map((i) => i.document?.originalName ?? 'Document').join(', ');
+    return j.items.map((i) => i.document?.originalName ?? t('profile.document')).join(', ');
   }
 
   pages(j: PrintJobRow): number {

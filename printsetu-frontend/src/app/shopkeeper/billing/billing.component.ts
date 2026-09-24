@@ -1,5 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { TranslatePipe } from '@ngx-translate/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -9,17 +10,19 @@ import { BillingChannel, InvoiceRecord, ShopBillingOverview } from '../../core/m
 import { BillingPillComponent } from '../../shared/billing/billing-pill.component';
 import { InvoiceTableComponent } from '../../shared/billing/invoice-table.component';
 import { CHANNEL_META, STATE_META, cyclePrice, cycleUnit, downloadBlob, limit, money, printBlob, yearlySaving } from '../../shared/billing/billing.util';
+import { t, intlLocale } from '../../core/i18n/i18n';
+import { AppDatePipe, AppNumberPipe } from '../../core/i18n/i18n-format.pipes';
 
 /** The shop owner's plan, usage, invoices and notification preferences. Never locked, even when the shop is suspended. */
 @Component({
   selector: 'app-shop-billing',
   standalone: true,
-  imports: [CommonModule, DatePipe, FormsModule, ToggleSwitchModule, BillingPillComponent, InvoiceTableComponent],
+  imports: [AppDatePipe, AppNumberPipe, TranslatePipe, CommonModule, FormsModule, ToggleSwitchModule, BillingPillComponent, InvoiceTableComponent],
   template: `
     <div class="page-header">
       <div>
-        <h1 class="page-title">Billing</h1>
-        <p class="page-subtitle m-0">Your plan, usage and invoices.</p>
+        <h1 class="page-title">{{ 'common.billing' | translate }}</h1>
+        <p class="page-subtitle m-0">{{ 'billing.your_plan_usage_and_invoices' | translate }}</p>
       </div>
     </div>
 
@@ -29,16 +32,16 @@ import { CHANNEL_META, STATE_META, cyclePrice, cycleUnit, downloadBlob, limit, m
     } @else if (error()) {
       <div class="pf-card pf-empty">
         <span class="pf-empty__icon"><i class="pi pi-exclamation-circle"></i></span>
-        <strong>Couldn't load your billing details</strong>
-        <button type="button" class="pf-btn" (click)="load()"><i class="pi pi-refresh"></i> Try again</button>
+        <strong>{{ 'billing.couldnt_load_your_billing_details' | translate }}</strong>
+        <button type="button" class="pf-btn" (click)="load()"><i class="pi pi-refresh"></i> {{ 'common.try_again' | translate }}</button>
       </div>
     } @else if (o(); as o) {
       @if (o.access.level === 'SUSPENDED') {
         <div class="locked" role="alert">
           <i class="pi pi-lock"></i>
           <div>
-            <strong>Your shop is suspended</strong>
-            <p>Customers who scan your QR code see “This shop is temporarily unavailable”. Only this Billing page is open until your account is turned back on.@if (o.amountDue) { Pay {{ money(o.amountDue.amount, o.amountDue.currency) }} to your administrator and access returns as soon as they record it. }</p>
+            <strong>{{ 'billing.your_shop_is_suspended' | translate }}</strong>
+            <p>{{ 'billing.customers_who_scan_your_qr_code' | translate }}@if (o.amountDue) { {{ 'billing.pay_to_your_administrator_and_access' | translate: { amount: money(o.amountDue.amount, o.amountDue.currency) } }} }</p>
           </div>
         </div>
       }
@@ -46,14 +49,14 @@ import { CHANNEL_META, STATE_META, cyclePrice, cycleUnit, downloadBlob, limit, m
       @if (!o.subscription || !o.plan) {
         <section class="pf-card pf-empty">
           <span class="pf-empty__icon"><i class="pi pi-tag"></i></span>
-          <strong>No plan assigned yet</strong>
-          <p>Your shop has full access. Your administrator will set up a plan when billing starts.</p>
+          <strong>{{ 'billing.no_plan_assigned_yet' | translate }}</strong>
+          <p>{{ 'billing.your_shop_has_full_access_your' | translate }}</p>
         </section>
       } @else {
         <section class="hero">
           <div class="hero__main">
             <div class="hero__top">
-              <span class="eyebrow">Current plan</span>
+              <span class="eyebrow">{{ 'billing.current_plan' | translate }}</span>
               <app-billing-pill [state]="o.subscription.status" />
             </div>
             <h2>{{ o.plan.name }}</h2>
@@ -63,77 +66,77 @@ import { CHANNEL_META, STATE_META, cyclePrice, cycleUnit, downloadBlob, limit, m
             <p class="hint">{{ hint(o) }}</p>
           </div>
           <dl class="hero__facts">
-            <div><dt>Started</dt><dd>{{ o.subscription.startDate | date: 'd MMM y' }}</dd></div>
+            <div><dt>{{ 'common.started' | translate }}</dt><dd>{{ o.subscription.startDate | appDate: 'd MMM y' }}</dd></div>
             <div>
-              <dt>{{ o.subscription.status === 'TRIAL' ? 'Trial ends' : o.subscription.cancelAtPeriodEnd ? 'Ends on' : 'Next billing' }}</dt>
-              <dd>{{ o.subscription.currentPeriodEnd | date: 'd MMM y' }}</dd>
+              <dt>{{ o.subscription.status === 'TRIAL' ? ('billing.trial_ends' | translate) : o.subscription.cancelAtPeriodEnd ? ('billing.ends_on' | translate) : ('billing.next_billing' | translate) }}</dt>
+              <dd>{{ o.subscription.currentPeriodEnd | appDate: 'd MMM y' }}</dd>
             </div>
             @if (o.subscription.status === 'PAYMENT_PENDING' && o.subscription.graceEndsAt) {
-              <div class="warn"><dt>Pay before</dt><dd>{{ o.subscription.graceEndsAt | date: 'd MMM y' }}</dd></div>
+              <div class="warn"><dt>{{ 'billing.pay_before' | translate }}</dt><dd>{{ o.subscription.graceEndsAt | appDate: 'd MMM y' }}</dd></div>
             }
-            @if (o.pendingPlan) { <div><dt>Moving to</dt><dd>{{ o.pendingPlan.name }}</dd></div> }
+            @if (o.pendingPlan) { <div><dt>{{ 'billing.moving_to' | translate }}</dt><dd>{{ o.pendingPlan.name }}</dd></div> }
           </dl>
         </section>
 
         @if (o.amountDue; as due) {
           <section class="due">
             <div>
-              <span class="eyebrow">Amount due</span>
+              <span class="eyebrow">{{ 'billing.amount_due' | translate }}</span>
               <strong>{{ money(due.amount, due.currency) }}</strong>
-              <span class="due__sub">Invoice {{ due.number }} · due {{ due.dueDate | date: 'd MMM y' }}</span>
+              <span class="due__sub">{{ 'billing.invoice_due' | translate: { number: due.number, dueDate: (due.dueDate | appDate: 'd MMM y') } }}</span>
             </div>
-            <p>Pay your administrator by cash, UPI or bank transfer and quote the invoice number. Your account updates as soon as they record the payment.</p>
+            <p>{{ 'billing.pay_your_administrator_by_cash_upi' | translate }}</p>
           </section>
         }
 
         <div class="grid">
           <section class="pf-card">
-            <header class="pf-card__head"><h3 class="pf-eyebrow">Usage &amp; limits</h3></header>
+            <header class="pf-card__head"><h3 class="pf-eyebrow">{{ 'billing.usage_limits' | translate }}</h3></header>
             <div class="usage">
               <div>
-                <div class="usage__row"><span>Prints this month</span><strong>{{ o.usage.printsThisMonth | number }} / {{ limit(o.plan.maxPrintsPerMonth) }}</strong></div>
+                <div class="usage__row"><span>{{ 'billing.prints_this_month' | translate }}</span><strong>{{ o.usage.printsThisMonth | appNumber }} / {{ limit(o.plan.maxPrintsPerMonth) }}</strong></div>
                 <div class="track"><span [style.width.%]="pct(o.usage.printsThisMonth, o.plan.maxPrintsPerMonth)" [class.hot]="pct(o.usage.printsThisMonth, o.plan.maxPrintsPerMonth) >= 90"></span></div>
               </div>
               <div>
-                <div class="usage__row"><span>Orders today</span><strong>{{ o.usage.tokensToday | number }} / {{ limit(o.plan.maxTokensPerDay) }}</strong></div>
+                <div class="usage__row"><span>{{ 'billing.orders_today' | translate }}</span><strong>{{ o.usage.tokensToday | appNumber }} / {{ limit(o.plan.maxTokensPerDay) }}</strong></div>
                 <div class="track"><span [style.width.%]="pct(o.usage.tokensToday, o.plan.maxTokensPerDay)" [class.hot]="pct(o.usage.tokensToday, o.plan.maxTokensPerDay) >= 90"></span></div>
               </div>
               <div>
-                <div class="usage__row"><span>Computers connected to a printer</span><strong>{{ o.usage.printers }} / {{ limit(o.plan.maxPrinters) }}</strong></div>
+                <div class="usage__row"><span>{{ 'billing.computers_connected_to_a_printer' | translate }}</span><strong>{{ o.usage.printers }} / {{ limit(o.plan.maxPrinters) }}</strong></div>
                 <div class="track"><span [style.width.%]="pct(o.usage.printers, o.plan.maxPrinters)" [class.hot]="pct(o.usage.printers, o.plan.maxPrinters) >= 100"></span></div>
               </div>
             </div>
             <ul class="feat">
-              <li [class.off]="!o.plan.analyticsAccess"><i class="pi" [ngClass]="o.plan.analyticsAccess ? 'pi-check' : 'pi-times'"></i> Sales reports</li>
-              <li [class.off]="!o.plan.prioritySupport"><i class="pi" [ngClass]="o.plan.prioritySupport ? 'pi-check' : 'pi-times'"></i> Priority support</li>
+              <li [class.off]="!o.plan.analyticsAccess"><i class="pi" [ngClass]="o.plan.analyticsAccess ? 'pi-check' : 'pi-times'"></i> {{ 'billing.sales_reports' | translate }}</li>
+              <li [class.off]="!o.plan.prioritySupport"><i class="pi" [ngClass]="o.plan.prioritySupport ? 'pi-check' : 'pi-times'"></i> {{ 'billing.priority_support' | translate }}</li>
               @for (h of o.plan.highlights; track h) { <li><i class="pi pi-check"></i> {{ h }}</li> }
             </ul>
-            <p class="fine">To change your plan, contact your administrator.</p>
+            <p class="fine">{{ 'billing.to_change_your_plan_contact_your' | translate }}</p>
           </section>
 
           <section class="pf-card">
-            <header class="pf-card__head"><h3 class="pf-eyebrow">Preferences</h3></header>
+            <header class="pf-card__head"><h3 class="pf-eyebrow">{{ 'billing.preferences' | translate }}</h3></header>
             <div class="pref">
-              <div><strong>Renew automatically</strong><p>{{ o.subscription.autoRenew ? 'A renewal invoice is created when your period ends.' : 'Your plan expires at the end of the period.' }}</p></div>
-              <p-toggleswitch [ngModel]="o.subscription.autoRenew" (ngModelChange)="setAutoRenew($event)" [ngModelOptions]="{ standalone: true }" aria-label="Renew automatically" [disabled]="o.access.state === 'CANCELLED'" />
+              <div><strong>{{ 'billing.renew_automatically' | translate }}</strong><p>{{ o.subscription.autoRenew ? ('billing.a_renewal_invoice_is_created_when' | translate) : ('billing.your_plan_expires_at_the_end' | translate) }}</p></div>
+              <p-toggleswitch [ngModel]="o.subscription.autoRenew" (ngModelChange)="setAutoRenew($event)" [ngModelOptions]="{ standalone: true }" [attr.aria-label]="'billing.renew_automatically' | translate" [disabled]="o.access.state === 'CANCELLED'" />
             </div>
             <div class="pref pref--col">
-              <div><strong>Reminders and billing alerts</strong><p>How we contact you about renewals and payments.</p></div>
+              <div><strong>{{ 'billing.reminders_and_billing_alerts' | translate }}</strong><p>{{ 'billing.how_we_contact_you_about_renewals' | translate }}</p></div>
               <div class="chans">
                 @for (c of channelMeta; track c.value) {
                   <button type="button" class="chan" [class.is-on]="o.channels.includes(c.value)" [disabled]="c.locked" (click)="toggleChannel(c.value)" [attr.aria-pressed]="o.channels.includes(c.value)"><i class="pi" [ngClass]="c.icon"></i> {{ c.label }}</button>
                 }
               </div>
-              <p class="fine">In-app alerts are always on. Email, SMS and WhatsApp are saved as your preference.</p>
+              <p class="fine">{{ 'billing.in_app_alerts_are_always_on' | translate }}</p>
             </div>
             @if (o.subscription.status !== 'CANCELLED') {
               <div class="pref cancel">
                 @if (o.subscription.cancelAtPeriodEnd) {
-                  <div><strong>Your plan is set to end on {{ o.subscription.currentPeriodEnd | date: 'd MMM y' }}</strong><p>Changed your mind? You can keep it.</p></div>
-                  <button type="button" class="pf-btn" (click)="resume()" [disabled]="busy()"><i class="pi pi-replay"></i> Keep my plan</button>
+                  <div><strong>{{ 'billing.your_plan_is_set_to_end' | translate: { currentPeriodEnd: (o.subscription.currentPeriodEnd | appDate: 'd MMM y') } }}</strong><p>{{ 'billing.changed_your_mind_you_can_keep' | translate }}</p></div>
+                  <button type="button" class="pf-btn" (click)="resume()" [disabled]="busy()"><i class="pi pi-replay"></i> {{ 'billing.keep_my_plan' | translate }}</button>
                 } @else {
-                  <div><strong>Cancel subscription</strong><p>You keep full access until the end of the period you've paid for.</p></div>
-                  <button type="button" class="pf-btn danger" (click)="cancel()" [disabled]="busy()">Cancel plan</button>
+                  <div><strong>{{ 'billing.cancel_subscription' | translate }}</strong><p>{{ 'billing.you_keep_full_access_until_the' | translate }}</p></div>
+                  <button type="button" class="pf-btn danger" (click)="cancel()" [disabled]="busy()">{{ 'billing.cancel_plan' | translate }}</button>
                 }
               </div>
             }
@@ -142,8 +145,8 @@ import { CHANNEL_META, STATE_META, cyclePrice, cycleUnit, downloadBlob, limit, m
       }
 
       <section class="pf-card invoices">
-        <header class="pf-card__head"><h3 class="pf-eyebrow">Invoices</h3></header>
-        <app-invoice-table [invoices]="invoices()" emptyText="No invoices yet. They appear here once billing starts." (pdf)="pdf($event)" (print)="print($event)" />
+        <header class="pf-card__head"><h3 class="pf-eyebrow">{{ 'common.invoices' | translate }}</h3></header>
+        <app-invoice-table [invoices]="invoices()" [emptyText]="'billing.no_invoices_yet_they_appear_here' | translate" (pdf)="pdf($event)" (print)="print($event)" />
       </section>
     }
   `,
@@ -497,7 +500,7 @@ export class ShopBillingComponent implements OnInit {
   setAutoRenew(v: boolean): void {
     this.billing.myPreferences({ autoRenew: v }).subscribe((o) => {
       this.apply(o);
-      this.messages.add({ severity: 'success', summary: v ? 'Your plan will renew automatically' : 'Your plan will not renew automatically' });
+      this.messages.add({ severity: 'success', summary: v ? t('billing.your_plan_will_renew_automatically') : t('billing.your_plan_will_not_renew_automatically') });
     });
   }
 
@@ -511,11 +514,11 @@ export class ShopBillingComponent implements OnInit {
   cancel(): void {
     const end = this.o()?.subscription?.currentPeriodEnd;
     this.confirm.confirm({
-      header: 'Cancel your subscription?',
-      message: `You keep full access until ${end ? new Date(end).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'the end of the period'}. After that new print requests stop and customers will see your shop as unavailable.`,
+      get header() { return t('billing.cancel_your_subscription'); },
+      get message() { return t('billing.you_keep_full_access_until_after', { period: end ? new Date(end).toLocaleDateString(intlLocale(), { day: 'numeric', month: 'long', year: 'numeric' }) : 'the end of the period' }); },
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Yes, cancel at period end',
-      rejectLabel: 'Keep my plan',
+      get acceptLabel() { return t('billing.yes_cancel_at_period_end'); },
+      get rejectLabel() { return t('billing.keep_my_plan'); },
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
         this.busy.set(true);
@@ -523,7 +526,7 @@ export class ShopBillingComponent implements OnInit {
           next: (o) => {
             this.apply(o);
             this.busy.set(false);
-            this.messages.add({ severity: 'info', summary: 'Your plan will end at the close of this period' });
+            this.messages.add({ severity: 'info', get summary() { return t('billing.your_plan_will_end_at_the'); } });
           },
           error: () => this.busy.set(false),
         });
@@ -537,7 +540,7 @@ export class ShopBillingComponent implements OnInit {
       next: (o) => {
         this.apply(o);
         this.busy.set(false);
-        this.messages.add({ severity: 'success', summary: 'Your plan will keep renewing' });
+        this.messages.add({ severity: 'success', get summary() { return t('billing.your_plan_will_keep_renewing'); } });
       },
       error: () => this.busy.set(false),
     });

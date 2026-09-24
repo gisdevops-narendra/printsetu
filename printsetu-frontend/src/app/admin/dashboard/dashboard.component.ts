@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,6 +12,8 @@ import { AdminService } from '../../core/services/admin.service';
 import { ShopDashboard, ShopDashboardRow } from '../../core/models/models';
 import { TrendChartComponent, TrendPoint } from './charts/trend-chart.component';
 import { HBarChartComponent, HBarRow, HBarSeries } from './charts/hbar-chart.component';
+import { t, intlLocale, tn } from '../../core/i18n/i18n';
+import { AppDatePipe, AppNumberPipe } from '../../core/i18n/i18n-format.pipes';
 
 type Preset = 'today' | 'week' | 'month' | 'custom';
 
@@ -38,7 +41,7 @@ const PAGES_TOP_N = 8;
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [
+  imports: [AppDatePipe, AppNumberPipe, TranslatePipe, 
     CommonModule,
     FormsModule,
     TableModule,
@@ -50,18 +53,18 @@ const PAGES_TOP_N = 8;
     HBarChartComponent,
   ],
   template: `
-    <h1 class="page-title">Dashboard</h1>
+    <h1 class="page-title">{{ 'common.dashboard' | translate }}</h1>
     <p class="page-subtitle">
       @if (selectedShop(); as s) {
-        Activity, revenue and health for {{ s.name }}.
+        {{ 'adminDashboard.activity_revenue_and_health_for' | translate: { name: s.name } }}
       } @else {
-        Shop-by-shop activity, revenue and health across the platform.
+        {{ 'adminDashboard.shop_by_shop_activity_revenue_and' | translate }}
       }
     </p>
 
     <!-- One filter row above everything it scopes. -->
     <div class="filters">
-      <div class="presets" role="group" aria-label="Date range">
+      <div class="presets" role="group" [attr.aria-label]="'adminDashboard.date_range' | translate">
         @for (p of presets; track p.value) {
           <button type="button" class="preset" [class.is-on]="preset() === p.value" (click)="choosePreset(p.value)">
             {{ p.label }}
@@ -75,7 +78,7 @@ const PAGES_TOP_N = 8;
           [readonlyInput]="true"
           [maxDate]="today"
           dateFormat="d M yy"
-          placeholder="Pick start and end dates"
+          [placeholder]="'adminDashboard.pick_start_and_end_dates' | translate"
           [showIcon]="true"
           [firstDayOfWeek]="1"
           (onSelect)="onCustomSelect()"
@@ -91,10 +94,10 @@ const PAGES_TOP_N = 8;
         optionValue="value"
         [filter]="true"
         filterBy="label"
-        filterPlaceholder="Search shops"
+        [filterPlaceholder]="'adminDashboard.search_shops' | translate"
         [showClear]="true"
-        placeholder="All shops"
-        ariaLabel="Shop"
+        [placeholder]="'adminDashboard.all_shops' | translate"
+        [ariaLabel]="'common.shop' | translate"
         appendTo="body"
         styleClass="shop-picker"
       />
@@ -103,7 +106,7 @@ const PAGES_TOP_N = 8;
           {{ rangeLabel() }}
         }
         @if (loading() && data()) {
-          <i class="pi pi-spin pi-spinner ml-2" aria-label="Refreshing"></i>
+          <i class="pi pi-spin pi-spinner ml-2" [attr.aria-label]="'adminDashboard.refreshing' | translate"></i>
         }
       </span>
     </div>
@@ -112,8 +115,8 @@ const PAGES_TOP_N = 8;
       <div class="flex justify-content-center p-6"><p-progressSpinner strokeWidth="4" /></div>
     } @else if (error() && !data()) {
       <div class="surface-card-flat p-4 text-center">
-        <p class="m-0 mb-3">Couldn't load the dashboard.</p>
-        <button type="button" class="preset is-on" (click)="load()">Try again</button>
+        <p class="m-0 mb-3">{{ 'adminDashboard.couldnt_load_the_dashboard' | translate }}</p>
+        <button type="button" class="preset is-on" (click)="load()">{{ 'common.try_again' | translate }}</button>
       </div>
     } @else if (data(); as d) {
       @if (selectedShop(); as s) {
@@ -124,36 +127,36 @@ const PAGES_TOP_N = 8;
           </div>
           <dl class="shop-card__facts">
             <div>
-              <dt>Status</dt>
+              <dt>{{ 'common.status' | translate }}</dt>
               <dd>
                 <span class="pill" [attr.data-tone]="s.online ? 'ok' : 'muted'">
-                  <i class="pi" [ngClass]="s.online ? 'pi-circle-fill' : 'pi-circle'"></i>{{ s.online ? 'Online' : 'Offline' }}
+                  <i class="pi" [ngClass]="s.online ? 'pi-circle-fill' : 'pi-circle'"></i>{{ s.online ? ('common.online' | translate) : ('common.offline' | translate) }}
                 </span>
                 <span class="shop-sub ml-2">
-                  @if (s.shopStatus !== 'ACTIVE') { Shop {{ s.shopStatus | lowercase }} &middot; }
-                  Printer App {{ agentLabel(s.agentStatus) }}
+                  @if (s.shopStatus !== 'ACTIVE') { {{ 'adminDashboard.shop' | translate: { shopStatus: (s.shopStatus | lowercase) } }} }
+                  {{ 'adminDashboard.printer_app' | translate: { agentStatus: agentLabel(s.agentStatus) } }}
                 </span>
               </dd>
             </div>
             <div>
-              <dt>Plan</dt>
+              <dt>{{ 'common.plan' | translate }}</dt>
               <dd>
                 @if (s.subscription; as sub) {
                   {{ sub.plan }} <span class="shop-sub">&middot; {{ sub.status | titlecase }} &middot; {{ sub.cycle | lowercase }}</span>
                 } @else {
-                  <span class="shop-sub">No subscription</span>
+                  <span class="shop-sub">{{ 'adminDashboard.no_subscription' | translate }}</span>
                 }
               </dd>
             </div>
             <div>
-              <dt>Expires</dt>
+              <dt>{{ 'adminDashboard.expires' | translate }}</dt>
               <dd>
                 @if (s.subscription; as sub) {
                   @if (sub.expiringSoon) {
-                    <span class="pill" data-tone="warn"><i class="pi pi-exclamation-triangle"></i>{{ sub.currentPeriodEnd | date: 'd MMM y' }}</span>
+                    <span class="pill" data-tone="warn"><i class="pi pi-exclamation-triangle"></i>{{ sub.currentPeriodEnd | appDate: 'd MMM y' }}</span>
                     <span class="shop-sub ml-2">{{ daysLeft(sub.currentPeriodEnd) }}</span>
                   } @else {
-                    {{ sub.currentPeriodEnd | date: 'd MMM y' }}
+                    {{ sub.currentPeriodEnd | appDate: 'd MMM y' }}
                   }
                 } @else {
                   <span class="shop-sub">—</span>
@@ -161,7 +164,7 @@ const PAGES_TOP_N = 8;
               </dd>
             </div>
           </dl>
-          <button type="button" class="link" (click)="selectShop(null)"><i class="pi pi-arrow-left"></i> All shops</button>
+          <button type="button" class="link" (click)="selectShop(null)"><i class="pi pi-arrow-left"></i> {{ 'adminDashboard.all_shops' | translate }}</button>
         </section>
       }
 
@@ -170,26 +173,26 @@ const PAGES_TOP_N = 8;
         <div class="surface-card-flat p-4 stat-tile">
           <div class="stat-tile__icon"><i class="pi pi-file"></i></div>
           <div>
-            <div class="text-color-secondary text-sm mb-1">Orders</div>
-            <div class="text-3xl font-bold line-height-2">{{ d.totals.jobs | number }}</div>
-            <div class="text-xs text-color-secondary">{{ d.totals.statusCounts.printed | number }} printed</div>
+            <div class="text-color-secondary text-sm mb-1">{{ 'common.orders' | translate }}</div>
+            <div class="text-3xl font-bold line-height-2">{{ d.totals.jobs | appNumber }}</div>
+            <div class="text-xs text-color-secondary">{{ 'adminDashboard.printed' | translate: { printed: (d.totals.statusCounts.printed | appNumber) } }}</div>
           </div>
         </div>
         <div class="surface-card-flat p-4 stat-tile">
           <div class="stat-tile__icon warn"><i class="pi pi-indian-rupee"></i></div>
           <div>
-            <div class="text-color-secondary text-sm mb-1">Revenue recorded</div>
+            <div class="text-color-secondary text-sm mb-1">{{ 'adminDashboard.revenue_recorded' | translate }}</div>
             <div class="text-3xl font-bold line-height-2">{{ inr(d.totals.revenue) }}</div>
-            <div class="text-xs text-color-secondary">from printed orders</div>
+            <div class="text-xs text-color-secondary">{{ 'adminDashboard.from_printed_orders' | translate }}</div>
           </div>
         </div>
         <div class="surface-card-flat p-4 stat-tile">
           <div class="stat-tile__icon success"><i class="pi pi-copy"></i></div>
           <div>
-            <div class="text-color-secondary text-sm mb-1">Pages printed</div>
-            <div class="text-3xl font-bold line-height-2">{{ d.totals.pagesBw + d.totals.pagesColor | number }}</div>
+            <div class="text-color-secondary text-sm mb-1">{{ 'adminDashboard.pages_printed' | translate }}</div>
+            <div class="text-3xl font-bold line-height-2">{{ d.totals.pagesBw + d.totals.pagesColor | appNumber }}</div>
             <div class="text-xs text-color-secondary">
-              {{ d.totals.pagesBw | number }} B/W &middot; {{ d.totals.pagesColor | number }} color
+              {{ 'adminDashboard.b_w_color' | translate: { pagesBw: (d.totals.pagesBw | appNumber), pagesColor: (d.totals.pagesColor | appNumber) } }}
             </div>
           </div>
         </div>
@@ -197,20 +200,20 @@ const PAGES_TOP_N = 8;
           <div class="surface-card-flat p-4 stat-tile">
             <div class="stat-tile__icon"><i class="pi pi-receipt"></i></div>
             <div>
-              <div class="text-color-secondary text-sm mb-1">Average order value</div>
+              <div class="text-color-secondary text-sm mb-1">{{ 'adminDashboard.average_order_value' | translate }}</div>
               <div class="text-3xl font-bold line-height-2">
                 {{ d.totals.statusCounts.printed ? inr(d.totals.revenue / d.totals.statusCounts.printed) : '—' }}
               </div>
-              <div class="text-xs text-color-secondary">per printed order</div>
+              <div class="text-xs text-color-secondary">{{ 'adminDashboard.per_printed_order' | translate }}</div>
             </div>
           </div>
         } @else {
           <div class="surface-card-flat p-4 stat-tile">
             <div class="stat-tile__icon"><i class="pi pi-building"></i></div>
             <div>
-              <div class="text-color-secondary text-sm mb-1">Shops online</div>
+              <div class="text-color-secondary text-sm mb-1">{{ 'adminDashboard.shops_online' | translate }}</div>
               <div class="text-3xl font-bold line-height-2">{{ onlineCount() }} / {{ d.shops.length }}</div>
-              <div class="text-xs text-color-secondary">taking orders right now</div>
+              <div class="text-xs text-color-secondary">{{ 'adminDashboard.taking_orders_right_now' | translate }}</div>
             </div>
           </div>
         }
@@ -218,43 +221,43 @@ const PAGES_TOP_N = 8;
 
       <!-- Job status summary -->
       <section class="section">
-        <h2 class="section__title">Order status</h2>
+        <h2 class="section__title">{{ 'adminDashboard.order_status' | translate }}</h2>
         <div class="status-row">
           @for (s of statusTiles(); track s.key) {
             <div class="surface-card-flat status" [attr.data-tone]="s.tone">
               <i class="pi status__icon" [ngClass]="s.icon" aria-hidden="true"></i>
               <div>
-                <div class="status__value">{{ s.value | number }}</div>
+                <div class="status__value">{{ s.value | appNumber }}</div>
                 <div class="status__label">{{ s.label }}</div>
               </div>
             </div>
           }
         </div>
         @if (d.totals.statusCounts.cancelled > 0) {
-          <p class="note">{{ d.totals.statusCounts.cancelled | number }} cancelled (not included above).</p>
+          <p class="note">{{ 'adminDashboard.cancelled_not_included_above' | translate: { cancelled: (d.totals.statusCounts.cancelled | appNumber) } }}</p>
         }
       </section>
 
       <!-- Daily trend: two measures, two charts (never a dual axis) -->
       <section class="section">
         <div class="section__head">
-          <h2 class="section__title">Daily trend</h2>
+          <h2 class="section__title">{{ 'adminDashboard.daily_trend' | translate }}</h2>
           <button type="button" class="link" (click)="trendTable.set(!trendTable())">
             <i class="pi" [ngClass]="trendTable() ? 'pi-chart-bar' : 'pi-table'"></i>
-            {{ trendTable() ? 'Show charts' : 'Show table' }}
+            {{ trendTable() ? ('adminDashboard.show_charts' | translate) : ('adminDashboard.show_table' | translate) }}
           </button>
         </div>
         @if (trendTable()) {
           <div class="surface-card-flat daily-table">
             <table>
               <thead>
-                <tr><th scope="col">Day</th><th scope="col">Orders</th><th scope="col">Revenue</th></tr>
+                <tr><th scope="col">{{ 'adminDashboard.day' | translate }}</th><th scope="col">{{ 'common.orders' | translate }}</th><th scope="col">{{ 'common.revenue' | translate }}</th></tr>
               </thead>
               <tbody>
                 @for (day of d.daily; track day.date) {
                   <tr>
-                    <td>{{ day.date | date: 'EEE, d MMM y' }}</td>
-                    <td>{{ day.jobs | number }}</td>
+                    <td>{{ day.date | appDate: 'EEE, d MMM y' }}</td>
+                    <td>{{ day.jobs | appNumber }}</td>
                     <td>{{ inr(day.revenue) }}</td>
                   </tr>
                 }
@@ -264,12 +267,12 @@ const PAGES_TOP_N = 8;
         } @else {
           <div class="two-col">
             <div class="surface-card-flat card">
-              <h3 class="card__title">Orders per day</h3>
-              <app-trend-chart [points]="jobsTrend()" kind="column" format="count" ariaLabel="Orders per day" />
+              <h3 class="card__title">{{ 'adminDashboard.orders_per_day' | translate }}</h3>
+              <app-trend-chart [points]="jobsTrend()" kind="column" format="count" [ariaLabel]="'adminDashboard.orders_per_day' | translate" />
             </div>
             <div class="surface-card-flat card">
-              <h3 class="card__title">Revenue per day</h3>
-              <app-trend-chart [points]="revenueTrend()" kind="line" format="inr" ariaLabel="Revenue per day" />
+              <h3 class="card__title">{{ 'adminDashboard.revenue_per_day' | translate }}</h3>
+              <app-trend-chart [points]="revenueTrend()" kind="line" format="inr" [ariaLabel]="'adminDashboard.revenue_per_day' | translate" />
             </div>
           </div>
         }
@@ -280,7 +283,7 @@ const PAGES_TOP_N = 8;
       <section class="section two-col">
         <div class="surface-card-flat card">
           <div class="card__head">
-            <h3 class="card__title m-0">Top shops</h3>
+            <h3 class="card__title m-0">{{ 'adminDashboard.top_shops' | translate }}</h3>
             <p-selectbutton
               [options]="topMetricOptions"
               [ngModel]="topMetric()"
@@ -295,20 +298,20 @@ const PAGES_TOP_N = 8;
             [rows]="topShops()"
             [series]="topSeries()"
             [format]="topMetric() === 'revenue' ? 'inr' : 'count'"
-            emptyText="No orders in this period."
+            [emptyText]="'adminDashboard.no_orders_in_this_period' | translate"
             [selectable]="true"
             (rowSelect)="selectShop($event)"
           />
         </div>
         <div class="surface-card-flat card">
           <div class="card__head">
-            <h3 class="card__title m-0">Pages printed per shop</h3>
+            <h3 class="card__title m-0">{{ 'adminDashboard.pages_printed_per_shop' | translate }}</h3>
           </div>
           <app-hbar-chart
             [rows]="pagesByShop()"
             [series]="pageSeries"
             format="pages"
-            emptyText="No pages printed in this period."
+            [emptyText]="'adminDashboard.no_pages_printed_in_this_period' | translate"
             [selectable]="true"
             (rowSelect)="selectShop($event)"
           />
@@ -318,10 +321,10 @@ const PAGES_TOP_N = 8;
       <!-- Every shop, with status and subscription (also the table view of the charts) -->
       <section class="section">
         <div class="section__head">
-          <h2 class="section__title">All shops</h2>
+          <h2 class="section__title">{{ 'adminDashboard.all_shops' | translate }}</h2>
           <div class="flex gap-2 align-items-center">
             <button type="button" class="chip-toggle" [class.is-on]="onlyExpiring()" (click)="onlyExpiring.set(!onlyExpiring())" [attr.aria-pressed]="onlyExpiring()">
-              <i class="pi pi-clock"></i> Expiring in 7 days ({{ expiringCount() }})
+              <i class="pi pi-clock"></i> {{ 'adminDashboard.expiring_in_7_days' | translate: { expiringCount: expiringCount() } }}
             </button>
           </div>
         </div>
@@ -335,15 +338,15 @@ const PAGES_TOP_N = 8;
         >
           <ng-template pTemplate="header">
             <tr>
-              <th pSortableColumn="name" style="width: 11rem">Shop <p-sortIcon field="name" /></th>
-              <th pSortableColumn="online" style="width: 8.5rem">Status <p-sortIcon field="online" /></th>
-              <th pSortableColumn="jobs" class="num" style="width: 5.25rem">Orders <p-sortIcon field="jobs" /></th>
-              <th pSortableColumn="revenue" class="num" style="width: 7rem">Revenue <p-sortIcon field="revenue" /></th>
-              <th pSortableColumn="pagesBw" class="num" style="width: 6.5rem">B/W pages <p-sortIcon field="pagesBw" /></th>
-              <th pSortableColumn="pagesColor" class="num" style="width: 7.75rem">Color pages <p-sortIcon field="pagesColor" /></th>
-              <th style="width: 9rem; padding-left: 1.25rem">Order status</th>
-              <th pSortableColumn="subscription.plan" style="width: 7.5rem">Plan <p-sortIcon field="subscription.plan" /></th>
-              <th pSortableColumn="subscription.currentPeriodEnd" style="width: 10rem">Expires <p-sortIcon field="subscription.currentPeriodEnd" /></th>
+              <th pSortableColumn="name" style="width: 11rem">{{ 'common.shop' | translate }} <p-sortIcon field="name" /></th>
+              <th pSortableColumn="online" style="width: 8.5rem">{{ 'common.status' | translate }} <p-sortIcon field="online" /></th>
+              <th pSortableColumn="jobs" class="num" style="width: 5.25rem">{{ 'common.orders' | translate }} <p-sortIcon field="jobs" /></th>
+              <th pSortableColumn="revenue" class="num" style="width: 7rem">{{ 'common.revenue' | translate }} <p-sortIcon field="revenue" /></th>
+              <th pSortableColumn="pagesBw" class="num" style="width: 6.5rem">{{ 'adminDashboard.b_w_pages' | translate }} <p-sortIcon field="pagesBw" /></th>
+              <th pSortableColumn="pagesColor" class="num" style="width: 7.75rem">{{ 'adminDashboard.color_pages' | translate }} <p-sortIcon field="pagesColor" /></th>
+              <th style="width: 9rem; padding-left: 1.25rem">{{ 'adminDashboard.order_status' | translate }}</th>
+              <th pSortableColumn="subscription.plan" style="width: 7.5rem">{{ 'common.plan' | translate }} <p-sortIcon field="subscription.plan" /></th>
+              <th pSortableColumn="subscription.currentPeriodEnd" style="width: 10rem">{{ 'adminDashboard.expires' | translate }} <p-sortIcon field="subscription.currentPeriodEnd" /></th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-s>
@@ -357,18 +360,18 @@ const PAGES_TOP_N = 8;
               <td data-label="Status">
                 <div class="item-stack">
                   <span class="pill" [attr.data-tone]="s.online ? 'ok' : 'muted'">
-                    <i class="pi" [ngClass]="s.online ? 'pi-circle-fill' : 'pi-circle'"></i>{{ s.online ? 'Online' : 'Offline' }}
+                    <i class="pi" [ngClass]="s.online ? 'pi-circle-fill' : 'pi-circle'"></i>{{ s.online ? ('common.online' | translate) : ('common.offline' | translate) }}
                   </span>
                   <div class="shop-sub mt-1 nowrap">
-                    @if (s.shopStatus !== 'ACTIVE') { Shop {{ s.shopStatus | lowercase }} &middot; }
-                    Printer App {{ agentLabel(s.agentStatus) }}
+                    @if (s.shopStatus !== 'ACTIVE') { {{ 'adminDashboard.shop' | translate: { shopStatus: (s.shopStatus | lowercase) } }} }
+                    {{ 'adminDashboard.printer_app' | translate: { agentStatus: agentLabel(s.agentStatus) } }}
                   </div>
                 </div>
               </td>
-              <td class="num" data-label="Orders">{{ s.jobs | number }}</td>
+              <td class="num" data-label="Orders">{{ s.jobs | appNumber }}</td>
               <td class="num" data-label="Revenue">{{ inr(s.revenue) }}</td>
-              <td class="num" data-label="B/W pages">{{ s.pagesBw | number }}</td>
-              <td class="num" data-label="Color pages">{{ s.pagesColor | number }}</td>
+              <td class="num" data-label="B/W pages">{{ s.pagesBw | appNumber }}</td>
+              <td class="num" data-label="Color pages">{{ s.pagesColor | appNumber }}</td>
               <td data-label="Order status" class="counts-cell">
                 <div class="counts">
                   @for (t of statusTiles(); track t.key) {
@@ -379,7 +382,7 @@ const PAGES_TOP_N = 8;
                       [attr.title]="t.label"
                       [attr.aria-label]="countOf(s, t.key) + ' ' + t.label.toLowerCase()"
                     >
-                      <i class="pi" [ngClass]="t.icon" aria-hidden="true"></i>{{ countOf(s, t.key) | number }}
+                      <i class="pi" [ngClass]="t.icon" aria-hidden="true"></i>{{ countOf(s, t.key) | appNumber }}
                     </span>
                   }
                 </div>
@@ -391,18 +394,18 @@ const PAGES_TOP_N = 8;
                     <div class="shop-sub">{{ sub.status | titlecase }} &middot; {{ sub.cycle | lowercase }}</div>
                   </div>
                 } @else {
-                  <span class="shop-sub">No subscription</span>
+                  <span class="shop-sub">{{ 'adminDashboard.no_subscription' | translate }}</span>
                 }
               </td>
               <td data-label="Expires">
                 @if (s.subscription; as sub) {
                   @if (sub.expiringSoon) {
                     <div class="item-stack">
-                      <span class="pill" data-tone="warn"><i class="pi pi-exclamation-triangle"></i>{{ sub.currentPeriodEnd | date: 'd MMM y' }}</span>
+                      <span class="pill" data-tone="warn"><i class="pi pi-exclamation-triangle"></i>{{ sub.currentPeriodEnd | appDate: 'd MMM y' }}</span>
                       <div class="shop-sub mt-1">{{ daysLeft(sub.currentPeriodEnd) }}</div>
                     </div>
                   } @else {
-                    {{ sub.currentPeriodEnd | date: 'd MMM y' }}
+                    {{ sub.currentPeriodEnd | appDate: 'd MMM y' }}
                   }
                 } @else {
                   <span class="shop-sub">—</span>
@@ -415,7 +418,7 @@ const PAGES_TOP_N = 8;
               <td colspan="9">
                 <div class="table-empty">
                   <i class="pi pi-building"></i>
-                  <span>{{ onlyExpiring() ? 'No subscriptions expire in the next 7 days.' : 'No shops yet.' }}</span>
+                  <span>{{ onlyExpiring() ? ('adminDashboard.no_subscriptions_expire_in_the_next' | translate) : ('adminDashboard.no_shops_yet' | translate) }}</span>
                 </div>
               </td>
             </tr>
@@ -781,18 +784,18 @@ const PAGES_TOP_N = 8;
 })
 export class DashboardComponent implements OnInit {
   readonly presets: { label: string; value: Preset }[] = [
-    { label: 'Today', value: 'today' },
-    { label: 'This week', value: 'week' },
-    { label: 'This month', value: 'month' },
-    { label: 'Custom', value: 'custom' },
+    { get label() { return t('common.today'); }, value: 'today' },
+    { get label() { return t('adminDashboard.this_week'); }, value: 'week' },
+    { get label() { return t('adminDashboard.this_month'); }, value: 'month' },
+    { get label() { return t('adminDashboard.custom'); }, value: 'custom' },
   ];
   readonly topMetricOptions = [
-    { label: 'Orders', value: 'jobs' },
-    { label: 'Revenue', value: 'revenue' },
+    { get label() { return t('common.orders'); }, value: 'jobs' },
+    { get label() { return t('common.revenue'); }, value: 'revenue' },
   ];
   readonly pageSeries: HBarSeries[] = [
     { name: 'B/W', color: 'var(--viz-s1)' },
-    { name: 'Color', color: 'var(--viz-s2)' },
+    { get name() { return t('common.color'); }, color: 'var(--viz-s2)' },
   ];
   readonly today = new Date();
 
@@ -889,7 +892,7 @@ export class DashboardComponent implements OnInit {
   rangeLabel = computed(() => {
     const [from, to] = this.range();
     const fmt = (s: string) =>
-      new Date(`${s}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      new Date(`${s}T00:00:00`).toLocaleDateString(intlLocale(), { day: 'numeric', month: 'short', year: 'numeric' });
     return from === to ? fmt(from) : `${fmt(from)} – ${fmt(to)}`;
   });
 
@@ -903,10 +906,10 @@ export class DashboardComponent implements OnInit {
   statusTiles = computed(() => {
     const c = this.data()?.totals.statusCounts;
     return [
-      { key: 'pending', label: 'Pending', value: c?.pending ?? 0, icon: 'pi-clock', tone: 'warn' },
-      { key: 'printing', label: 'Printing', value: c?.printing ?? 0, icon: 'pi-print', tone: 'info' },
-      { key: 'printed', label: 'Printed', value: c?.printed ?? 0, icon: 'pi-check', tone: 'ok' },
-      { key: 'failed', label: 'Failed', value: c?.failed ?? 0, icon: 'pi-times', tone: 'bad' },
+      { key: 'pending', get label() { return t('common.pending'); }, value: c?.pending ?? 0, icon: 'pi-clock', tone: 'warn' },
+      { key: 'printing', get label() { return t('common.printing'); }, value: c?.printing ?? 0, icon: 'pi-print', tone: 'info' },
+      { key: 'printed', get label() { return t('common.printed'); }, value: c?.printed ?? 0, icon: 'pi-check', tone: 'ok' },
+      { key: 'failed', get label() { return t('common.failed'); }, value: c?.failed ?? 0, icon: 'pi-times', tone: 'bad' },
     ];
   });
 
@@ -916,7 +919,7 @@ export class DashboardComponent implements OnInit {
   );
 
   topSeries = computed<HBarSeries[]>(() => [
-    { name: this.topMetric() === 'revenue' ? 'Revenue' : 'Orders', color: 'var(--viz-s1)' },
+    { name: this.topMetric() === 'revenue' ? t('common.revenue') : t('common.orders'), color: 'var(--viz-s1)' },
   ]);
   topShops = computed<HBarRow[]>(() => {
     const metric = this.topMetric();
@@ -942,15 +945,15 @@ export class DashboardComponent implements OnInit {
   }
 
   inr(value: number): string {
-    return `₹${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₹${value.toLocaleString(intlLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   agentLabel(status: ShopDashboardRow['agentStatus']): string {
-    return status === 'ONLINE' ? 'online' : status === 'OFFLINE' ? 'offline' : 'not set up';
+    return status === 'ONLINE' ? 'online' : status === 'OFFLINE' ? 'offline' : t('adminDashboard.not_set_up');
   }
 
   daysLeft(iso: string): string {
     const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
-    return days <= 0 ? 'ends today' : days === 1 ? '1 day left' : `${days} days left`;
+    return days <= 0 ? t('adminDashboard.ends_today') : tn('adminDashboard.days_left', days);
   }
 }

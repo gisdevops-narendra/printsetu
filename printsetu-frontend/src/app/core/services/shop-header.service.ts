@@ -4,6 +4,7 @@ import { NotificationEventType, NotificationRow, PrintJobStatus, ShopProfileInfo
 import { ShopkeeperService } from './shopkeeper.service';
 import { OrderAlertsService } from './order-alerts.service';
 import { HeaderAlert, readSeenAt, writeSeenAt } from '../../shared/components/app-header/header.models';
+import { t } from '../i18n/i18n';
 
 const REFRESH_MS = 30_000;
 const SEEN_SCOPE = 'shop';
@@ -12,20 +13,20 @@ const WAITING: PrintJobStatus[] = ['PRINT_ELIGIBLE', 'QUEUED'];
 const ATTENTION: PrintJobStatus[] = ['AGENT_OFFLINE', 'PRINT_FAILED', 'PRINT_UNKNOWN'];
 
 const EVENT: Record<NotificationEventType, { label: string; icon: string; tone: HeaderAlert['tone'] }> = {
-  UPLOAD_RECEIVED: { label: 'New customer upload', icon: 'pi pi-upload', tone: 'info' },
-  PRINT_QUEUED: { label: 'Pending', icon: 'pi pi-clock', tone: 'info' },
-  PRINT_COMPLETED: { label: 'Print completed', icon: 'pi pi-check-circle', tone: 'ok' },
-  PRINT_FAILED: { label: 'Print failed', icon: 'pi pi-times-circle', tone: 'bad' },
-  SUBSCRIPTION_RENEWAL_REMINDER: { label: 'Renewal reminder', icon: 'pi pi-calendar', tone: 'info' },
-  SUBSCRIPTION_TRIAL_ENDING: { label: 'Trial ending', icon: 'pi pi-clock', tone: 'info' },
-  SUBSCRIPTION_PAYMENT_FAILED: { label: 'Payment failed', icon: 'pi pi-exclamation-triangle', tone: 'warn' },
-  SUBSCRIPTION_GRACE_REMINDER: { label: 'Payment reminder', icon: 'pi pi-bell', tone: 'warn' },
-  SUBSCRIPTION_FINAL_WARNING: { label: 'Final warning', icon: 'pi pi-exclamation-circle', tone: 'bad' },
-  SUBSCRIPTION_PAST_DUE: { label: 'Payment overdue', icon: 'pi pi-exclamation-circle', tone: 'bad' },
-  SUBSCRIPTION_SUSPENDED: { label: 'Shop suspended', icon: 'pi pi-lock', tone: 'bad' },
-  SUBSCRIPTION_PAID: { label: 'Payment received', icon: 'pi pi-check-circle', tone: 'ok' },
-  SUBSCRIPTION_REACTIVATED: { label: 'Shop reactivated', icon: 'pi pi-lock-open', tone: 'ok' },
-  SUBSCRIPTION_CANCELLED: { label: 'Subscription cancelled', icon: 'pi pi-ban', tone: 'muted' },
+  UPLOAD_RECEIVED: { get label() { return t('app.new_customer_upload'); }, icon: 'pi pi-upload', tone: 'info' },
+  PRINT_QUEUED: { get label() { return t('common.pending'); }, icon: 'pi pi-clock', tone: 'info' },
+  PRINT_COMPLETED: { get label() { return t('app.print_completed'); }, icon: 'pi pi-check-circle', tone: 'ok' },
+  PRINT_FAILED: { get label() { return t('app.print_failed'); }, icon: 'pi pi-times-circle', tone: 'bad' },
+  SUBSCRIPTION_RENEWAL_REMINDER: { get label() { return t('app.renewal_reminder'); }, icon: 'pi pi-calendar', tone: 'info' },
+  SUBSCRIPTION_TRIAL_ENDING: { get label() { return t('app.trial_ending'); }, icon: 'pi pi-clock', tone: 'info' },
+  SUBSCRIPTION_PAYMENT_FAILED: { get label() { return t('app.payment_failed_2'); }, icon: 'pi pi-exclamation-triangle', tone: 'warn' },
+  SUBSCRIPTION_GRACE_REMINDER: { get label() { return t('app.payment_reminder'); }, icon: 'pi pi-bell', tone: 'warn' },
+  SUBSCRIPTION_FINAL_WARNING: { get label() { return t('app.final_warning'); }, icon: 'pi pi-exclamation-circle', tone: 'bad' },
+  SUBSCRIPTION_PAST_DUE: { get label() { return t('app.payment_overdue'); }, icon: 'pi pi-exclamation-circle', tone: 'bad' },
+  SUBSCRIPTION_SUSPENDED: { get label() { return t('app.shop_suspended'); }, icon: 'pi pi-lock', tone: 'bad' },
+  SUBSCRIPTION_PAID: { get label() { return t('app.payment_received'); }, icon: 'pi pi-check-circle', tone: 'ok' },
+  SUBSCRIPTION_REACTIVATED: { get label() { return t('app.shop_reactivated'); }, icon: 'pi pi-lock-open', tone: 'ok' },
+  SUBSCRIPTION_CANCELLED: { get label() { return t('app.subscription_cancelled'); }, icon: 'pi pi-ban', tone: 'muted' },
 };
 
 export interface QueueSummary {

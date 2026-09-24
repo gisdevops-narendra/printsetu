@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { ThemeService } from '../../core/services/theme.service';
 import { AppShellComponent, ShellNavItem } from '../../shared/components/app-shell/app-shell.component';
 import { AdminHeaderComponent } from './admin-header.component';
+import { t } from '../../core/i18n/i18n';
 
 @Component({
   selector: 'app-admin-layout',
@@ -32,13 +33,13 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
   private readonly theme = inject(ThemeService);
 
   navItems: ShellNavItem[] = [
-    { label: 'Dashboard', icon: 'pi pi-th-large', route: '/admin/dashboard' },
-    { label: 'Shops', icon: 'pi pi-building', route: '/admin/shops' },
-    { label: 'Subscriptions', icon: 'pi pi-wallet', route: '/admin/subscriptions' },
-    { label: 'Users', icon: 'pi pi-users', route: '/admin/users' },
-    { label: 'Printers', icon: 'pi pi-print', route: '/admin/printers' },
-    { label: 'Print History', icon: 'pi pi-history', route: '/admin/print-history' },
-    { label: 'Activity Log', icon: 'pi pi-shield', route: '/admin/audit-logs' },
+    { get label() { return t('common.dashboard'); }, icon: 'pi pi-th-large', route: '/admin/dashboard' },
+    { get label() { return t('common.shops'); }, icon: 'pi pi-building', route: '/admin/shops' },
+    { get label() { return t('common.subscriptions'); }, icon: 'pi pi-wallet', route: '/admin/subscriptions' },
+    { get label() { return t('common.users'); }, icon: 'pi pi-users', route: '/admin/users' },
+    { get label() { return t('common.printers'); }, icon: 'pi pi-print', route: '/admin/printers' },
+    { get label() { return t('layout.print_history'); }, icon: 'pi pi-history', route: '/admin/print-history' },
+    { get label() { return t('layout.activity_log_2'); }, icon: 'pi pi-shield', route: '/admin/audit-logs' },
   ];
 
   /**

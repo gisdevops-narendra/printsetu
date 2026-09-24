@@ -11,6 +11,7 @@ import {
   computed,
   signal,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -64,6 +65,8 @@ import {
   TARGET_DPI,
   computePlacement,
 } from './editor-core';
+import { t as tr } from '../../../core/i18n/i18n';
+import { AppDatePipe } from '../../../core/i18n/i18n-format.pipes';
 
 export type { CanvasEditorPaperKey } from './editor-core';
 
@@ -136,12 +139,12 @@ const HISTORY_LIMIT = 60;
 const PT_MM = 25.4 / 72;
 
 const FIT_MODES: { key: FitMode; label: string; icon: string; hint: string }[] = [
-  { key: 'crop', label: 'Crop', icon: 'pi-crop', hint: 'Free crop: drag the box to choose what prints.' },
-  { key: 'fit', label: 'Fit', icon: 'pi-window-minimize', hint: 'Whole image on the page, with white space if the shapes differ.' },
-  { key: 'fill', label: 'Fill', icon: 'pi-window-maximize', hint: 'Covers the whole page. Edges may be cut off.' },
-  { key: 'stretch', label: 'Stretch', icon: 'pi-arrows-alt', hint: 'Stretched to the page. The image may distort.' },
-  { key: 'center', label: 'Center', icon: 'pi-bullseye', hint: 'Actual size at 300 DPI, centered. Shrinks only if it is too big.' },
-  { key: 'custom', label: 'Custom', icon: 'pi-sliders-v', hint: 'An exact printed size, centered on the page.' },
+  { key: 'crop', get label() { return tr('imageEditor.crop'); }, icon: 'pi-crop', get hint() { return tr('imageEditor.free_crop_drag_the_box_to'); } },
+  { key: 'fit', get label() { return tr('imageEditor.fit'); }, icon: 'pi-window-minimize', get hint() { return tr('imageEditor.whole_image_on_the_page_with'); } },
+  { key: 'fill', get label() { return tr('imageEditor.fill'); }, icon: 'pi-window-maximize', get hint() { return tr('imageEditor.covers_the_whole_page_edges_may'); } },
+  { key: 'stretch', get label() { return tr('imageEditor.stretch'); }, icon: 'pi-arrows-alt', get hint() { return tr('imageEditor.stretched_to_the_page_the_image'); } },
+  { key: 'center', get label() { return tr('imageEditor.center'); }, icon: 'pi-bullseye', get hint() { return tr('imageEditor.actual_size_at_300_dpi_centered'); } },
+  { key: 'custom', get label() { return tr('imageEditor.custom'); }, icon: 'pi-sliders-v', get hint() { return tr('imageEditor.an_exact_printed_size_centered_on'); } },
 ];
 
 const UNIT_FACTOR: Record<SizeUnit, number> = { mm: 1, cm: 0.1, in: 1 / MM_PER_INCH };
@@ -163,7 +166,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
 @Component({
   selector: 'app-image-canvas-editor',
   standalone: true,
-  imports: [
+  imports: [AppDatePipe, TranslatePipe, 
     CommonModule,
     FormsModule,
     ButtonModule,
@@ -179,15 +182,15 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
       <div class="ce__main">
         <div class="ce__toolbar">
           <div class="icon-group">
-            <button type="button" class="icon-btn" (click)="undo()" [disabled]="!canUndo()" pTooltip="Undo (Ctrl+Z)" tooltipPosition="bottom">
+            <button type="button" class="icon-btn" (click)="undo()" [disabled]="!canUndo()" [pTooltip]="'imageEditor.undo_ctrl_z' | translate" tooltipPosition="bottom">
               <i class="pi pi-undo"></i>
             </button>
-            <button type="button" class="icon-btn" (click)="redo()" [disabled]="!canRedo()" pTooltip="Redo (Ctrl+Y)" tooltipPosition="bottom">
+            <button type="button" class="icon-btn" (click)="redo()" [disabled]="!canRedo()" [pTooltip]="'imageEditor.redo_ctrl_y' | translate" tooltipPosition="bottom">
               <i class="pi pi-undo" style="transform: scaleX(-1)"></i>
             </button>
           </div>
-          <button type="button" class="tb-btn" (click)="resetAll()" [disabled]="!canUndo()" pTooltip="Discard every change and start over" tooltipPosition="bottom">
-            <i class="pi pi-times-circle"></i> <span class="tb-label">Reset all</span>
+          <button type="button" class="tb-btn" (click)="resetAll()" [disabled]="!canUndo()" [pTooltip]="'imageEditor.discard_every_change_and_start_over' | translate" tooltipPosition="bottom">
+            <i class="pi pi-times-circle"></i> <span class="tb-label">{{ 'imageEditor.reset_all' | translate }}</span>
           </button>
           <button
             type="button"
@@ -197,21 +200,21 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
             (pointerup)="setCompare(false)"
             (pointerleave)="setCompare(false)"
             (pointercancel)="setCompare(false)"
-            pTooltip="Hold to see the original colors"
+            [pTooltip]="'imageEditor.hold_to_see_the_original_colors' | translate"
             tooltipPosition="bottom"
           >
-            <i class="pi pi-clone"></i> <span class="tb-label">Compare</span>
+            <i class="pi pi-clone"></i> <span class="tb-label">{{ 'imageEditor.compare' | translate }}</span>
           </button>
 
           <span class="flex-spacer"></span>
 
           <div class="zoom-controls">
-            <button type="button" class="icon-btn" (click)="zoomBy(1 / 1.25)" title="Zoom out"><i class="pi pi-search-minus"></i></button>
-            <button type="button" class="zoom-controls__value" (click)="fitView()" title="Fit to view">{{ (viewZoom() * 100).toFixed(0) }}%</button>
-            <button type="button" class="icon-btn" (click)="zoomBy(1.25)" title="Zoom in"><i class="pi pi-search-plus"></i></button>
+            <button type="button" class="icon-btn" (click)="zoomBy(1 / 1.25)" [title]="'imageEditor.zoom_out' | translate"><i class="pi pi-search-minus"></i></button>
+            <button type="button" class="zoom-controls__value" (click)="fitView()" [title]="'imageEditor.fit_to_view' | translate">{{ (viewZoom() * 100).toFixed(0) }}%</button>
+            <button type="button" class="icon-btn" (click)="zoomBy(1.25)" [title]="'imageEditor.zoom_in' | translate"><i class="pi pi-search-plus"></i></button>
           </div>
           <p-button
-            label="Preview"
+            [label]="'imageEditor.preview' | translate"
             icon="pi pi-eye"
             size="small"
             severity="secondary"
@@ -234,22 +237,22 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
             </div>
           }
           @if (perspectiveActive()) {
-            <div class="compare-tag compare-tag--info">Drag the corners onto the page, then Apply (Fix tab)</div>
+            <div class="compare-tag compare-tag--info">{{ 'imageEditor.drag_the_corners_onto_the_page' | translate }}</div>
           }
           @if (compareOn()) {
-            <div class="compare-tag">Original</div>
+            <div class="compare-tag">{{ 'imageEditor.original' | translate }}</div>
           }
           @if (dpiWarning()) {
             <div class="dpi-banner">
               <i class="pi pi-exclamation-triangle"></i>
-              <span>May look blurry at {{ paperLabel() }} &mdash; {{ effectiveDpi() }} DPI (300 recommended)</span>
+              <span>{{ 'imageEditor.may_look_blurry_at_dpi_300' | translate: { paperLabel: paperLabel(), effectiveDpi: effectiveDpi() } }}</span>
             </div>
           }
         </div>
       </div>
 
       <aside class="ce__inspector" [class.is-open]="sheetOpen()">
-        <button type="button" class="sheet-handle" (click)="sheetOpen.set(!sheetOpen())" [attr.aria-expanded]="sheetOpen()" aria-label="Show or hide controls">
+        <button type="button" class="sheet-handle" (click)="sheetOpen.set(!sheetOpen())" [attr.aria-expanded]="sheetOpen()" [attr.aria-label]="'imageEditor.show_or_hide_controls' | translate">
           <span class="sheet-handle__bar"></span>
         </button>
         <div class="tabs">
@@ -266,10 +269,10 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
             <section class="panel">
               <div class="group">
                 <div class="slider-row__head">
-                  <label class="group__label">Paper</label>
+                  <label class="group__label">{{ 'common.paper' | translate }}</label>
                   <label class="bleed-toggle">
                     <p-toggleswitch [(ngModel)]="bleedValue" (onChange)="onBleedChange()" />
-                    <span>3mm bleed</span>
+                    <span>{{ 'imageEditor.3mm_bleed' | translate }}</span>
                   </label>
                 </div>
                 <p-select
@@ -285,7 +288,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
               </div>
 
               <div class="group">
-                <label class="group__label">Placement</label>
+                <label class="group__label">{{ 'imageEditor.placement' | translate }}</label>
                 <div class="mode-grid">
                   @for (m of fitModes; track m.key) {
                     <button type="button" class="mode" [class.is-on]="fitMode() === m.key" (click)="setFitMode(m.key)">
@@ -296,35 +299,35 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
                 </div>
                 <p class="hint">{{ activeHint() }}</p>
                 @if (fitMode() === 'crop') {
-                  <p-button label="Reset crop" icon="pi pi-undo" size="small" severity="secondary" [text]="true" (onClick)="resetCrop()" />
+                  <p-button [label]="'imageEditor.reset_crop' | translate" icon="pi pi-undo" size="small" severity="secondary" [text]="true" (onClick)="resetCrop()" />
                 }
               </div>
 
               <div class="group">
                 <div class="slider-row__head">
-                  <label class="group__label">Margin</label>
-                  <span class="slider-row__value">{{ marginMm() }} mm</span>
+                  <label class="group__label">{{ 'imageEditor.margin' | translate }}</label>
+                  <span class="slider-row__value">{{ 'imageEditor.mm' | translate: { marginMm: marginMm() } }}</span>
                 </div>
                 <p-slider [ngModel]="marginMm()" (ngModelChange)="onMarginChange($event)" [min]="0" [max]="marginMax()" [disabled]="fitMode() === 'crop'" />
                 @if (fitMode() === 'crop') {
-                  <p class="hint">Margins apply in Fit, Fill, Stretch, Center and Custom.</p>
+                  <p class="hint">{{ 'imageEditor.margins_apply_in_fit_fill_stretch' | translate }}</p>
                 }
               </div>
 
               <div class="group">
                 <div class="slider-row__head">
-                  <label class="group__label">Border</label>
-                  <span class="slider-row__value">{{ borderMm() }} mm</span>
+                  <label class="group__label">{{ 'imageEditor.border' | translate }}</label>
+                  <span class="slider-row__value">{{ 'imageEditor.mm_2' | translate: { borderMm: borderMm() } }}</span>
                 </div>
                 <div class="border-row">
                   <p-slider class="border-row__slider" [ngModel]="borderMm()" (ngModelChange)="onBorderChange($event)" [min]="0" [max]="10" [step]="0.5" />
-                  <input type="color" class="swatch" [value]="borderColor()" (input)="onBorderColor($event)" title="Border color" />
+                  <input type="color" class="swatch" [value]="borderColor()" (input)="onBorderColor($event)" [title]="'imageEditor.border_color' | translate" />
                 </div>
               </div>
 
               <div class="group">
                 <div class="slider-row__head">
-                  <label class="group__label">Exact size</label>
+                  <label class="group__label">{{ 'imageEditor.exact_size' | translate }}</label>
                   <p-select
                     [options]="unitOptions"
                     [ngModel]="unit()"
@@ -335,10 +338,10 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
                   />
                 </div>
                 <div class="size-row">
-                  <input pInputText type="number" min="0" [step]="unitStep()" [(ngModel)]="sizeWDraft" (change)="commitSize('w')" (keydown.enter)="commitSize('w')" aria-label="Width" />
+                  <input pInputText type="number" min="0" [step]="unitStep()" [(ngModel)]="sizeWDraft" (change)="commitSize('w')" (keydown.enter)="commitSize('w')" [attr.aria-label]="'imageEditor.width' | translate" />
                   <span class="size-row__x">&times;</span>
-                  <input pInputText type="number" min="0" [step]="unitStep()" [(ngModel)]="sizeHDraft" (change)="commitSize('h')" (keydown.enter)="commitSize('h')" aria-label="Height" />
-                  <button type="button" class="icon-btn lock" [class.is-on]="lockAspect()" (click)="lockAspect.set(!lockAspect())" [pTooltip]="lockAspect() ? 'Aspect ratio locked' : 'Aspect ratio unlocked'" tooltipPosition="left">
+                  <input pInputText type="number" min="0" [step]="unitStep()" [(ngModel)]="sizeHDraft" (change)="commitSize('h')" (keydown.enter)="commitSize('h')" [attr.aria-label]="'imageEditor.height' | translate" />
+                  <button type="button" class="icon-btn lock" [class.is-on]="lockAspect()" (click)="lockAspect.set(!lockAspect())" [pTooltip]="lockAspect() ? ('imageEditor.aspect_ratio_locked' | translate) : ('imageEditor.aspect_ratio_unlocked' | translate)" tooltipPosition="left">
                     <i class="pi" [ngClass]="lockAspect() ? 'pi-lock' : 'pi-lock-open'"></i>
                   </button>
                 </div>
@@ -348,17 +351,17 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
           } @else if (tab() === 'adjust') {
             <section class="panel">
               <div class="group">
-                <label class="group__label">Rotate &amp; flip</label>
+                <label class="group__label">{{ 'imageEditor.rotate_flip' | translate }}</label>
                 <div class="btn-row">
-                  <p-button icon="pi pi-replay" label="Left" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="rotate(-90)" />
-                  <p-button icon="pi pi-refresh" label="Right" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="rotate(90)" />
-                  <p-button icon="pi pi-arrows-h" label="Flip H" size="small" severity="secondary" [outlined]="!flipH()" styleClass="w-full" (onClick)="flip('h')" />
-                  <p-button icon="pi pi-arrows-v" label="Flip V" size="small" severity="secondary" [outlined]="!flipV()" styleClass="w-full" (onClick)="flip('v')" />
+                  <p-button icon="pi pi-replay" [label]="'imageEditor.left' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="rotate(-90)" />
+                  <p-button icon="pi pi-refresh" [label]="'imageEditor.right' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="rotate(90)" />
+                  <p-button icon="pi pi-arrows-h" [label]="'imageEditor.flip_h' | translate" size="small" severity="secondary" [outlined]="!flipH()" styleClass="w-full" (onClick)="flip('h')" />
+                  <p-button icon="pi pi-arrows-v" [label]="'imageEditor.flip_v' | translate" size="small" severity="secondary" [outlined]="!flipV()" styleClass="w-full" (onClick)="flip('v')" />
                 </div>
               </div>
               <div class="group">
                 <div class="slider-row__head">
-                  <label class="group__label">Straighten</label>
+                  <label class="group__label">{{ 'imageEditor.straighten' | translate }}</label>
                   <span class="slider-row__value">{{ fineAngle() > 0 ? '+' : '' }}{{ fineAngle() }}°</span>
                 </div>
                 <p-slider [(ngModel)]="fineAngleValue" [min]="-45" [max]="45" (onChange)="applyRotation()" />
@@ -367,58 +370,58 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
 
             <section class="panel">
               <div class="group">
-                <label class="group__label">Color</label>
+                <label class="group__label">{{ 'common.color' | translate }}</label>
                 <div class="chips">
-                  <button type="button" class="chip" [class.is-on]="effect() === 'none'" (click)="setEffect('none')">Original</button>
-                  <button type="button" class="chip" [class.is-on]="effect() === 'grayscale'" (click)="setEffect('grayscale')">Grayscale</button>
-                  <button type="button" class="chip" [class.is-on]="effect() === 'bw'" (click)="setEffect('bw')">Black &amp; white</button>
+                  <button type="button" class="chip" [class.is-on]="effect() === 'none'" (click)="setEffect('none')">{{ 'imageEditor.original' | translate }}</button>
+                  <button type="button" class="chip" [class.is-on]="effect() === 'grayscale'" (click)="setEffect('grayscale')">{{ 'imageEditor.grayscale' | translate }}</button>
+                  <button type="button" class="chip" [class.is-on]="effect() === 'bw'" (click)="setEffect('bw')">{{ 'imageEditor.black_white' | translate }}</button>
                 </div>
               </div>
               <div class="group">
                 <div class="slider-row__head">
-                  <label class="group__label">Brightness</label>
+                  <label class="group__label">{{ 'imageEditor.brightness' | translate }}</label>
                   <span class="slider-row__value">{{ brightness() }}</span>
                 </div>
                 <p-slider [(ngModel)]="brightnessValue" [min]="-100" [max]="100" (ngModelChange)="onAdjustmentChange()" />
               </div>
               <div class="group">
                 <div class="slider-row__head">
-                  <label class="group__label">Contrast</label>
+                  <label class="group__label">{{ 'imageEditor.contrast' | translate }}</label>
                   <span class="slider-row__value">{{ contrast() }}</span>
                 </div>
                 <p-slider [(ngModel)]="contrastValue" [min]="-100" [max]="100" (ngModelChange)="onAdjustmentChange()" />
               </div>
               <div class="group">
                 <div class="slider-row__head">
-                  <label class="group__label">Saturation</label>
+                  <label class="group__label">{{ 'imageEditor.saturation' | translate }}</label>
                   <span class="slider-row__value">{{ saturation() }}</span>
                 </div>
                 <p-slider [(ngModel)]="saturationValue" [min]="-100" [max]="100" (ngModelChange)="onAdjustmentChange()" />
               </div>
-              <button type="button" class="link-btn" (click)="resetAdjustments()">Reset color &amp; adjustments</button>
+              <button type="button" class="link-btn" (click)="resetAdjustments()">{{ 'imageEditor.reset_color_adjustments' | translate }}</button>
             </section>
           } @else if (tab() === 'annotate') {
             <section class="panel">
               <div class="group">
-                <label class="group__label">Add</label>
+                <label class="group__label">{{ 'imageEditor.add' | translate }}</label>
                 <div class="btn-row">
-                  <p-button icon="pi pi-align-left" label="Text" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="addText()" />
-                  <p-button icon="pi pi-tag" label="Watermark" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="addText(true)" />
-                  <p-button icon="pi pi-stop" label="Box" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="addShape('rect')" />
-                  <p-button icon="pi pi-circle" label="Circle" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="addShape('ellipse')" />
-                  <p-button icon="pi pi-minus" label="Line" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="addShape('line')" />
-                  <p-button icon="pi pi-window-maximize" label="Frame" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="addShape('frame')" />
+                  <p-button icon="pi pi-align-left" [label]="'imageEditor.text' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="addText()" />
+                  <p-button icon="pi pi-tag" [label]="'imageEditor.watermark' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="addText(true)" />
+                  <p-button icon="pi pi-stop" [label]="'imageEditor.box' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="addShape('rect')" />
+                  <p-button icon="pi pi-circle" [label]="'imageEditor.circle' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="addShape('ellipse')" />
+                  <p-button icon="pi pi-minus" [label]="'imageEditor.line' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="addShape('line')" />
+                  <p-button icon="pi pi-window-maximize" [label]="'imageEditor.frame' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="addShape('frame')" />
                 </div>
               </div>
               <div class="group">
-                <label class="group__label">Logo / stamp</label>
+                <label class="group__label">{{ 'imageEditor.logo_stamp' | translate }}</label>
                 <div class="btn-row">
-                  <p-button icon="pi pi-upload" label="Upload" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="logoInput.click()" />
-                  <p-button icon="pi pi-star" label="Saved logo" size="small" severity="secondary" [outlined]="true" styleClass="w-full" [disabled]="!stamp()" (onClick)="useSavedLogo()" />
+                  <p-button icon="pi pi-upload" [label]="'imageEditor.upload' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="logoInput.click()" />
+                  <p-button icon="pi pi-star" [label]="'imageEditor.saved_logo' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" [disabled]="!stamp()" (onClick)="useSavedLogo()" />
                 </div>
                 <input #logoInput type="file" accept="image/*" hidden (change)="onLogoFile($event)" />
                 @if (stamp()) {
-                  <button type="button" class="link-btn" (click)="removeSavedLogo()">Forget saved logo</button>
+                  <button type="button" class="link-btn" (click)="removeSavedLogo()">{{ 'imageEditor.forget_saved_logo' | translate }}</button>
                 }
               </div>
             </section>
@@ -426,21 +429,21 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
             <section class="panel">
               <div class="group">
                 <div class="slider-row__head">
-                  <label class="group__label">Draw</label>
-                  <input type="color" class="swatch" [value]="brushColor()" (input)="brushColor.set($any($event.target).value); configureBrush()" title="Pen / shape color" />
+                  <label class="group__label">{{ 'imageEditor.draw' | translate }}</label>
+                  <input type="color" class="swatch" [value]="brushColor()" (input)="brushColor.set($any($event.target).value); configureBrush()" [title]="'imageEditor.pen_shape_color' | translate" />
                 </div>
                 <div class="btn-row btn-row--3">
-                  <p-button icon="pi pi-pencil" label="Pen" size="small" severity="secondary" [outlined]="tool() !== 'draw'" styleClass="w-full" (onClick)="toggleTool('draw')" />
-                  <p-button icon="pi pi-palette" label="Marker" size="small" severity="secondary" [outlined]="tool() !== 'highlight'" styleClass="w-full" (onClick)="toggleTool('highlight')" />
-                  <p-button icon="pi pi-eraser" label="Erase" size="small" severity="secondary" [outlined]="tool() !== 'erase'" styleClass="w-full" (onClick)="toggleTool('erase')" />
+                  <p-button icon="pi pi-pencil" [label]="'imageEditor.pen' | translate" size="small" severity="secondary" [outlined]="tool() !== 'draw'" styleClass="w-full" (onClick)="toggleTool('draw')" />
+                  <p-button icon="pi pi-palette" [label]="'imageEditor.marker' | translate" size="small" severity="secondary" [outlined]="tool() !== 'highlight'" styleClass="w-full" (onClick)="toggleTool('highlight')" />
+                  <p-button icon="pi pi-eraser" [label]="'imageEditor.erase' | translate" size="small" severity="secondary" [outlined]="tool() !== 'erase'" styleClass="w-full" (onClick)="toggleTool('erase')" />
                 </div>
                 <div class="slider-row__head">
-                  <label class="group__label">Thickness</label>
-                  <span class="slider-row__value">{{ brushMm() }} mm</span>
+                  <label class="group__label">{{ 'imageEditor.thickness' | translate }}</label>
+                  <span class="slider-row__value">{{ 'imageEditor.mm_3' | translate: { brushMm: brushMm() } }}</span>
                 </div>
                 <p-slider [ngModel]="brushMm()" (ngModelChange)="brushMm.set($event); configureBrush()" [min]="0.3" [max]="8" [step]="0.1" />
                 @if (tool() === 'erase') {
-                  <p class="hint">Click a pen or marker stroke to remove it.</p>
+                  <p class="hint">{{ 'imageEditor.click_a_pen_or_marker_stroke' | translate }}</p>
                 }
               </div>
             </section>
@@ -448,15 +451,15 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
             @if (selection(); as sel) {
               <section class="panel panel--selection">
                 <div class="slider-row__head">
-                  <label class="group__label">Selected {{ sel.kind === 'path' ? 'drawing' : sel.kind }}</label>
-                  <button type="button" class="link-btn danger" (click)="deleteSelection()">Delete</button>
+                  <label class="group__label">{{ 'imageEditor.selected_kind.' + sel.kind | translate }}</label>
+                  <button type="button" class="link-btn danger" (click)="deleteSelection()">{{ 'common.delete' | translate }}</button>
                 </div>
                 @if (sel.kind === 'text') {
                   <p-select [options]="fontFamilies" [ngModel]="sel.fontFamily" (ngModelChange)="selFont($event)" size="small" appendTo="body" styleClass="w-full" />
                   <div class="size-row size-row--text">
-                    <input pInputText type="number" min="4" [ngModel]="sel.fontPt" (change)="selFontPt(+$any($event.target).value)" aria-label="Font size (pt)" />
-                    <span class="size-row__x">pt</span>
-                    <input type="color" class="swatch" [value]="hexOf(sel.fill)" (input)="selFill($any($event.target).value)" title="Text color" />
+                    <input pInputText type="number" min="4" [ngModel]="sel.fontPt" (change)="selFontPt(+$any($event.target).value)" [attr.aria-label]="'imageEditor.font_size_pt' | translate" />
+                    <span class="size-row__x">{{ 'imageEditor.pt' | translate }}</span>
+                    <input type="color" class="swatch" [value]="hexOf(sel.fill)" (input)="selFill($any($event.target).value)" [title]="'imageEditor.text_color' | translate" />
                   </div>
                   <div class="chips">
                     <button type="button" class="chip" [class.is-on]="sel.bold" (click)="selToggle('bold')"><b>B</b></button>
@@ -469,68 +472,68 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
                 }
                 @if (sel.kind === 'shape') {
                   <div class="size-row size-row--text">
-                    <span class="group__label">Outline</span>
+                    <span class="group__label">{{ 'imageEditor.outline' | translate }}</span>
                     <span></span>
-                    <input type="color" class="swatch" [value]="hexOf(sel.stroke)" (input)="selStroke($any($event.target).value)" title="Outline color" />
+                    <input type="color" class="swatch" [value]="hexOf(sel.stroke)" (input)="selStroke($any($event.target).value)" [title]="'imageEditor.outline_color' | translate" />
                   </div>
                   <div class="slider-row__head">
-                    <label class="group__label">Line width</label>
-                    <span class="slider-row__value">{{ sel.strokeMm }} mm</span>
+                    <label class="group__label">{{ 'imageEditor.line_width' | translate }}</label>
+                    <span class="slider-row__value">{{ 'imageEditor.mm_4' | translate: { strokeMm: sel.strokeMm } }}</span>
                   </div>
                   <p-slider [ngModel]="sel.strokeMm" (ngModelChange)="selStrokeMm($event)" [min]="0.2" [max]="10" [step]="0.1" />
                   <label class="bleed-toggle">
                     <p-toggleswitch [ngModel]="sel.fill !== 'transparent'" (ngModelChange)="selFilled($event)" />
-                    <span>Filled</span>
+                    <span>{{ 'imageEditor.filled' | translate }}</span>
                     @if (sel.fill !== 'transparent') {
-                      <input type="color" class="swatch" [value]="hexOf(sel.fill)" (input)="selFill($any($event.target).value)" title="Fill color" />
+                      <input type="color" class="swatch" [value]="hexOf(sel.fill)" (input)="selFill($any($event.target).value)" [title]="'imageEditor.fill_color' | translate" />
                     }
                   </label>
                 }
                 <div class="slider-row__head">
-                  <label class="group__label">Opacity</label>
+                  <label class="group__label">{{ 'imageEditor.opacity' | translate }}</label>
                   <span class="slider-row__value">{{ (sel.opacity * 100).toFixed(0) }}%</span>
                 </div>
                 <p-slider [ngModel]="sel.opacity * 100" (ngModelChange)="selOpacity($event)" [min]="5" [max]="100" />
                 <div class="btn-row btn-row--3">
-                  <p-button icon="pi pi-copy" label="Copy" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="duplicateSelection()" />
-                  <p-button icon="pi pi-arrow-up" label="Front" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="layer('front')" />
-                  <p-button icon="pi pi-arrow-down" label="Back" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="layer('back')" />
+                  <p-button icon="pi pi-copy" [label]="'common.copy' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="duplicateSelection()" />
+                  <p-button icon="pi pi-arrow-up" [label]="'imageEditor.front' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="layer('front')" />
+                  <p-button icon="pi pi-arrow-down" [label]="'common.back' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="layer('back')" />
                 </div>
                 @if (sel.kind === 'logo') {
-                  <button type="button" class="link-btn" (click)="saveSelectionAsLogo()">Save as my shop logo</button>
+                  <button type="button" class="link-btn" (click)="saveSelectionAsLogo()">{{ 'imageEditor.save_as_my_shop_logo' | translate }}</button>
                 }
               </section>
             }
           } @else if (tab() === 'fix') {
             <section class="panel">
               <div class="group">
-                <label class="group__label">Retouch</label>
+                <label class="group__label">{{ 'imageEditor.retouch' | translate }}</label>
                 <div class="btn-row">
-                  <p-button icon="pi pi-bullseye" label="Spot fix" size="small" severity="secondary" [outlined]="tool() !== 'spot'" styleClass="w-full" (onClick)="toggleTool('spot')" />
-                  <p-button icon="pi pi-eye" label="Red-eye" size="small" severity="secondary" [outlined]="tool() !== 'redeye'" styleClass="w-full" (onClick)="toggleTool('redeye')" />
+                  <p-button icon="pi pi-bullseye" [label]="'imageEditor.spot_fix' | translate" size="small" severity="secondary" [outlined]="tool() !== 'spot'" styleClass="w-full" (onClick)="toggleTool('spot')" />
+                  <p-button icon="pi pi-eye" [label]="'imageEditor.red_eye' | translate" size="small" severity="secondary" [outlined]="tool() !== 'redeye'" styleClass="w-full" (onClick)="toggleTool('redeye')" />
                 </div>
                 <div class="slider-row__head">
-                  <label class="group__label">Brush size</label>
-                  <span class="slider-row__value">{{ spotMm() }} mm</span>
+                  <label class="group__label">{{ 'imageEditor.brush_size' | translate }}</label>
+                  <span class="slider-row__value">{{ 'imageEditor.mm_5' | translate: { spotMm: spotMm() } }}</span>
                 </div>
                 <p-slider [ngModel]="spotMm()" (ngModelChange)="spotMm.set($event)" [min]="1" [max]="20" [step]="0.5" />
                 @if (tool() === 'spot' || tool() === 'redeye') {
-                  <p class="hint">{{ tool() === 'spot' ? 'Click a blemish or dust speck to heal it.' : 'Click the center of each red pupil.' }}</p>
+                  <p class="hint">{{ tool() === 'spot' ? ('imageEditor.click_a_blemish_or_dust_speck' | translate) : ('imageEditor.click_the_center_of_each_red' | translate) }}</p>
                 }
               </div>
             </section>
 
             <section class="panel">
               <div class="group">
-                <label class="group__label">Straighten a photographed page</label>
+                <label class="group__label">{{ 'imageEditor.straighten_a_photographed_page' | translate }}</label>
                 @if (!perspectiveActive()) {
-                  <p-button icon="pi pi-th-large" label="Correct perspective" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="startPerspective()" />
-                  <p class="hint">Drag four corner handles onto the page corners; it is flattened into a straight rectangle.</p>
+                  <p-button icon="pi pi-th-large" [label]="'imageEditor.correct_perspective' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="startPerspective()" />
+                  <p class="hint">{{ 'imageEditor.drag_four_corner_handles_onto_the' | translate }}</p>
                 } @else {
-                  <p class="hint">Drag the handles onto the page corners, then apply.</p>
+                  <p class="hint">{{ 'imageEditor.drag_the_handles_onto_the_page' | translate }}</p>
                   <div class="btn-row">
-                    <p-button label="Cancel" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="cancelPerspective()" />
-                    <p-button icon="pi pi-check" label="Apply" size="small" styleClass="w-full" (onClick)="applyPerspective()" />
+                    <p-button [label]="'common.cancel' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="cancelPerspective()" />
+                    <p-button icon="pi pi-check" [label]="'imageEditor.apply' | translate" size="small" styleClass="w-full" (onClick)="applyPerspective()" />
                   </div>
                 }
               </div>
@@ -538,75 +541,75 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
 
             <section class="panel">
               <div class="group">
-                <label class="group__label">Remove plain background</label>
+                <label class="group__label">{{ 'imageEditor.remove_plain_background' | translate }}</label>
                 <div class="slider-row__head">
-                  <label class="group__label">Tolerance</label>
+                  <label class="group__label">{{ 'imageEditor.tolerance' | translate }}</label>
                   <span class="slider-row__value">{{ bgTol() }}</span>
                 </div>
                 <p-slider [ngModel]="bgTol()" (ngModelChange)="bgTol.set($event)" [min]="5" [max]="80" />
                 <div class="size-row size-row--text">
-                  <span class="group__label">Replace with</span>
+                  <span class="group__label">{{ 'imageEditor.replace_with' | translate }}</span>
                   <span></span>
-                  <input type="color" class="swatch" [value]="bgColor()" (input)="bgColor.set($any($event.target).value)" title="Replacement color" />
+                  <input type="color" class="swatch" [value]="bgColor()" (input)="bgColor.set($any($event.target).value)" [title]="'imageEditor.replacement_color' | translate" />
                 </div>
-                <p-button icon="pi pi-images" label="Remove background" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="removeBackground()" />
-                <p class="hint">Best on an even, plain background such as a passport photo.</p>
+                <p-button icon="pi pi-images" [label]="'imageEditor.remove_background' | translate" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="removeBackground()" />
+                <p class="hint">{{ 'imageEditor.best_on_an_even_plain_background' | translate }}</p>
               </div>
             </section>
 
             <section class="panel">
               <div class="group">
-                <label class="group__label">Resolution</label>
+                <label class="group__label">{{ 'imageEditor.resolution' | translate }}</label>
                 @if (upscaleFactor(); as k) {
-                  <p-button [label]="'Upscale ×' + k + ' (to ~300 DPI)'" icon="pi pi-arrows-alt" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="upscale()" />
-                  <p class="hint">Resamples the photo larger with sharpening. It cannot add real detail.</p>
+                  <p-button [label]="('imageEditor.upscale' | translate) + k + ' ' + ('imageEditor.to_300_dpi' | translate) + ''" icon="pi pi-arrows-alt" size="small" severity="secondary" [outlined]="true" styleClass="w-full" (onClick)="upscale()" />
+                  <p class="hint">{{ 'imageEditor.resamples_the_photo_larger_with_sharpening' | translate }}</p>
                 } @else {
                   <p class="hint">
                     {{
                       opsView().length
-                        ? 'Pixel edits applied.'
+                        ? ('imageEditor.pixel_edits_applied' | translate)
                         : (effectiveDpi() ?? 999) < 300
-                          ? 'Below 300 DPI, but the photo is too large to upscale safely.'
-                          : 'Resolution is already good for this size.'
+                          ? ('imageEditor.below_300_dpi_but_the_photo' | translate)
+                          : ('imageEditor.resolution_is_already_good_for_this' | translate)
                     }}
                   </p>
                 }
                 @if (opsView().length) {
-                  <button type="button" class="link-btn" (click)="clearPixelEdits()">Undo all retouch &amp; pixel edits</button>
+                  <button type="button" class="link-btn" (click)="clearPixelEdits()">{{ 'imageEditor.undo_all_retouch_pixel_edits' | translate }}</button>
                 }
               </div>
             </section>
           } @else {
             <section class="panel">
               <div class="group">
-                <label class="group__label">File format</label>
+                <label class="group__label">{{ 'imageEditor.file_format' | translate }}</label>
                 <p-select [options]="formatOptions" optionLabel="label" optionValue="value" [ngModel]="exportFormat()" (ngModelChange)="exportFormat.set($event)" size="small" appendTo="body" styleClass="w-full" />
                 @if (exportFormat() === 'jpeg') {
                   <div class="slider-row__head">
-                    <label class="group__label">Quality</label>
+                    <label class="group__label">{{ 'imageEditor.quality' | translate }}</label>
                     <span class="slider-row__value">{{ exportQuality() }}</span>
                   </div>
                   <p-slider [ngModel]="exportQuality()" (ngModelChange)="exportQuality.set($event)" [min]="60" [max]="100" />
                 } @else {
-                  <p class="hint">Lossless. Larger file, best for text and line art.</p>
+                  <p class="hint">{{ 'imageEditor.lossless_larger_file_best_for_text' | translate }}</p>
                 }
               </div>
             </section>
 
             <section class="panel">
               <div class="group">
-                <label class="group__label">Presets</label>
+                <label class="group__label">{{ 'imageEditor.presets' | translate }}</label>
                 @for (p of presets(); track p.id) {
                   <div class="list-row">
                     <span class="list-row__name">{{ p.name }}</span>
-                    <button type="button" class="link-btn" (click)="applyPreset(p)">Apply</button>
+                    <button type="button" class="link-btn" (click)="applyPreset(p)">{{ 'imageEditor.apply' | translate }}</button>
                     @if (!p.builtin) {
-                      <button type="button" class="icon-btn icon-btn--sm" (click)="deletePreset(p.id)" title="Delete preset"><i class="pi pi-trash"></i></button>
+                      <button type="button" class="icon-btn icon-btn--sm" (click)="deletePreset(p.id)" [title]="'imageEditor.delete_preset' | translate"><i class="pi pi-trash"></i></button>
                     }
                   </div>
                 }
                 <div class="size-row size-row--save">
-                  <input pInputText type="text" placeholder="Save current as…" [(ngModel)]="presetName" (keydown.enter)="saveCurrentAsPreset()" />
+                  <input pInputText type="text" [placeholder]="'imageEditor.save_current_as' | translate" [(ngModel)]="presetName" (keydown.enter)="saveCurrentAsPreset()" />
                   <p-button icon="pi pi-check" size="small" [disabled]="!presetName.trim()" (onClick)="saveCurrentAsPreset()" />
                 </div>
               </div>
@@ -615,9 +618,9 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
             @if (otherImageCount > 0) {
               <section class="panel">
                 <div class="group">
-                  <label class="group__label">All documents</label>
+                  <label class="group__label">{{ 'imageEditor.all_documents' | translate }}</label>
                   <p-button
-                    [label]="'Apply to ' + otherImageCount + ' other image' + (otherImageCount === 1 ? '' : 's')"
+                    [label]="(otherImageCount === 1 ? 'imageEditor.apply_to_others.one' : 'imageEditor.apply_to_others.other') | translate: { count: otherImageCount }"
                     icon="pi pi-clone"
                     size="small"
                     severity="secondary"
@@ -626,7 +629,7 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
                     [loading]="batchBusy"
                     (onClick)="emitApplyAll()"
                   />
-                  <p class="hint">Copies paper, placement, margin, border, color and adjustments. Crop, annotations and retouching stay per document.</p>
+                  <p class="hint">{{ 'imageEditor.copies_paper_placement_margin_border_color' | translate }}</p>
                 </div>
               </section>
             }
@@ -634,18 +637,18 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
             @if (historyKey) {
               <section class="panel">
                 <div class="group">
-                  <label class="group__label">Saved versions</label>
+                  <label class="group__label">{{ 'imageEditor.saved_versions' | translate }}</label>
                   @if (!baseIsOriginal) {
-                    <p class="hint">This document was edited elsewhere, so earlier versions cannot be restored here.</p>
+                    <p class="hint">{{ 'imageEditor.this_document_was_edited_elsewhere_so' | translate }}</p>
                   } @else if (!versions().length) {
-                    <p class="hint">Each time you save, a version appears here so you can go back.</p>
+                    <p class="hint">{{ 'imageEditor.each_time_you_save_a_version' | translate }}</p>
                   }
                   @if (baseIsOriginal) {
                     @for (v of versions(); track v.id) {
                       <div class="list-row">
                         <img class="thumb" [src]="v.thumb" alt="" />
-                        <span class="list-row__name">{{ v.label }}<small>{{ v.savedAt | date: 'MMM d, h:mm a' }}</small></span>
-                        <button type="button" class="link-btn" (click)="restoreVersion(v)">Restore</button>
+                        <span class="list-row__name">{{ v.label }}<small>{{ v.savedAt | appDate: 'MMM d, h:mm a' }}</small></span>
+                        <button type="button" class="link-btn" (click)="restoreVersion(v)">{{ 'imageEditor.restore' | translate }}</button>
                       </div>
                     }
                   }
@@ -659,12 +662,12 @@ const UNIT_DECIMALS: Record<SizeUnit, number> = { mm: 1, cm: 2, in: 2 };
           @if (effectiveDpi() !== null) {
             <div class="dpi-chip" [class.is-low]="dpiWarning()">
               <i class="pi" [ngClass]="dpiWarning() ? 'pi-exclamation-circle' : 'pi-check-circle'"></i>
-              <span>{{ effectiveDpi() }} DPI at {{ paperLabel() }}</span>
+              <span>{{ 'imageEditor.dpi_at' | translate: { effectiveDpi: effectiveDpi(), paperLabel: paperLabel() } }}</span>
             </div>
           }
           <div class="btn-row btn-row--actions">
-            <p-button label="Discard" severity="secondary" [outlined]="true" size="small" styleClass="w-full" (onClick)="cancelled.emit()" [disabled]="saving || exporting()" />
-            <p-button label="Save edit" icon="pi pi-check" [pTooltip]="'Exports ' + paperLabel() + ' at ' + TARGET_DPI + ' DPI'" tooltipPosition="top" size="small" styleClass="w-full" (onClick)="applyAndSave()" [loading]="saving || exporting()" [disabled]="loading()" />
+            <p-button [label]="'imageEditor.discard' | translate" severity="secondary" [outlined]="true" size="small" styleClass="w-full" (onClick)="cancelled.emit()" [disabled]="saving || exporting()" />
+            <p-button [label]="'imageEditor.save_edit' | translate" icon="pi pi-check" [pTooltip]="'imageEditor.exports_at_dpi' | translate: { paper: paperLabel(), dpi: TARGET_DPI }" tooltipPosition="top" size="small" styleClass="w-full" (onClick)="applyAndSave()" [loading]="saving || exporting()" [disabled]="loading()" />
           </div>
         </div>
       </aside>
@@ -1351,7 +1354,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
   // ---- Tools / annotations / pixel ops ----
   tool = signal<EditorTool>('select');
   busy = signal(false);
-  busyLabel = signal('Processing…');
+  busyLabel = signal(tr('imageEditor.processing'));
   brushMm = signal(1.5);
   brushColor = signal('#dc2626');
   spotMm = signal(4);
@@ -1362,11 +1365,11 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
   perspectiveActive = signal(false);
   stamp = signal<string | null>(null);
   readonly tabDefs: { key: InspectorTab; label: string; icon: string }[] = [
-    { key: 'layout', label: 'Layout', icon: 'pi-th-large' },
-    { key: 'adjust', label: 'Adjust', icon: 'pi-sliders-h' },
-    { key: 'annotate', label: 'Annotate', icon: 'pi-pencil' },
-    { key: 'fix', label: 'Fix', icon: 'pi-wrench' },
-    { key: 'output', label: 'Output', icon: 'pi-download' },
+    { key: 'layout', get label() { return tr('imageEditor.layout'); }, icon: 'pi-th-large' },
+    { key: 'adjust', get label() { return tr('imageEditor.adjust'); }, icon: 'pi-sliders-h' },
+    { key: 'annotate', get label() { return tr('imageEditor.annotate'); }, icon: 'pi-pencil' },
+    { key: 'fix', get label() { return tr('imageEditor.fix'); }, icon: 'pi-wrench' },
+    { key: 'output', get label() { return tr('imageEditor.output'); }, icon: 'pi-download' },
   ];
   readonly fontFamilies = ['Inter', 'Arial', 'Georgia', 'Times New Roman', 'Courier New', 'Verdana', 'Trebuchet MS', 'Impact'];
   readonly textAligns = ['left', 'center', 'right'];
@@ -1379,7 +1382,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
   versions = signal<EditorVersion[]>([]);
   readonly formatOptions: { label: string; value: ExportFormat }[] = [
     { label: 'JPEG (photos)', value: 'jpeg' },
-    { label: 'PNG (sharp text)', value: 'png' },
+    { get label() { return tr('imageEditor.png_sharp_text'); }, value: 'png' },
   ];
 
   canUndo = signal(false);
@@ -2323,7 +2326,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
   addText(watermark = false): void {
     const pxMm = this.pxPerMm();
     const c = this.pageCenter();
-    const t = new IText(watermark ? 'CONFIDENTIAL' : 'Your text', {
+    const t = new IText(watermark ? 'CONFIDENTIAL' : tr('imageEditor.your_text'), {
       left: c.x,
       top: c.y,
       originX: 'center',
@@ -2381,7 +2384,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
       reader.onerror = () => reject(reader.error);
       reader.onload = () => {
         const img = new Image();
-        img.onerror = () => reject(new Error('Unreadable image'));
+        img.onerror = () => reject(new Error(tr('imageEditor.unreadable_image')));
         img.onload = () => {
           const k = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
           const c = document.createElement('canvas');
@@ -2644,7 +2647,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
   }
 
   /** Makes the image show `ops` applied to the original, keeping its printed size. */
-  private async setOps(ops: PixelOp[], label = 'Processing…'): Promise<void> {
+  private async setOps(ops: PixelOp[], label = tr('imageEditor.processing')): Promise<void> {
     const key = JSON.stringify(ops);
     this.opsList = ops;
     this.opsView.set(ops);
@@ -2686,16 +2689,16 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
 
   async upscale(): Promise<void> {
     const k = this.upscaleFactor();
-    if (k) await this.pushOp({ t: 'upscale', k }, `Upscaling ×${k}…`);
+    if (k) await this.pushOp({ t: 'upscale', k }, tr('imageEditor.upscaling', { k }));
   }
 
   async removeBackground(): Promise<void> {
-    await this.pushOp({ t: 'bg', tol: this.bgTol(), color: this.bgColor() }, 'Removing background…');
+    await this.pushOp({ t: 'bg', tol: this.bgTol(), color: this.bgColor() }, tr('imageEditor.removing_background'));
   }
 
   async clearPixelEdits(): Promise<void> {
     if (!this.opsList.length) return;
-    await this.setOps([], 'Restoring…');
+    await this.setOps([], tr('imageEditor.restoring'));
     this.pushHistory();
   }
 
@@ -2707,7 +2710,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
     const ny = (local.y + this.image.height / 2) / this.image.height;
     if (nx < 0 || nx > 1 || ny < 0 || ny > 1) return;
     const radiusPx = (this.spotMm() * this.pxPerMm()) / Math.max(this.image.scaleX, this.image.scaleY);
-    await this.pushOp({ t: kind, x: nx, y: ny, r: radiusPx / this.image.width }, kind === 'spot' ? 'Fixing spot…' : 'Fixing red-eye…');
+    await this.pushOp({ t: kind, x: nx, y: ny, r: radiusPx / this.image.width }, kind === 'spot' ? tr('imageEditor.fixing_spot') : tr('imageEditor.fixing_red_eye'));
   }
 
   // ---- Perspective / document scan correction ----
@@ -2799,7 +2802,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
     this.flipH.set(false);
     this.flipV.set(false);
     this.applyOrientation();
-    await this.pushOp({ t: 'persp', q }, 'Straightening page…');
+    await this.pushOp({ t: 'persp', q }, tr('imageEditor.straightening_page'));
   }
 
   // ---- History (undo / redo / reset all) ----
@@ -2923,7 +2926,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
       this.flipH.set(s.flipH);
       this.flipV.set(s.flipV);
 
-      await this.setOps(s.ops ?? [], 'Restoring…');
+      await this.setOps(s.ops ?? [], tr('imageEditor.restoring'));
       if (token !== this.restoreToken) return;
 
       if (paperChanged) this.drawPaperGuide();
@@ -3052,7 +3055,7 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
   }
 
   private versionLabel(): string {
-    const parts: string[] = [FIT_MODES.find((m) => m.key === this.fitMode())?.label ?? 'Crop', this.paperLabel()];
+    const parts: string[] = [FIT_MODES.find((m) => m.key === this.fitMode())?.label ?? tr('imageEditor.crop'), this.paperLabel()];
     if (this.annotationObjects().length) parts.push(`${this.annotationObjects().length} annotation(s)`);
     if (this.opsList.length) parts.push(`${this.opsList.length} retouch`);
     return parts.join(' · ');

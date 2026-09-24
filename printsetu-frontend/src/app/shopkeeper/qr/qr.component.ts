@@ -1,4 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
@@ -8,13 +9,13 @@ import { QrData, QrPanelComponent } from '../../shared/components/qr-panel/qr-pa
 @Component({
   selector: 'app-shop-qr',
   standalone: true,
-  imports: [CommonModule, ButtonModule, ProgressSpinnerModule, QrPanelComponent],
+  imports: [TranslatePipe, CommonModule, ButtonModule, ProgressSpinnerModule, QrPanelComponent],
   template: `
     <div class="page-header">
       <div>
-        <h1 class="page-title">Shop QR Code</h1>
+        <h1 class="page-title">{{ 'shopQr.shop_qr_code' | translate }}</h1>
         <p class="page-subtitle">
-          Print the counter sign and customers can scan it to send their documents straight to your Print Orders.
+          {{ 'shopQr.print_the_counter_sign_and_customers' | translate }}
         </p>
       </div>
     </div>
@@ -26,8 +27,8 @@ import { QrData, QrPanelComponent } from '../../shared/components/qr-panel/qr-pa
     } @else {
       <div class="surface-card-flat p-5 text-center">
         <i class="pi pi-exclamation-circle" style="font-size: 1.75rem; color: var(--tx-dc2626)"></i>
-        <p class="mt-3 mb-3">We couldn't load your QR code.</p>
-        <p-button label="Try again" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="load()" />
+        <p class="mt-3 mb-3">{{ 'shopQr.we_couldnt_load_your_qr_code' | translate }}</p>
+        <p-button [label]="'common.try_again' | translate" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="load()" />
       </div>
     }
   `,

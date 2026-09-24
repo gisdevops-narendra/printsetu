@@ -1,4 +1,5 @@
 import { Component, Input, OnDestroy, OnInit, computed, inject } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -12,7 +13,9 @@ import { HeaderBellComponent } from '../../shared/components/app-header/header-b
 import { HeaderProfileComponent } from '../../shared/components/app-header/header-profile.component';
 import { HeaderClockComponent } from '../../shared/components/app-header/header-clock.component';
 import { ThemeToggleComponent } from '../../shared/components/app-header/theme-toggle.component';
+import { LanguagePickerComponent } from '../../shared/components/app-header/language-picker.component';
 import { HeaderMenuItem } from '../../shared/components/app-header/header.models';
+import { t, intlLocale, tn } from '../../core/i18n/i18n';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -21,7 +24,6 @@ interface RenewalNote {
   urgent: boolean;
 }
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 /**
  * Shop page header: the shop's own logo and name, the subscription badge with
@@ -31,21 +33,21 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
  */
 /** "6:00 PM" today, "tomorrow 9:00 AM", or "Mon 9:00 AM". */
 function whenLabel(at: Date, now = new Date()): string {
-  const time = at.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }).toUpperCase();
+  const time = at.toLocaleTimeString(intlLocale(), { hour: 'numeric', minute: '2-digit', hour12: true }).toUpperCase();
   const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const diffDays = Math.round((day(at) - day(now)) / 86_400_000);
   if (diffDays <= 0) return time;
   if (diffDays === 1) return `tomorrow ${time}`;
-  return `${at.toLocaleDateString('en-IN', { weekday: 'short' })} ${time}`;
+  return `${at.toLocaleDateString(intlLocale(), { weekday: 'short' })} ${time}`;
 }
 
 @Component({
   selector: 'app-shop-header',
   standalone: true,
-  imports: [CommonModule, RouterLink, BillingPillComponent, HeaderFrameComponent, HeaderBellComponent, HeaderProfileComponent, HeaderClockComponent, ThemeToggleComponent],
+  imports: [TranslatePipe, CommonModule, RouterLink, BillingPillComponent, HeaderFrameComponent, HeaderBellComponent, HeaderProfileComponent, HeaderClockComponent, ThemeToggleComponent, LanguagePickerComponent],
   template: `
-    <app-header-frame rootLabel="Shop" rootLink="/shop/queue" [navItems]="navItems" [phoneBreadcrumb]="false">
-      <a hdrBrand class="shop" routerLink="/shop/profile" [attr.aria-label]="(header.shop()?.name ?? 'Shop') + ' profile'">
+    <app-header-frame [rootLabel]="'common.shop' | translate" rootLink="/shop/queue" [navItems]="navItems" [phoneBreadcrumb]="false">
+      <a hdrBrand class="shop" routerLink="/shop/profile" [attr.aria-label]="'layout.shop_profile_aria' | translate: { name: header.shop()?.name ?? ('common.shop' | translate) }">
         <span class="shop__logo" [class.shop__logo--empty]="!header.shop()?.logoUrl">
           @if (header.shop()?.logoUrl; as url) {
             <img [src]="url" alt="" />
@@ -58,7 +60,7 @@ function whenLabel(at: Date, now = new Date()): string {
             <strong class="shop__name">{{ s.name }}</strong>
             <small class="shop__meta">{{ s.shopCode }}@if (s.city) { · {{ s.city }} }</small>
           } @else {
-            <strong class="shop__name">My Shop</strong>
+            <strong class="shop__name">{{ 'layout.my_shop' | translate }}</strong>
           }
         </span>
       </a>
@@ -76,25 +78,26 @@ function whenLabel(at: Date, now = new Date()): string {
           (click)="toggleOnline()"
         >
           <span class="online__dot"></span>
-          <span class="online__label">{{ locked() ? 'Paused' : online() ? 'Online' : 'Offline' }}</span>
+          <span class="online__label">{{ locked() ? ('layout.paused' | translate) : online() ? ('common.online' | translate) : ('common.offline' | translate) }}</span>
           <span class="online__track"><span class="online__knob"></span></span>
         </button>
+        <app-language-picker class="theme-inline" />
         <app-theme-toggle class="theme-inline" />
         <app-header-bell
           [alerts]="header.alerts()"
           [unread]="header.unread()"
           [newSince]="header.seenAt()"
-          heading="Notifications"
-          emptyText="No new uploads or alerts."
+          [heading]="'common.notifications' | translate"
+          [emptyText]="'layout.no_new_uploads_or_alerts' | translate"
           viewAllLink="/shop/notifications"
-          viewAllLabel="View all notifications"
+          [viewAllLabel]="'layout.view_all_notifications' | translate"
           (seen)="header.markAllRead()"
         />
-        <app-header-profile [name]="auth.user()?.name ?? ''" [email]="auth.user()?.email ?? ''" roleLabel="Shop owner" [items]="menu" (logout)="auth.logout()" />
+        <app-header-profile [name]="auth.user()?.name ?? ''" [email]="auth.user()?.email ?? ''" [roleLabel]="'layout.shop_owner' | translate" [items]="menu" (logout)="auth.logout()" />
       </div>
 
       <div hdrStrip class="strip">
-        <a class="sub" routerLink="/shop/billing" title="Subscription and billing">
+        <a class="sub" routerLink="/shop/billing" [title]="'layout.subscription_and_billing' | translate">
           @if (status.loaded()) {
             <app-billing-pill [state]="status.access()?.state ?? 'NONE'" />
             @if (renewal(); as r) {
@@ -108,24 +111,24 @@ function whenLabel(at: Date, now = new Date()): string {
         <span class="divider" aria-hidden="true"></span>
 
         @if (status.level() === 'FULL') {
-          <a class="chip" routerLink="/shop/queue" title="Orders waiting to be printed">
-            <i class="pi pi-inbox"></i><b>{{ header.queue().pending }}</b> pending
+          <a class="chip" routerLink="/shop/queue" [title]="'layout.orders_waiting_to_be_printed' | translate">
+            <i class="pi pi-inbox"></i><b>{{ header.queue().pending }}</b> {{ 'layout.pending' | translate }}
           </a>
-          <a class="chip" routerLink="/shop/queue" title="Orders being printed right now">
-            <i class="pi pi-print"></i><b>{{ header.queue().printing }}</b> printing
+          <a class="chip" routerLink="/shop/queue" [title]="'layout.orders_being_printed_right_now' | translate">
+            <i class="pi pi-print"></i><b>{{ header.queue().printing }}</b> {{ 'layout.printing' | translate }}
           </a>
           @if (header.queue().attention > 0) {
-            <a class="chip chip--bad" routerLink="/shop/queue" title="Printer offline or a print failed">
-              <i class="pi pi-exclamation-triangle"></i><b>{{ header.queue().attention }}</b> need{{ header.queue().attention === 1 ? 's' : '' }} attention
+            <a class="chip chip--bad" routerLink="/shop/queue" [title]="'layout.printer_offline_or_a_print_failed' | translate">
+              <i class="pi pi-exclamation-triangle"></i><b>{{ header.queue().attention }}</b> {{ (header.queue().attention === 1 ? 'layout.needs_attention.one' : 'layout.needs_attention.other') | translate }}
             </a>
           }
           @if (!online()) {
-            <span class="chip chip--warn" title="Customers see your shop as unavailable. Orders already in Print Orders are unaffected."><i class="pi pi-pause"></i>{{ scheduleNote() ?? 'Not accepting orders' }}</span>
+            <span class="chip chip--warn" [title]="'layout.customers_see_your_shop_as_unavailable' | translate"><i class="pi pi-pause"></i>{{ scheduleNote() ?? ('layout.not_accepting_orders' | translate) }}</span>
           } @else if (scheduleNote(); as note) {
-            <span class="chip chip--muted" title="Your shop goes online and offline automatically on its shop hours."><i class="pi pi-clock"></i>{{ note }}</span>
+            <span class="chip chip--muted" [title]="'layout.your_shop_goes_online_and_offline' | translate"><i class="pi pi-clock"></i>{{ note }}</span>
           }
         } @else {
-          <span class="chip chip--muted" title="Printing is paused while your subscription needs attention."><i class="pi pi-lock"></i>Printing paused</span>
+          <span class="chip chip--muted" [title]="'layout.printing_is_paused_while_your_subscription' | translate"><i class="pi pi-lock"></i>{{ 'layout.printing_paused' | translate }}</span>
         }
 
         <span class="grow"></span>
@@ -427,9 +430,9 @@ export class ShopHeaderComponent implements OnInit, OnDestroy {
   private readonly messages = inject(MessageService);
 
   readonly menu: HeaderMenuItem[] = [
-    { label: 'Shop profile & settings', icon: 'pi pi-building', route: '/shop/profile' },
-    { label: 'Billing & invoices', icon: 'pi pi-credit-card', route: '/shop/billing' },
-    { label: 'Printer App', icon: 'pi pi-desktop', route: '/shop/print-agent' },
+    { get label() { return t('layout.shop_profile_settings'); }, icon: 'pi pi-building', route: '/shop/profile' },
+    { get label() { return t('layout.billing_invoices'); }, icon: 'pi pi-credit-card', route: '/shop/billing' },
+    { get label() { return t('layout.printer_app'); }, icon: 'pi pi-desktop', route: '/shop/print-agent' },
   ];
 
   /** The switch only means something while the subscription lets the shop take orders at all. */
@@ -448,17 +451,17 @@ export class ShopHeaderComponent implements OnInit, OnDestroy {
     switch (access.state) {
       case 'TRIAL': {
         const n = access.daysLeft ?? days(subscription?.trialEndsAt ?? null);
-        return n === null ? null : { text: n === 0 ? 'Trial ends today' : `${plural(n, 'day')} left`, urgent: n <= 3 };
+        return n === null ? null : { text: n === 0 ? t('layout.trial_ends_today') : tn('layout.days_left', n), urgent: n <= 3 };
       }
       case 'PAYMENT_PENDING': {
         const n = access.daysLeft ?? days(access.graceEndsAt);
-        return n === null ? null : { text: n === 0 ? 'Pay today' : `${plural(n, 'day')} to pay`, urgent: true };
+        return n === null ? null : { text: n === 0 ? t('layout.pay_today') : tn('layout.days_to_pay', n), urgent: true };
       }
       case 'ACTIVE': {
         const n = days(subscription?.currentPeriodEnd ?? null);
         if (n === null) return null;
         const ends = subscription?.cancelAtPeriodEnd;
-        return { text: n === 0 ? (ends ? 'Ends today' : 'Renews today') : `${plural(n, 'day')} left`, urgent: n <= 3 };
+        return { text: n === 0 ? (ends ? t('layout.ends_today') : t('layout.renews_today')) : tn('layout.days_left', n), urgent: n <= 3 };
       }
       default:
         return null;
@@ -471,22 +474,22 @@ export class ShopHeaderComponent implements OnInit, OnDestroy {
     if (this.locked() || !a || a.source === 'MANUAL') return null;
     const at = a.nextChangeAt ? whenLabel(new Date(a.nextChangeAt)) : null;
     if (a.source === 'OVERRIDE') {
-      const kind = this.online() ? 'Open late' : 'On a break';
+      const kind = this.online() ? t('layout.open_late') : t('layout.on_a_break');
       return at ? `${kind} until ${at}` : kind;
     }
-    if (!at) return this.online() ? 'Open' : 'Closed';
-    return this.online() ? `Open · closes ${at}` : `Closed · opens ${at}`;
+    if (!at) return this.online() ? t('common.open') : t('common.closed');
+    return this.online() ? t('layout.open_closes', { at }) : t('layout.closed_opens', { at });
   });
 
   readonly onlineHint = computed(() => {
-    if (this.locked()) return 'New orders are paused because your subscription needs attention.';
+    if (this.locked()) return t('layout.new_orders_are_paused_because_your');
     const a = this.header.availability();
     if (a && a.source !== 'MANUAL') {
       return this.online()
-        ? 'Accepting new orders on your shop hours. Click to go offline for a break (e.g. lunch or a printer issue); the schedule takes over again at its next change.'
-        : 'Closed on your shop hours or on a break. Click to go online now; the schedule takes over again at its next change.';
+        ? t('layout.accepting_new_orders_on_your_shop')
+        : t('layout.closed_on_your_shop_hours_or');
     }
-    return this.online() ? 'Accepting new orders. Click to go offline (e.g. lunch break or printer issue).' : 'Not accepting new orders. Click to go online.';
+    return this.online() ? t('layout.accepting_new_orders_click_to_go') : t('layout.not_accepting_new_orders_click_to');
   });
 
   ngOnInit(): void {
@@ -503,7 +506,7 @@ export class ShopHeaderComponent implements OnInit, OnDestroy {
     this.header.setAccepting(
       next,
       () => undefined,
-      () => this.messages.add({ severity: 'error', summary: 'Could not update your status', detail: 'Check your connection and try again.' }),
+      () => this.messages.add({ severity: 'error', get summary() { return t('layout.could_not_update_your_status'); }, get detail() { return t('layout.check_your_connection_and_try_again'); } }),
     );
   }
 }

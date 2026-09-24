@@ -1,4 +1,5 @@
 import { Component, NgZone, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { intlLocale } from '../../../core/i18n/i18n';
 
 /**
  * Current date and time with the timezone, so an admin looking at shops in other
@@ -51,15 +52,15 @@ export class HeaderClockComponent implements OnInit, OnDestroy {
   private timer?: ReturnType<typeof setInterval>;
   private readonly zoneRef = inject(NgZone);
 
-  readonly date = () => this.now().toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' });
-  readonly time = () => this.now().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  readonly date = () => this.now().toLocaleDateString(intlLocale(), { weekday: 'short', day: '2-digit', month: 'short' });
+  readonly time = () => this.now().toLocaleTimeString(intlLocale(), { hour: '2-digit', minute: '2-digit', hour12: true });
   readonly zone = () => {
     const part = new Intl.DateTimeFormat('en-IN', { timeZoneName: 'short' }).formatToParts(this.now()).find((p) => p.type === 'timeZoneName');
     return part?.value ?? '';
   };
   readonly tooltip = () => {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const utc = this.now().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+    const utc = this.now().toLocaleTimeString(intlLocale(), { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
     return `${tz} · ${utc} UTC`;
   };
 

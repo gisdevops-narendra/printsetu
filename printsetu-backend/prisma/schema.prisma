@@ -236,6 +236,8 @@ model User {
   // Keycloak remains the sole authority there.
   currentPasswordEnc String?  @map("current_password_enc")
   mustChangePassword Boolean  @default(false) @map("must_change_password")
+  // UI language ('en' | 'hi' | 'gu'), so the choice follows the user across devices.
+  language       String     @default("en")
   keycloakUserId String?    @unique @map("keycloak_user_id")
   status         UserStatus @default(ACTIVE)
   lastLoginAt    DateTime?  @map("last_login_at")

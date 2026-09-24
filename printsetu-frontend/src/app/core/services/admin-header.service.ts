@@ -5,6 +5,7 @@ import { BillingService } from './billing.service';
 import { Shop } from '../models/models';
 import { HeaderAlert, readSeenAt, writeSeenAt } from '../../shared/components/app-header/header.models';
 import { money } from '../../shared/billing/billing.util';
+import { t } from '../i18n/i18n';
 
 const REFRESH_MS = 60_000;
 const SEEN_SCOPE = 'admin';
@@ -99,7 +100,7 @@ export class AdminHeaderService {
               id: `pay-${inv.id}`,
               icon: 'pi pi-exclamation-triangle',
               tone: 'bad',
-              title: `Payment failed · ${inv.shop?.name ?? 'a shop'}`,
+              get title() { return t('app.payment_failed', { shop: inv.shop?.name ?? t('app.a_shop') }); },
               detail: `${inv.number} · ${money(inv.amount, inv.currency)}${inv.lastFailure ? ` · ${inv.lastFailure}` : ''}`,
               at: inv.createdAt,
               link: '/admin/subscriptions',
@@ -114,7 +115,7 @@ export class AdminHeaderService {
                 id: `shop-${s.id}`,
                 icon: 'pi pi-building',
                 tone: 'ok',
-                title: `New shop · ${s.name}`,
+                get title() { return t('app.new_shop', { name: s.name }); },
                 detail: `${s.shopCode}${s.city ? ` · ${s.city}` : ''}`,
                 at: s.createdAt,
                 link: '/admin/shops',
