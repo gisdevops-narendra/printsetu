@@ -51,6 +51,12 @@ if grep -qE '=CHANGE_ME' "$ENV_FILE"; then
 fi
 grep -qE '^CREDENTIAL_ENCRYPTION_KEY=.+' "$ENV_FILE" \
   || fail "CREDENTIAL_ENCRYPTION_KEY is missing from $ENV_FILE. Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\""
+# Without SMTP, shops can't register (the verification code is never
+# emailed) and "Forgot password?" can't work. Warn loudly, don't block.
+for key in SMTP_HOST SMTP_USER SMTP_PASSWORD MAIL_FROM; do
+  grep -qE "^${key}=.+" "$ENV_FILE" \
+    || echo "WARNING: $key is empty in $ENV_FILE — emails (sign-up codes, password reset) will NOT be sent." >&2
+done
 echo "OK — $ENV_FILE present, no placeholder values left."
 
 # ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
@@ -7,8 +8,14 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { AppConfig } from './config/configuration';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: false });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: false });
   const config = app.get(ConfigService<AppConfig, true>);
+
+  // In production every request arrives through Nginx on the Docker network.
+  // Trust X-Forwarded-For from private-network proxies so req.ip is the real
+  // visitor: rate limits are per visitor (not one shared bucket for everyone)
+  // and the activity log records real addresses.
+  app.set('trust proxy', 'loopback, linklocal, uniquelocal');
 
   app.use(helmet());
   app.enableCors({
