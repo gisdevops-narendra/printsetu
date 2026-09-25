@@ -41,6 +41,7 @@ import { intlLocale } from '../../../core/i18n/i18n';
         padding: 0.05rem 0.4rem;
         border-radius: 6px;
         background: var(--hdr-field);
+        color: var(--hdr-text);
         font-weight: 700;
         font-size: 0.6875rem;
       }

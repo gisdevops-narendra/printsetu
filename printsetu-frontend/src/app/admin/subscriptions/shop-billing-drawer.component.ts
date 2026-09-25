@@ -466,7 +466,7 @@ const DAY = 86_400_000;
       }
       .facts span {
         font-size: 0.75rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .facts strong {
         font-size: 1rem;
@@ -568,7 +568,7 @@ const DAY = 86_400_000;
         font: inherit;
         font-size: 0.875rem;
         font-weight: 600;
-        color: var(--tx-64748b);
+        color: var(--tx-475569);
         white-space: nowrap;
         cursor: pointer;
       }
@@ -593,7 +593,7 @@ const DAY = 86_400_000;
         font-weight: 700;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .usage {
         display: flex;
@@ -642,7 +642,7 @@ const DAY = 86_400_000;
         color: var(--tx-6366f1);
       }
       .feat li.off {
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .feat li.off i {
         color: #cbd5e1;
@@ -792,7 +792,7 @@ const DAY = 86_400_000;
       }
       .tl__head time {
         font-size: 0.75rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .tl__change {
         margin: 0.25rem 0 0;
@@ -815,7 +815,7 @@ const DAY = 86_400_000;
       .tl__by {
         margin: 0.25rem 0 0;
         font-size: 0.75rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .tl__by i {
         margin-right: 0.25rem;
@@ -840,7 +840,7 @@ const DAY = 86_400_000;
       }
       label small {
         font-weight: 500;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .field input:not([type='radio']):not([type='checkbox']),
       .field textarea,

@@ -363,6 +363,7 @@
     "remove_the_price_customers_cant_choose": "{{rate}} નો ભાવ દૂર કરવો છે? ભાવ દેખાતા હોય ત્યારે, તમે નવો ભાવ નક્કી ન કરો ત્યાં સુધી ગ્રાહકો આ વિકલ્પ પસંદ નહીં કરી શકે. તેની પેજ રેન્જ પણ દૂર થશે.",
     "rate_removed": "ભાવ દૂર કર્યો",
     "and_above": "{{minPages}} અને વધુ",
+    "enter_a_price_per_page": "પ્રતિ પેજ ભાવ લખો",
     "enter_from_pages_and_a_price": "“કેટલા પેજથી” અને પ્રતિ પેજ ભાવ લખો",
     "to_pages_must_be_at_least": "“કેટલા પેજ સુધી” ઓછામાં ઓછું “કેટલા પેજથી” જેટલું હોવું જોઈએ",
     "page_range_updated": "પેજ રેન્જ બદલાઈ",

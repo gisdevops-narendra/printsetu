@@ -91,7 +91,7 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
         align-items: center;
         gap: 0.5rem;
         padding: 2rem 1rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
         text-align: center;
       }
       .empty i {

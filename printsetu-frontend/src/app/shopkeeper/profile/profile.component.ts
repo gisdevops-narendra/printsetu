@@ -352,7 +352,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
       }
       .chip--plain {
         background: var(--bg-f1f5f9);
-        color: var(--tx-64748b);
+        color: var(--tx-475569);
       }
       .dot {
         width: 0.4rem;
@@ -435,7 +435,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
         font: inherit;
         font-size: 0.875rem;
         font-weight: 600;
-        color: var(--tx-64748b);
+        color: var(--tx-475569);
         white-space: nowrap;
         cursor: pointer;
         transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
@@ -465,6 +465,18 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
         .panel,
         .spinner {
           animation: none;
+        }
+      }
+      /* Phones: finger-sized targets. */
+      @media (max-width: 767px) {
+        /* Same look; an invisible ring makes it easier to hit without covering the initials. */
+        .avatar__edit::after {
+          content: '';
+          position: absolute;
+          inset: -0.25rem;
+        }
+        .desc--add {
+          min-height: 2.5rem;
         }
       }
     `,

@@ -259,7 +259,7 @@ import { t } from '../../core/i18n/i18n';
         background: none;
         font: inherit;
         font-weight: 600;
-        color: var(--p-primary-600);
+        color: var(--accent-text-700);
         cursor: pointer;
         text-decoration: underline;
       }
@@ -270,7 +270,7 @@ import { t } from '../../core/i18n/i18n';
       .fine {
         margin: 0.875rem 0 0;
         font-size: 0.75rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .printers {
         display: flex;
@@ -332,7 +332,7 @@ import { t } from '../../core/i18n/i18n';
         align-items: center;
         gap: 0.25rem 0.625rem;
         font-size: 0.75rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .pill {
         display: inline-flex;

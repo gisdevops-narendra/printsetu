@@ -418,6 +418,13 @@ function whenLabel(at: Date, now = new Date()): string {
           transition: none;
         }
       }
+      /* Phones: the status chips and plan link are links, so give them a finger-sized height. */
+      @media (max-width: 767px) {
+        a.chip,
+        .sub {
+          min-height: 2rem;
+        }
+      }
     `,
   ],
 })

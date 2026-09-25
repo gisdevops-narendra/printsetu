@@ -73,7 +73,7 @@ import { t } from '../../../core/i18n/i18n';
         height: 1.05rem;
         padding: 0 0.28rem;
         border-radius: 999px;
-        background: #ef4444;
+        background: #dc2626; /* #ef4444 gave white digits only 3.8:1 */
         color: #fff;
         font-size: 0.625rem;
         font-weight: 800;

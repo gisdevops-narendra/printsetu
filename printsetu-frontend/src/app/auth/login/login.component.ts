@@ -906,7 +906,7 @@ interface DemoAccount {
         gap: 0.5rem;
         margin: clamp(0.75rem, 2.4vh, 1.5rem) 0 0;
         font-size: 0.75rem;
-        color: #8a95a8;
+        color: #64748b; /* #8a95a8 read 3:1 on white */
         text-align: center;
       }
 

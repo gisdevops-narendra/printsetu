@@ -47,6 +47,21 @@ export const printsetuTheme = definePreset(Aura, {
     // (Aura's dark default is a pale indigo with dark text, which clashed with the custom buttons.)
     button: {
       colorScheme: {
+        // Aura's red.500 reads only 3.8:1 (white on red, or red on white); red.600 passes 4.5:1.
+        light: {
+          root: {
+            danger: {
+              background: '{red.600}',
+              hoverBackground: '{red.700}',
+              activeBackground: '{red.800}',
+              borderColor: '{red.600}',
+              hoverBorderColor: '{red.700}',
+              activeBorderColor: '{red.800}',
+            },
+          },
+          outlined: { danger: { color: '{red.600}' } },
+          text: { danger: { color: '{red.600}' } },
+        },
         dark: {
           root: {
             primary: {

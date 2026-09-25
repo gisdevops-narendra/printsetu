@@ -146,7 +146,7 @@ const DESCRIPTION_MAX = 600;
       .count {
         align-self: flex-end;
         font-size: 0.75rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .count.is-near {
         color: var(--tx-d97706);
@@ -202,11 +202,11 @@ const DESCRIPTION_MAX = 600;
         color: var(--tx-0f172a);
       }
       .hrow.is-closed .hrow__day {
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .hrow__closed {
         font-size: 0.875rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .hrow__times {
         display: flex;
@@ -216,7 +216,7 @@ const DESCRIPTION_MAX = 600;
       }
       .hrow__times span {
         font-size: 0.8125rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .hrow__times input {
         flex: 1 1 0;

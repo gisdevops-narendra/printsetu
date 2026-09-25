@@ -79,7 +79,7 @@ interface Bar extends BarDatum {
         width: 2.25rem;
         text-align: right;
         font-size: 0.6875rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
         font-variant-numeric: tabular-nums;
       }
       .tick:first-child {
@@ -177,7 +177,7 @@ interface Bar extends BarDatum {
         white-space: nowrap;
       }
       .axis span.is-shown {
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       @media (max-width: 520px) {
         .chart {

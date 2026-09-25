@@ -84,7 +84,7 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
         font: inherit;
         font-size: 0.875rem;
         font-weight: 600;
-        color: var(--tx-64748b);
+        color: var(--tx-475569);
         white-space: nowrap;
         cursor: pointer;
         transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;

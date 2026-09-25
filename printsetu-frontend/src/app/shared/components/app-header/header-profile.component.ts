@@ -157,6 +157,11 @@ import { LANGUAGES, LanguageService } from '../../../core/i18n/language.service'
         font-size: 0.8125rem;
         padding: 0.2rem 0.4rem;
       }
+      @media (max-width: 767px) {
+        .menu__select {
+          min-height: 2.25rem;
+        }
+      }
       .menu__item {
         display: flex;
         align-items: center;
@@ -197,7 +202,7 @@ import { LANGUAGES, LanguageService } from '../../../core/i18n/language.service'
       }
       .menu__item--danger,
       .menu__item--danger i {
-        color: #dc2626;
+        color: var(--tone-bad-fg); /* red that stays readable on the dark menu too */
       }
       @media (max-width: 899px) {
         .who__text,

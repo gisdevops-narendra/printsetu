@@ -698,7 +698,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
       }
       .doc-card__meta {
         font-size: 0.6875rem;
-        color: var(--muted);
+        color: var(--tx-475569); /* small text on the tinted active card */
         display: flex;
         flex-wrap: wrap;
         align-items: center;
@@ -823,7 +823,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
         border-radius: 8px;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: var(--muted);
+        color: var(--tx-475569);
         cursor: pointer;
         display: inline-flex;
         align-items: center;
@@ -1016,6 +1016,16 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
       }
       .total strong {
         font-size: 1.25rem;
+      }
+      /* Phones: finger-sized toolbar targets. */
+      @media (max-width: 767px) {
+        .segmented button {
+          min-height: 2.25rem;
+        }
+        .zoom-controls__value {
+          min-height: 2.25rem;
+          padding-inline: 0.25rem;
+        }
       }
     `,
   ],

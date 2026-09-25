@@ -708,7 +708,7 @@ body.shell-locked {
   font: inherit;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #64748b;
+  color: #475569; /* #64748b read 4.2:1 on the grey track */
   cursor: pointer;
 }
 
@@ -1054,6 +1054,10 @@ html.app-dark .pf-seg {
   background: #16213a;
 }
 
+html.app-dark .pf-seg button {
+  color: #b4c0d3;
+}
+
 html.app-dark .pf-seg button.is-on {
   background: #24314d;
   color: #f1f5f9;
@@ -1106,4 +1110,23 @@ html.app-dark .print-poster {
   html.app-dark .p-datatable .p-datatable-tbody > tr > td[data-label]::before {
     color: #94a3b8;
   }
+}
+
+/* Phones: PrimeNG's small buttons are 31px tall; lift them to a finger-sized 40px. */
+@media (max-width: 767px) {
+  .p-button.p-button-sm {
+    min-height: 2.5rem;
+  }
+}
+
+/* Devanagari and Gujarati letters join with their vowel signs; letter-spacing pulls them apart
+   ("विकल्प" shows as "वि कल्प"). The app's small caps-style labels use it, so turn it off in Hindi
+   and Gujarati. LanguageService keeps <html lang> in step with the chosen language. */
+html:lang(hi) *,
+html:lang(hi) *::before,
+html:lang(hi) *::after,
+html:lang(gu) *,
+html:lang(gu) *::before,
+html:lang(gu) *::after {
+  letter-spacing: normal !important;
 }

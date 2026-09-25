@@ -237,7 +237,7 @@ const PAGE = 8;
       }
       .row__meta {
         font-size: 0.75rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .row__amount {
         font-size: 0.9375rem;

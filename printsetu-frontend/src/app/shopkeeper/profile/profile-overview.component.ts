@@ -312,13 +312,20 @@ type Metric = 'earnings' | 'jobs';
       .legend small {
         width: 2.75rem;
         text-align: right;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
         font-variant-numeric: tabular-nums;
       }
       .dot {
         width: 0.625rem;
         height: 0.625rem;
         border-radius: 50%;
+      }
+      /* Phones: a taller tap area without moving the link. */
+      @media (max-width: 767px) {
+        .kpi__link {
+          padding: 0.5rem 0;
+          margin: -0.5rem 0;
+        }
       }
     `,
   ],

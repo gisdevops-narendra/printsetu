@@ -463,7 +463,7 @@ const PAGES_TOP_N = 8;
         font: inherit;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: var(--tx-64748b);
+        color: var(--tx-475569);
         cursor: pointer;
       }
       .preset:hover {
@@ -782,6 +782,17 @@ const PAGES_TOP_N = 8;
       }
       :host ::ng-deep .range-input {
         width: 15rem;
+      }
+      /* Phones: finger-sized targets (the link keeps its place). */
+      @media (max-width: 767px) {
+        .preset,
+        .chip-toggle {
+          min-height: 2.25rem;
+        }
+        .shop-link {
+          padding: 0.5rem 0;
+          margin: -0.5rem 0;
+        }
       }
     `,
   ],

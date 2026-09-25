@@ -137,7 +137,7 @@ interface Column {
         margin-top: 0.125rem;
         font-size: 0.6875rem;
         font-weight: 500;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .matrix tbody th {
         font-size: 0.9375rem;

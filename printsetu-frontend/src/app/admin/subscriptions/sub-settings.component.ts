@@ -151,7 +151,7 @@ interface Form {
       }
       .fine.inline {
         margin: 0;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .fine.center {
         text-align: center;
@@ -184,10 +184,10 @@ interface Form {
         color: #fff;
       }
       .tl--warn {
-        background: #f59e0b;
+        background: #b45309; /* white on #f59e0b read 2.2:1 */
       }
       .tl--bad {
-        background: #ef4444;
+        background: #dc2626;
       }
       .tl--dark {
         background: #0f172a;
@@ -261,7 +261,7 @@ interface Form {
         font-style: normal;
         font-size: 0.6875rem;
         font-weight: 600;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .channel.is-on {
         border-color: var(--p-primary-500);

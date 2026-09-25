@@ -106,9 +106,9 @@ export interface QrData {
     `
       :host {
         display: block;
-        --ink: #0f172a;
-        --muted: #64748b;
-        --line: #e6eaf2;
+        --ink: var(--tx-0f172a);
+        --muted: var(--tx-64748b);
+        --line: var(--bd-e6eaf2);
         --brand: var(--p-primary-600);
       }
       .qrp {
@@ -147,6 +147,10 @@ export interface QrData {
         background: #fff;
         border-radius: 12px;
         box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16), 0 2px 6px rgba(15, 23, 42, 0.06);
+        /* The sign is printed, so its colours stay the same in light and dark mode. */
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: #e6eaf2;
         color: var(--ink);
         text-align: center;
       }

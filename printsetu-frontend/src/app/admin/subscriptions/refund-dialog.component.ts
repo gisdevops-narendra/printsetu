@@ -73,7 +73,7 @@ import { t } from '../../core/i18n/i18n';
       }
       .sum span {
         font-size: 0.75rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .sum strong {
         font-size: 0.9375rem;
@@ -93,7 +93,7 @@ import { t } from '../../core/i18n/i18n';
       }
       label small {
         font-weight: 500;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .field input,
       .field textarea {

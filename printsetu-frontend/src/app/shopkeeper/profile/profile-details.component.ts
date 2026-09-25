@@ -156,7 +156,7 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
       }
       .rows__text small {
         font-size: 0.75rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .rows__text span,
       .rows__text a {
@@ -279,7 +279,7 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
         color: var(--tx-0f172a);
       }
       .hours__closed {
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .about {
         margin: 0;
@@ -289,7 +289,7 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
         white-space: pre-line;
       }
       .about--empty {
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
         font-style: italic;
       }
       .facts {
@@ -302,7 +302,7 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
       }
       .facts dt {
         font-size: 0.75rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .facts dd {
         margin: 0.125rem 0 0;

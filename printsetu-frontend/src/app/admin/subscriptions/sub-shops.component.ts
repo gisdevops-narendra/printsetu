@@ -205,7 +205,7 @@ const STATUS_OPTIONS = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPE
         font-weight: 700;
         letter-spacing: 0.05em;
         text-transform: uppercase;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
         border-bottom: 2px solid var(--bd-eef1f7);
       }
       .tbl td {
@@ -234,7 +234,7 @@ const STATUS_OPTIONS = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPE
       .sub {
         margin-top: 0.125rem;
         font-size: 0.75rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .sub.bad {
         color: var(--tx-b45309);
@@ -251,7 +251,7 @@ const STATUS_OPTIONS = ['ACTIVE', 'TRIAL', 'PAYMENT_PENDING', 'PAST_DUE', 'SUSPE
         gap: 0.375rem;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .ar--on {
         color: var(--tx-15803d);

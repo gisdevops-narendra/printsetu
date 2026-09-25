@@ -366,7 +366,7 @@ const BLANK: Form = {
         color: var(--tx-6366f1);
       }
       .features li.off {
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .features li.off i {
         color: #cbd5e1;
@@ -458,7 +458,7 @@ const BLANK: Form = {
       label small,
       legend small {
         font-weight: 500;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .field input,
       .field textarea {
@@ -490,7 +490,7 @@ const BLANK: Form = {
       .hint {
         margin: 0;
         font-size: 0.75rem;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .hint--ok {
         margin-top: 0.5rem;

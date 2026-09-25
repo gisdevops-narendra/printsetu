@@ -186,7 +186,7 @@ import { AppDatePipe, AppNumberPipe } from '../../core/i18n/i18n-format.pipes';
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .hero {
         display: grid;
@@ -365,7 +365,7 @@ import { AppDatePipe, AppNumberPipe } from '../../core/i18n/i18n-format.pipes';
         color: var(--tx-6366f1);
       }
       .feat li.off {
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
       }
       .feat li.off i {
         color: #cbd5e1;

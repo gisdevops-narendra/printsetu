@@ -868,7 +868,7 @@ interface Faq {
         border: none;
         border-radius: 8px;
         background: transparent;
-        color: var(--tx-94a3b8);
+        color: var(--tx-64748b);
         cursor: pointer;
         transition: background 0.15s ease, color 0.15s ease;
       }

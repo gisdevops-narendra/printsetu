@@ -303,6 +303,12 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
           flex: 1 1 100%;
         }
       }
+      /* Narrow phones: two columns cut the options short ("Single-si…"), so stack the fields. */
+      @media (max-width: 440px) {
+        .rate-form {
+          grid-template-columns: 1fr;
+        }
+      }
     `,
   ],
 })
@@ -418,7 +424,10 @@ export class ShopPricingComponent implements OnInit {
   }
 
   save(): void {
-    if (!this.form.pricePerPage) return;
+    if (!this.form.pricePerPage) {
+      this.messageService.add({ severity: 'warn', get summary() { return t('pricing.enter_a_price_per_page'); } });
+      return;
+    }
     this.saving.set(true);
     this.shopkeeperService
       .setPricing({

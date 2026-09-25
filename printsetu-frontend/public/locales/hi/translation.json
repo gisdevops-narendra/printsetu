@@ -363,6 +363,7 @@
     "remove_the_price_customers_cant_choose": "{{rate}} का दाम हटाएँ? जब दाम दिख रहे हों, तब तक ग्राहक यह विकल्प नहीं चुन पाएँगे जब तक आप नया दाम तय नहीं करते। इसकी पेज रेंज भी हट जाएँगी।",
     "rate_removed": "दाम हटा दिया गया",
     "and_above": "{{minPages}} और ज़्यादा",
+    "enter_a_price_per_page": "प्रति पेज दाम डालें",
     "enter_from_pages_and_a_price": "“कितने पेज से” और प्रति पेज दाम डालें",
     "to_pages_must_be_at_least": "“कितने पेज तक” कम से कम “कितने पेज से” जितना होना चाहिए",
     "page_range_updated": "पेज रेंज बदल गई",
