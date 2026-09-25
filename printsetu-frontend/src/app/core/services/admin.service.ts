@@ -8,8 +8,7 @@ import {
   ReportSummary,
   ShopDashboard,
   Shop,
-  UserRow,
-} from '../models/models';
+  UserRow, LeadInput, MapAreasResponse, MapCoverageResponse, MapLead, MapLeadsResponse, MapShopsResponse } from '../models/models';
 
 const BASE = environment.apiBaseUrl;
 
@@ -98,5 +97,40 @@ export class AdminService {
   }
   clearAuditLogs() {
     return this.http.delete<{ cleared: number }>(`${BASE}/admin/audit-logs`);
+  }
+
+  // ---- Business Map ----
+
+  mapShops(from: string, to: string, inactiveDays: number) {
+    return this.http.get<MapShopsResponse>(`${BASE}/admin/map/shops`, {
+      params: { from, to, inactiveDays },
+    });
+  }
+
+  mapAreas(from: string, to: string, groupBy: 'city' | 'district') {
+    return this.http.get<MapAreasResponse>(`${BASE}/admin/map/areas`, { params: { from, to, groupBy } });
+  }
+
+  /** `bbox` = [west, south, east, north] in degrees; `radius` in metres. */
+  mapCoverage(bbox: number[], radius: number) {
+    return this.http.get<MapCoverageResponse>(`${BASE}/admin/map/coverage`, {
+      params: { bbox: bbox.map((n) => n.toFixed(5)).join(','), radius },
+    });
+  }
+
+  mapLeads() {
+    return this.http.get<MapLeadsResponse>(`${BASE}/admin/map/leads`);
+  }
+
+  createLead(lead: LeadInput) {
+    return this.http.post<MapLead>(`${BASE}/admin/map/leads`, lead);
+  }
+
+  updateLead(id: string, lead: LeadInput) {
+    return this.http.patch<MapLead>(`${BASE}/admin/map/leads/${id}`, lead);
+  }
+
+  deleteLead(id: string) {
+    return this.http.delete<{ deleted: true }>(`${BASE}/admin/map/leads/${id}`);
   }
 }

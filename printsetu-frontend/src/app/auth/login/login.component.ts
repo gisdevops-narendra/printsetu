@@ -8,6 +8,7 @@ import { AuthService, PasswordChangeRequiredError } from '../../core/auth/auth.s
 import { environment } from '../../../environments/environment';
 import { t } from '../../core/i18n/i18n';
 import { LanguagePickerComponent } from '../../shared/components/app-header/language-picker.component';
+import { LocationPickerComponent, PickedLocation } from '../../shared/map/location-picker.component';
 
 type RegField = 'shopName' | 'ownerName' | 'email' | 'mobile' | 'address' | 'city' | 'password' | 'confirm';
 
@@ -35,7 +36,7 @@ interface DemoAccount {
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [TranslatePipe, CommonModule, FormsModule, LanguagePickerComponent],
+  imports: [TranslatePipe, CommonModule, FormsModule, LanguagePickerComponent, LocationPickerComponent],
   template: `
     <div class="auth">
       <!-- Language can be picked before signing in (remembered in this browser). -->
@@ -277,6 +278,27 @@ interface DemoAccount {
                 </div>
                 @if (showRegError('city')) {
                   <p class="field__error"><i class="pi pi-info-circle"></i> {{ regError('city') }}</p>
+                }
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="regDistrict">{{ 'location.district_optional' | translate }}</label>
+                <div class="control">
+                  <i class="pi pi-map control__icon" aria-hidden="true"></i>
+                  <input id="regDistrict" name="regDistrict" type="text" class="control__input" [placeholder]="'location.district' | translate" autocomplete="address-level2" maxlength="80" [(ngModel)]="regDistrict" />
+                </div>
+              </div>
+
+              <div class="field">
+                @if (!regMapOpen()) {
+                  <button type="button" class="map-toggle" (click)="regMapOpen.set(true)">
+                    <i class="pi pi-map-marker"></i>
+                    <span>{{ 'location.add_your_shop_on_the_map' | translate }}</span>
+                    <small>{{ 'location.optional' | translate }}</small>
+                  </button>
+                } @else {
+                  <span class="field__label">{{ 'location.shop_location_on_map' | translate }}</span>
+                  <app-location-picker [latitude]="regLocation()?.latitude ?? null" [longitude]="regLocation()?.longitude ?? null" (locationChange)="regLocation.set($event)" />
                 }
               </div>
 
@@ -1071,7 +1093,31 @@ interface DemoAccount {
         font-size: 0.8125rem;
         color: var(--muted);
       }
-      .field__note--center {
+      .map-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.75rem 0.875rem;
+        border: 1.5px dashed #c7d2fe;
+        border-radius: 14px;
+        background: #f8f9ff;
+        color: var(--p-primary-700);
+        font: inherit;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: left;
+      }
+      .map-toggle:hover {
+        background: #eef2ff;
+      }
+      .map-toggle small {
+        margin-left: auto;
+        font-weight: 500;
+        color: var(--muted);
+      }
+            .field__note--center {
         text-align: center;
       }
       .switch__wait {
@@ -1494,6 +1540,10 @@ export class LoginComponent implements OnDestroy {
   /** 'register' = shop self-registration: creates the shop and its owner's login, with a password they choose. */
   reg: Record<RegField, string> = emptyRegistration();
   regTouched = signal<ReadonlySet<RegField>>(new Set());
+  /** Optional: district and a map pin (Business Map). */
+  regDistrict = '';
+  regLocation = signal<PickedLocation | null>(null);
+  regMapOpen = signal(false);
 
   /**
    * 'verifyEmail' = registration step 2: the account is only created once the
@@ -1658,6 +1708,9 @@ export class LoginComponent implements OnDestroy {
   startRegister(): void {
     this.mode.set('register');
     this.reg = emptyRegistration();
+    this.regDistrict = '';
+    this.regLocation.set(null);
+    this.regMapOpen.set(false);
     this.regTouched.set(new Set());
     this.submitted.set(false);
     this.clearError();
@@ -1769,6 +1822,9 @@ export class LoginComponent implements OnDestroy {
         address: this.reg.address.trim(),
         city: this.reg.city.trim(),
         password: this.reg.password,
+        district: this.regDistrict.trim() || undefined,
+        latitude: this.regLocation()?.latitude,
+        longitude: this.regLocation()?.longitude,
         otp: this.otp,
       });
       this.stopResendTimer();

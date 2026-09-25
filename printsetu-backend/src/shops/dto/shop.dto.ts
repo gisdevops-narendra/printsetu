@@ -1,4 +1,4 @@
-import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateShopDto {
   @IsString() @IsNotEmpty() name!: string;
@@ -7,6 +7,9 @@ export class CreateShopDto {
   @IsEmail() email!: string;
   @IsString() @IsNotEmpty() address!: string;
   @IsString() @IsNotEmpty() city!: string;
+  @IsOptional() @IsString() district?: string | null;
+  @IsOptional() @IsNumber() latitude?: number | null;
+  @IsOptional() @IsNumber() longitude?: number | null;
 }
 
 export class UpdateShopDto {

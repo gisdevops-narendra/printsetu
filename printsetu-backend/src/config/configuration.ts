@@ -47,6 +47,10 @@ export interface AppConfig {
     /** Who hears about new shop registrations. Empty = every active ADMIN user. */
     adminEmails: string[];
   };
+  map: {
+    /** Overpass API endpoint for OpenStreetMap places (Business Map coverage gaps). */
+    overpassUrl: string;
+  };
   /** Time zone the shops' opening hours are written in (IANA name). */
   shopTimeZone: string;
 }
@@ -101,6 +105,9 @@ export default (): AppConfig => {
     shopTimeZone: process.env.SHOP_TIME_ZONE || 'Asia/Kolkata',
     docAnalysis: {
       url: process.env.DOC_ANALYSIS_URL || 'http://localhost:8000',
+    },
+    map: {
+      overpassUrl: process.env.OVERPASS_URL || 'https://overpass-api.de/api/interpreter',
     },
     appBaseUrl: (process.env.PUBLIC_APP_BASE_URL || 'http://localhost:4200').replace(/\/+$/, ''),
     mail: {

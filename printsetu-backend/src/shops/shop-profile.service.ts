@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { cleanDistrict, resolveLocation } from './shop-location';
 import { Prisma, PrinterStatus, PrintJobStatus } from '@prisma/client';
 import sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
@@ -146,6 +147,12 @@ export class ShopProfileService {
       const city = dto.city.trim();
       if (city.length < 2 || city.length > 80) throw new InvalidPrintOptionException('Enter a valid city.');
       data.city = city;
+    }
+    if (dto.latitude !== undefined || dto.longitude !== undefined) {
+      Object.assign(data, resolveLocation(dto.latitude, dto.longitude));
+    }
+    if (dto.district !== undefined) {
+      data.district = cleanDistrict(dto.district);
     }
     if (dto.openingHours !== undefined) {
       data.openingHours = this.validateHours(dto.openingHours) as unknown as Prisma.InputJsonValue;

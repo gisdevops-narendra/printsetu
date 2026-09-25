@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsBoolean, IsObject, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
+import { IsBoolean, IsNumber, IsObject, IsOptional, IsString, IsUUID, MaxLength, ValidateNested } from 'class-validator';
 
 /** Fields a shop owner may edit themselves. Name, code, owner and status stay admin-managed. */
 export class UpdateShopProfileDto {
@@ -7,6 +7,12 @@ export class UpdateShopProfileDto {
   @IsOptional() @IsString() mobile?: string;
   @IsOptional() @IsString() address?: string;
   @IsOptional() @IsString() city?: string;
+
+  /** Map position: send both (set) or both null (remove); leave out to keep. */
+  @IsOptional() @IsNumber() latitude?: number | null;
+  @IsOptional() @IsNumber() longitude?: number | null;
+  /** null or "" removes it. */
+  @IsOptional() @IsString() @MaxLength(80) district?: string | null;
 
   /** { mon: { open, from: "09:00", to: "18:00" }, ... tue..sun } — validated in ShopProfileService. */
   @IsOptional() @IsObject() openingHours?: Record<string, unknown>;

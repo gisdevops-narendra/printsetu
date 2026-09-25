@@ -72,7 +72,16 @@ export class ShopkeeperService {
     return this.http.get<ShopProfileResponse>(`${BASE}/shop/profile`).pipe(this.publish);
   }
 
-  updateProfile(dto: { description?: string; mobile?: string; address?: string; city?: string; openingHours?: OpeningHours }) {
+  updateProfile(dto: {
+    description?: string;
+    mobile?: string;
+    address?: string;
+    city?: string;
+    district?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    openingHours?: OpeningHours;
+  }) {
     return this.http.patch<ShopProfileResponse>(`${BASE}/shop/profile`, dto).pipe(this.publish);
   }
 

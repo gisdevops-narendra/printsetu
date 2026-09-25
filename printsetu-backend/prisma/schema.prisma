@@ -177,6 +177,11 @@ model Shop {
   email        String
   address      String
   city         String
+  // Optional, for the admin Business Map: set by the owner at registration or
+  // on their profile (map pin / "Use my current location"). null = not placed.
+  district     String?
+  latitude     Float?
+  longitude    Float?
   status       ShopStatus @default(ACTIVE)
   // Shop-owner-editable public profile (the fields above stay admin-managed).
   description  String?
@@ -202,6 +207,7 @@ model Shop {
   subscription       ShopSubscription?
   invoices           Invoice[]
   subscriptionEvents SubscriptionEvent[]
+  leads              Lead[]
 
   @@map("shops")
 }
@@ -768,4 +774,49 @@ model EmailVerification {
 
   @@id([purpose, email])
   @@map("email_verifications")
+}
+
+enum LeadStatus {
+  CONTACTED
+  DEMO_GIVEN
+  JOINED
+  NOT_INTERESTED
+}
+
+// Business Map: a prospective shop the admin is talking to. Shown as its own
+// marker; once the shop registers, the admin marks it JOINED (optionally
+// linking the shop that registered).
+model Lead {
+  id          String     @id @default(uuid())
+  name        String
+  contactName String?    @map("contact_name")
+  mobile      String?
+  email       String?
+  address     String?
+  city        String?
+  district    String?
+  latitude    Float
+  longitude   Float
+  notes       String?
+  status      LeadStatus @default(CONTACTED)
+  shopId      String?    @map("shop_id")
+  createdById String?    @map("created_by_id")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  shop Shop? @relation(fields: [shopId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@map("leads")
+}
+
+// Business Map coverage gaps: OpenStreetMap places (colleges, schools,
+// offices, government buildings) fetched from the Overpass API once per
+// 0.1-degree map tile and reused until stale, instead of on every page load.
+model MapPlaceTile {
+  key       String   @id
+  places    Json
+  fetchedAt DateTime @map("fetched_at")
+
+  @@map("map_place_tiles")
 }

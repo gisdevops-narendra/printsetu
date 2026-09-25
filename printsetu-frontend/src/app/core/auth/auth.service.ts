@@ -28,6 +28,10 @@ export interface RegisterShopRequest {
   address: string;
   city: string;
   password: string;
+  /** Optional map position and district (Business Map). */
+  district?: string;
+  latitude?: number;
+  longitude?: number;
   /** The 6-digit code emailed by sendRegistrationOtp(). */
   otp: string;
 }

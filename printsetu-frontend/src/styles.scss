@@ -1130,3 +1130,32 @@ html:lang(gu) *::before,
 html:lang(gu) *::after {
   letter-spacing: normal !important;
 }
+
+/* ---- OpenLayers maps (Business Map, location picker) ---- */
+@import 'ol/ol.css';
+
+/*
+   OSM tiles only come in a light style: in dark mode, invert and re-hue them
+   so the map sits in the dark UI (roads stay readable, water stays blue-ish). */
+html.app-dark .osm-tiles {
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88) saturate(0.7);
+}
+.ol-control button {
+  background: var(--hdr-surface);
+  color: var(--hdr-text);
+}
+.ol-control button:hover,
+.ol-control button:focus {
+  background: var(--hdr-hover);
+  color: var(--hdr-text);
+}
+.ol-attribution ul,
+.ol-attribution button {
+  color: var(--hdr-muted);
+}
+html.app-dark .ol-attribution:not(.ol-collapsed) {
+  background: rgba(17, 26, 46, 0.85);
+}
+html.app-dark .ol-attribution a {
+  color: #a5b4fc;
+}

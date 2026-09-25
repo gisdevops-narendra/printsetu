@@ -18,6 +18,9 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
 const ACTION_LABELS: Record<string, string> = {
   get AUDIT_LOG_CLEARED() { return t('activityLog.activity_log_cleared'); },
   get SHOP_REGISTERED() { return t('activityLog.new_shop_registered'); },
+  get LEAD_ADDED() { return t('activityLog.lead_added'); },
+  get LEAD_UPDATED() { return t('activityLog.lead_changed'); },
+  get LEAD_DELETED() { return t('activityLog.lead_deleted'); },
   get PASSWORD_RESET() { return t('activityLog.password_reset_by_email'); },
   get SHOP_ACTIVATED() { return t('activityLog.shop_turned_on'); },
   get SHOP_DEACTIVATED() { return t('activityLog.shop_turned_off'); },

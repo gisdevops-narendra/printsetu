@@ -23,6 +23,7 @@ import { RetentionModule } from './retention/retention.module';
 import { ReportsModule } from './reports/reports.module';
 import { SystemSettingsModule } from './system-settings/system-settings.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { BusinessMapModule } from './business-map/business-map.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     ReportsModule,
     SystemSettingsModule,
     SubscriptionsModule,
+    BusinessMapModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

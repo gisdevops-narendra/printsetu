@@ -39,6 +39,7 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
     { get label() { return t('common.users'); }, icon: 'pi pi-users', route: '/admin/users' },
     { get label() { return t('common.printers'); }, icon: 'pi pi-print', route: '/admin/printers' },
     { get label() { return t('layout.print_history'); }, icon: 'pi pi-history', route: '/admin/print-history' },
+    { get label() { return t('businessMap.business_map'); }, icon: 'pi pi-map', route: '/admin/business-map' },
     { get label() { return t('layout.activity_log_2'); }, icon: 'pi pi-shield', route: '/admin/audit-logs' },
   ];
 

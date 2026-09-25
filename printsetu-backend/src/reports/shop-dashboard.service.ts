@@ -31,7 +31,7 @@ export const JOB_BUCKET: Record<PrintJobStatus, JobBucket> = {
 };
 
 /** Revenue and pages only count jobs that actually printed (same rule as the summary tiles). */
-const PRINTED_STATUSES = (Object.keys(JOB_BUCKET) as PrintJobStatus[]).filter(
+export const PRINTED_STATUSES = (Object.keys(JOB_BUCKET) as PrintJobStatus[]).filter(
   (s) => JOB_BUCKET[s] === 'printed',
 );
 

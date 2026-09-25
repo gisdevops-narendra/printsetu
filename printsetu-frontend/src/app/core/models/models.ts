@@ -343,6 +343,10 @@ export interface ShopProfileInfo {
   email: string;
   address: string;
   city: string;
+  /** Optional map position (Business Map). */
+  district: string | null;
+  latitude: number | null;
+  longitude: number | null;
   status: 'ACTIVE' | 'INACTIVE';
   createdAt: string;
   description: string | null;
@@ -390,3 +394,125 @@ export interface ShopStats {
   jobs: { today: number; week: number; month: number };
   series: { date: string; earnings: number; jobs: number }[];
 }
+
+// ---- Business Map (admin) ----
+
+export type MapMarkerStatus = 'ONLINE' | 'OFFLINE' | 'DEACTIVATED';
+export type LeadStatus = 'CONTACTED' | 'DEMO_GIVEN' | 'JOINED' | 'NOT_INTERESTED';
+export type PlaceCategory = 'college' | 'school' | 'office' | 'government';
+
+export interface GeoPointFeature<P> {
+  type: 'Feature';
+  id: string;
+  geometry: { type: 'Point'; coordinates: [number, number] };
+  properties: P;
+}
+
+export interface MapShopProps {
+  id: string;
+  name: string;
+  shopCode: string;
+  ownerName: string;
+  mobile: string;
+  address: string;
+  city: string;
+  district: string | null;
+  markerStatus: MapMarkerStatus;
+  pricingEnabled: boolean;
+  subscription: { plan: string; status: string; endsAt: string; alert: 'EXPIRING' | 'EXPIRED' | null } | null;
+  jobs: number;
+  printed: number;
+  failed: number;
+  pages: number;
+  /** null when the shop doesn't use pricing. */
+  revenue: number | null;
+  inactive: boolean;
+  printerProblem: boolean;
+  lastOrderAt: string | null;
+  lastActiveAt: string | null;
+  registeredAt: string;
+  registeredMonth: string;
+  /** 0..1 marker sizes worked out by the server. */
+  size: { jobs: number; revenue: number };
+  /** 0..1 heatmap weight. */
+  heat: number;
+}
+
+export interface MapShopsResponse {
+  type: 'FeatureCollection';
+  features: GeoPointFeature<MapShopProps>[];
+  meta: {
+    range: { from: string; to: string };
+    thresholds: { inactiveDays: number; failedPrintsMin: number; failedPrintsShare: number; expiringDays: number };
+    totals: { shops: number; placed: number; jobs: number; pages: number; revenue: number };
+    counts: Record<'online' | 'offline' | 'deactivated' | 'inactive' | 'expiring' | 'expired' | 'printerProblems', number>;
+    max: { jobs: number; revenue: number };
+    unplaced: { id: string; name: string; city: string; markerStatus: MapMarkerStatus }[];
+    growth: { month: string; newShops: number; totalShops: number; placedShops: number }[];
+  };
+}
+
+export interface MapAreaProps {
+  key: string;
+  name: string;
+  groupBy: 'city' | 'district';
+  shops: number;
+  activeShops: number;
+  jobs: number;
+  pages: number;
+  revenue: number;
+}
+
+export interface MapAreasResponse {
+  type: 'FeatureCollection';
+  features: GeoPointFeature<MapAreaProps>[];
+  meta: { range: { from: string; to: string }; groupBy: 'city' | 'district'; areas: (MapAreaProps & { placed: boolean })[] };
+}
+
+export interface MapPlaceProps {
+  id: string;
+  name: string | null;
+  category: PlaceCategory;
+  nearestShopM: number | null;
+  covered: boolean;
+}
+
+export interface MapCoverageResponse {
+  type: 'FeatureCollection';
+  features: GeoPointFeature<MapPlaceProps>[];
+  meta: {
+    radius: number;
+    byCategory: Record<PlaceCategory, { total: number; covered: number; gaps: number }>;
+    gaps: number;
+    failedTiles: number;
+    dataAsOf: string | null;
+  };
+}
+
+export interface MapLead {
+  id: string;
+  name: string;
+  contactName: string | null;
+  mobile: string | null;
+  email: string | null;
+  address: string | null;
+  city: string | null;
+  district: string | null;
+  notes: string | null;
+  status: LeadStatus;
+  shopId: string | null;
+  latitude: number;
+  longitude: number;
+  createdAt: string;
+  updatedAt: string;
+  shop?: { id: string; name: string; shopCode: string } | null;
+  suggestedShop?: { id: string; name: string; shopCode: string } | null;
+}
+
+export interface MapLeadsResponse {
+  type: 'FeatureCollection';
+  features: GeoPointFeature<MapLead>[];
+  meta: { counts: Record<LeadStatus, number> };
+}
+
+export type LeadInput = Partial<Omit<MapLead, 'id' | 'createdAt' | 'updatedAt' | 'shop' | 'suggestedShop'>>;

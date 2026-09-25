@@ -55,6 +55,11 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'business-map',
+        loadComponent: () =>
+          import('./admin/business-map/business-map.component').then((m) => m.BusinessMapComponent),
+      },
+      {
         path: 'audit-logs',
         loadComponent: () =>
           import('./admin/audit-logs/audit-logs.component').then((m) => m.AuditLogsComponent),

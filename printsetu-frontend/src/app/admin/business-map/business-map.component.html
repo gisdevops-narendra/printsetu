@@ -1,0 +1,404 @@
+<div class="page-header bm-head">
+  <div>
+    <h1 class="page-title">{{ 'businessMap.business_map' | translate }}</h1>
+    <p class="page-subtitle m-0">{{ 'businessMap.where_your_shops_are_how_they' | translate }}</p>
+  </div>
+  <div class="bm-filters">
+    <div class="bm-seg" role="group" [attr.aria-label]="'adminDashboard.date_range' | translate">
+      @for (p of presets; track p.value) {
+        <button type="button" [class.is-on]="preset() === p.value" (click)="choosePreset(p.value)">{{ p.label() }}</button>
+      }
+    </div>
+    @if (preset() === 'custom') {
+      <p-datepicker
+        [(ngModel)]="customRange"
+        selectionMode="range"
+        [readonlyInput]="true"
+        [maxDate]="today"
+        dateFormat="d M yy"
+        [placeholder]="'adminDashboard.pick_start_and_end_dates' | translate"
+        [showIcon]="true"
+        [firstDayOfWeek]="1"
+        (onSelect)="onCustomSelect()"
+        appendTo="body"
+      />
+    }
+  </div>
+</div>
+
+@if (shops(); as s) {
+  <div class="bm-kpis" [class.is-loading]="loading()">
+    <div class="bm-kpi">
+      <span>{{ 'businessMap.shops_on_map' | translate }}</span>
+      <b>{{ s.meta.totals.placed | appNumber }} / {{ s.meta.totals.shops | appNumber }}</b>
+    </div>
+    <div class="bm-kpi"><span>{{ 'businessMap.print_jobs' | translate }}</span><b>{{ s.meta.totals.jobs | appNumber }}</b></div>
+    <div class="bm-kpi"><span>{{ 'adminDashboard.pages_printed' | translate }}</span><b>{{ s.meta.totals.pages | appNumber }}</b></div>
+    <div class="bm-kpi"><span>{{ 'common.revenue' | translate }}</span><b>{{ inr(s.meta.totals.revenue) }}</b></div>
+    <div class="bm-kpi bm-kpi--chips">
+      <span class="bm-chip"><i [style.background]="statusColor.ONLINE"></i>{{ s.meta.counts.online }} {{ 'common.online' | translate }}</span>
+      <span class="bm-chip"><i [style.background]="statusColor.OFFLINE"></i>{{ s.meta.counts.offline }} {{ 'common.offline' | translate }}</span>
+      <span class="bm-chip"><i [style.background]="statusColor.DEACTIVATED"></i>{{ s.meta.counts.deactivated }} {{ 'businessMap.deactivated' | translate }}</span>
+      @if (s.meta.counts.expiring + s.meta.counts.expired) {
+        <span class="bm-chip bm-chip--warn">{{ 'businessMap.plan_alerts_count' | translate: { count: s.meta.counts.expiring + s.meta.counts.expired } }}</span>
+      }
+      @if (s.meta.counts.printerProblems) {
+        <span class="bm-chip bm-chip--bad">{{ 'businessMap.printer_problems_count' | translate: { count: s.meta.counts.printerProblems } }}</span>
+      }
+    </div>
+  </div>
+}
+
+<div class="bm-mobile-switch" role="tablist">
+  <button type="button" role="tab" [class.is-on]="mobileView() === 'map'" [attr.aria-selected]="mobileView() === 'map'" (click)="mobileView.set('map')">
+    <i class="pi pi-map"></i> {{ 'businessMap.map' | translate }}
+  </button>
+  <button type="button" role="tab" [class.is-on]="mobileView() === 'list'" [attr.aria-selected]="mobileView() === 'list'" (click)="mobileView.set('list')">
+    <i class="pi pi-list"></i> {{ 'businessMap.list' | translate }}
+  </button>
+</div>
+
+<div class="bm-body" [attr.data-view]="mobileView()">
+  <!-- ============ List beside the map ============ -->
+  <aside class="bm-list surface-card-flat">
+    <div class="bm-search">
+      <i class="pi pi-search"></i>
+      <input
+        type="search"
+        [placeholder]="'businessMap.find_a_shop' | translate"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+        (keydown.enter)="onSearchEnter()"
+        [attr.aria-label]="'businessMap.find_a_shop' | translate"
+      />
+    </div>
+    <div class="bm-tabs" role="tablist">
+      <button type="button" role="tab" [class.is-on]="listTab() === 'shops'" (click)="listTab.set('shops')">{{ 'common.shops' | translate }}</button>
+      <button type="button" role="tab" [class.is-on]="listTab() === 'areas'" (click)="listTab.set('areas')">{{ 'businessMap.areas' | translate }}</button>
+      <button type="button" role="tab" [class.is-on]="listTab() === 'leads'" (click)="listTab.set('leads')">{{ 'businessMap.leads' | translate }}</button>
+    </div>
+
+    <div class="bm-items">
+      @switch (listTab()) {
+        @case ('shops') {
+          @for (shop of shopList(); track shop.id) {
+            <button type="button" class="bm-item" (click)="zoomToShop(shop)">
+              <i class="bm-dot" [style.background]="statusColor[shop.markerStatus]"></i>
+              <span class="bm-item__main">
+                <b>{{ shop.name }}</b>
+                <small>{{ shop.city }}{{ shop.district ? ' · ' + shop.district : '' }}</small>
+                <span class="bm-flags">
+                  @if (shop.subscription?.alert === 'EXPIRED') { <em class="bad">{{ 'businessMap.plan_expired' | translate }}</em> }
+                  @if (shop.subscription?.alert === 'EXPIRING') { <em class="warn">{{ 'businessMap.plan_expiring' | translate }}</em> }
+                  @if (shop.printerProblem) { <em class="bad">{{ 'businessMap.printer_problem' | translate }}</em> }
+                  @if (shop.inactive) { <em>{{ 'businessMap.no_orders_in_days' | translate: { days: inactiveDays() } }}</em> }
+                </span>
+              </span>
+              <span class="bm-item__num">
+                @if (sizeBy() === 'revenue' && shop.revenue !== null) { {{ inr(shop.revenue) }} } @else { {{ shop.jobs | appNumber }} <small>{{ 'businessMap.jobs_short' | translate }}</small> }
+              </span>
+            </button>
+          } @empty {
+            <p class="bm-empty">{{ (loading() ? 'common.loading' : 'businessMap.no_shops_on_the_map_yet') | translate }}</p>
+          }
+          @if (unplacedList().length) {
+            <p class="bm-sub">{{ 'businessMap.not_on_the_map_yet' | translate: { count: unplacedList().length } }}</p>
+            @for (u of unplacedList(); track u.id) {
+              <div class="bm-item bm-item--muted">
+                <i class="bm-dot" [style.background]="statusColor[u.markerStatus]"></i>
+                <span class="bm-item__main"><b>{{ u.name }}</b><small>{{ u.city }}</small></span>
+              </div>
+            }
+          }
+        }
+        @case ('areas') {
+          <div class="bm-seg bm-seg--sm">
+            <button type="button" [class.is-on]="areaGroup() === 'city'" (click)="setAreaGroup('city')">{{ 'common.city' | translate }}</button>
+            <button type="button" [class.is-on]="areaGroup() === 'district'" (click)="setAreaGroup('district')">{{ 'location.district' | translate }}</button>
+          </div>
+          @for (area of areaList(); track area.key) {
+            <button type="button" class="bm-item" [class.bm-item--muted]="!area.placed" [disabled]="!area.placed" (click)="zoomToArea(area)">
+              <i class="pi pi-map-marker bm-item__icon"></i>
+              <span class="bm-item__main">
+                <b>{{ areaName(area) }}</b>
+                <small>
+                  {{ 'businessMap.shops_count' | translate: { count: area.shops } }} · {{ area.jobs | appNumber }} {{ 'businessMap.jobs_short' | translate }} ·
+                  {{ area.pages | appNumber }} {{ 'businessMap.pages_short' | translate }}
+                </small>
+                @if (!area.placed) { <small>{{ 'businessMap.no_shop_placed_here' | translate }}</small> }
+              </span>
+              <span class="bm-item__num">{{ inr(area.revenue) }}</span>
+            </button>
+          } @empty {
+            <p class="bm-empty">{{ 'businessMap.no_areas' | translate }}</p>
+          }
+        }
+        @case ('leads') {
+          <button type="button" class="bm-add" (click)="startAddLead()" [class.is-on]="addingLead()">
+            <i class="pi" [class.pi-plus]="!addingLead()" [class.pi-times]="addingLead()"></i>
+            {{ (addingLead() ? 'businessMap.tap_the_map_to_place_the_lead' : 'businessMap.add_a_lead') | translate }}
+          </button>
+          @for (lead of leadList(); track lead.id) {
+            <button type="button" class="bm-item" (click)="zoomToLead(lead)">
+              <i class="bm-diamond" [style.background]="leadColor[lead.status]"></i>
+              <span class="bm-item__main">
+                <b>{{ lead.name }}</b>
+                <small>{{ leadLabel(lead.status) }}{{ lead.city ? ' · ' + lead.city : '' }}</small>
+                @if (lead.suggestedShop && lead.status !== 'JOINED') {
+                  <span class="bm-flags"><em class="ok">{{ 'businessMap.may_have_registered' | translate }}</em></span>
+                }
+              </span>
+            </button>
+          } @empty {
+            <p class="bm-empty">{{ 'businessMap.no_leads_yet' | translate }}</p>
+          }
+        }
+      }
+    </div>
+  </aside>
+
+  <!-- ============ Map ============ -->
+  <section class="bm-mapwrap">
+    <div class="bm-map" #mapEl [attr.aria-label]="'businessMap.business_map' | translate" role="application"></div>
+    @if (loading()) {
+      <div class="bm-loading"><i class="pi pi-spin pi-spinner"></i></div>
+    }
+    @if (addingLead()) {
+      <div class="bm-banner">
+        <i class="pi pi-map-marker"></i> {{ 'businessMap.tap_the_map_to_place_the_lead' | translate }}
+        <button type="button" (click)="startAddLead()">{{ 'common.cancel' | translate }}</button>
+      </div>
+    }
+
+    @if (replayMonth(); as rm) {
+      <div class="bm-replay">
+        <button type="button" class="bm-replay__play" (click)="playReplay()" [attr.aria-label]="(replayPlaying() ? 'businessMap.pause' : 'businessMap.play') | translate">
+          <i class="pi" [class.pi-pause]="replayPlaying()" [class.pi-play]="!replayPlaying()"></i>
+        </button>
+        <div class="bm-replay__body">
+          <b>{{ monthLabel(rm.month) }}</b>
+          <span>{{ 'businessMap.shops_total_new' | translate: { total: rm.totalShops, added: rm.newShops } }}</span>
+          <input
+            type="range"
+            min="0"
+            [max]="growth().length - 1"
+            [ngModel]="replayIndex()"
+            (ngModelChange)="replayIndex.set(+$event)"
+            [attr.aria-label]="'businessMap.growth_replay' | translate"
+          />
+        </div>
+        <button type="button" class="bm-replay__close" (click)="toggleReplay(false)" [attr.aria-label]="'common.close' | translate"><i class="pi pi-times"></i></button>
+      </div>
+    }
+
+    <!-- Layer panel + legend -->
+    <button type="button" class="bm-panel-toggle" (click)="panelOpen.set(!panelOpen())" [attr.aria-expanded]="panelOpen()">
+      <i class="pi pi-sliders-h"></i> {{ 'businessMap.layers' | translate }}
+    </button>
+    @if (panelOpen()) {
+      <div class="bm-panel">
+        <div class="bm-panel__head">
+          <b>{{ 'businessMap.layers' | translate }}</b>
+          <button type="button" (click)="panelOpen.set(false)" [attr.aria-label]="'common.close' | translate"><i class="pi pi-times"></i></button>
+        </div>
+
+        <label class="bm-toggle"><input type="checkbox" [ngModel]="showShops()" (ngModelChange)="showShops.set($event)" /> {{ 'businessMap.shops_live_status' | translate }}</label>
+        @if (showShops()) {
+          <div class="bm-seg bm-seg--sm bm-indent" role="group" [attr.aria-label]="'businessMap.size_by' | translate">
+            <span>{{ 'businessMap.size_by' | translate }}</span>
+            <button type="button" [class.is-on]="sizeBy() === 'revenue'" (click)="sizeBy.set('revenue')">{{ 'common.revenue' | translate }}</button>
+            <button type="button" [class.is-on]="sizeBy() === 'jobs'" (click)="sizeBy.set('jobs')">{{ 'businessMap.print_jobs' | translate }}</button>
+          </div>
+        }
+        <label class="bm-toggle"><input type="checkbox" [ngModel]="showHeat()" (ngModelChange)="showHeat.set($event)" /> {{ 'businessMap.print_activity_heatmap' | translate }}</label>
+        <label class="bm-toggle"><input type="checkbox" [ngModel]="showAreas()" (ngModelChange)="showAreas.set($event)" /> {{ 'businessMap.area_summary' | translate }}</label>
+        @if (showAreas()) {
+          <div class="bm-seg bm-seg--sm bm-indent">
+            <button type="button" [class.is-on]="areaGroup() === 'city'" (click)="setAreaGroup('city')">{{ 'common.city' | translate }}</button>
+            <button type="button" [class.is-on]="areaGroup() === 'district'" (click)="setAreaGroup('district')">{{ 'location.district' | translate }}</button>
+          </div>
+        }
+
+        <p class="bm-panel__group">{{ 'businessMap.shop_health' | translate }}</p>
+        <label class="bm-toggle"><input type="checkbox" [ngModel]="showInactive()" (ngModelChange)="showInactive.set($event)" /> {{ 'businessMap.inactive_shops' | translate }}</label>
+        @if (showInactive()) {
+          <div class="bm-seg bm-seg--sm bm-indent" role="group" [attr.aria-label]="'businessMap.no_orders_in' | translate">
+            <button type="button" [class.is-on]="inactiveDays() === 7" (click)="setInactiveDays(7)">{{ 'businessMap.n_days' | translate: { days: 7 } }}</button>
+            <button type="button" [class.is-on]="inactiveDays() === 30" (click)="setInactiveDays(30)">{{ 'businessMap.n_days' | translate: { days: 30 } }}</button>
+          </div>
+        }
+        <label class="bm-toggle"><input type="checkbox" [ngModel]="showAlerts()" (ngModelChange)="showAlerts.set($event)" /> {{ 'businessMap.subscription_alerts' | translate }}</label>
+        <label class="bm-toggle"><input type="checkbox" [ngModel]="showProblems()" (ngModelChange)="showProblems.set($event)" /> {{ 'businessMap.printer_problems' | translate }}</label>
+
+        <p class="bm-panel__group">{{ 'businessMap.growth' | translate }}</p>
+        <label class="bm-toggle"><input type="checkbox" [ngModel]="showCoverage()" (ngModelChange)="toggleCoverage($event)" /> {{ 'businessMap.coverage_gaps' | translate }}</label>
+        @if (showCoverage()) {
+          <div class="bm-indent bm-cov">
+            <label>
+              {{ 'businessMap.no_shop_within' | translate }}
+              <select [ngModel]="radius()" (ngModelChange)="setRadius(+$event)">
+                @for (r of radiusChoices; track r) {
+                  <option [value]="r">{{ r < 1000 ? ('businessMap.meters' | translate: { m: r }) : ('businessMap.km' | translate: { km: r / 1000 }) }}</option>
+                }
+              </select>
+            </label>
+            @switch (coverageState()) {
+              @case ('zoom') { <small>{{ 'businessMap.zoom_in_to_see_coverage' | translate }}</small> }
+              @case ('loading') { <small><i class="pi pi-spin pi-spinner"></i> {{ 'businessMap.loading_places' | translate }}</small> }
+              @case ('error') { <small class="bad">{{ coverageError() }}</small> }
+              @case ('ready') {
+                @if (coverage(); as c) {
+                  <small>{{ 'businessMap.gaps_summary' | translate: { gaps: c.meta.gaps, total: c.features.length } }}</small>
+                  @if (c.meta.failedTiles) { <small class="bad">{{ 'businessMap.some_places_couldnt_load' | translate }}</small> }
+                }
+              }
+            }
+          </div>
+        }
+        <label class="bm-toggle"><input type="checkbox" [ngModel]="showLeads()" (ngModelChange)="showLeads.set($event)" /> {{ 'businessMap.leads' | translate }}</label>
+        @if (showLeads()) {
+          <button type="button" class="bm-link bm-indent" (click)="startAddLead()">
+            <i class="pi pi-plus"></i> {{ (addingLead() ? 'common.cancel' : 'businessMap.add_a_lead') | translate }}
+          </button>
+        }
+        <label class="bm-toggle"><input type="checkbox" [ngModel]="replayOn()" (ngModelChange)="toggleReplay($event)" [disabled]="!growth().length" /> {{ 'businessMap.growth_replay' | translate }}</label>
+
+        <button type="button" class="bm-panel__group bm-legend-toggle" (click)="legendOpen.set(!legendOpen())" [attr.aria-expanded]="legendOpen()">
+          {{ 'businessMap.legend' | translate }} <i class="pi" [class.pi-chevron-down]="!legendOpen()" [class.pi-chevron-up]="legendOpen()"></i>
+        </button>
+        @if (legendOpen()) {
+          <ul class="bm-legend">
+            <li><i class="bm-dot" [style.background]="statusColor.ONLINE"></i>{{ 'businessMap.legend_online' | translate }}</li>
+            <li><i class="bm-dot" [style.background]="statusColor.OFFLINE"></i>{{ 'businessMap.legend_offline' | translate }}</li>
+            <li><i class="bm-dot" [style.background]="statusColor.DEACTIVATED"></i>{{ 'businessMap.deactivated' | translate }}</li>
+            <li>
+              <span class="bm-sizes"><i></i><i></i><i></i></span>
+              {{ (sizeBy() === 'revenue' ? 'businessMap.legend_size_revenue' : 'businessMap.legend_size_jobs') | translate }}
+            </li>
+            <li><span class="bm-cluster">5</span>{{ 'businessMap.legend_cluster' | translate }}</li>
+            @if (showInactive()) { <li><i class="bm-ring bm-ring--dash" [style.border-color]="alertColor.inactive"></i>{{ 'businessMap.no_orders_in_days' | translate: { days: inactiveDays() } }}</li> }
+            @if (showAlerts()) {
+              <li><i class="bm-ring" [style.border-color]="alertColor.expiring"></i>{{ 'businessMap.legend_expiring' | translate }}</li>
+              <li><i class="bm-ring" [style.border-color]="alertColor.expired"></i>{{ 'businessMap.plan_expired' | translate }}</li>
+            }
+            @if (showProblems()) {
+              <li><i class="bm-badge">!</i>{{ 'businessMap.legend_printer_problem' | translate: { min: shops()?.meta?.thresholds?.failedPrintsMin ?? 3 } }}</li>
+            }
+            @if (showLeads()) {
+              @for (st of leadStatuses; track st) {
+                <li><i class="bm-diamond" [style.background]="leadColor[st]"></i>{{ 'businessMap.lead' | translate }}: {{ leadLabel(st) }}</li>
+              }
+            }
+            @if (showCoverage()) {
+              @for (c of placeCategories; track c) {
+                <li><i class="bm-dot bm-dot--sm" [style.background]="placeColor[c]"></i>{{ categoryLabel(c) }}</li>
+              }
+              <li><i class="bm-ring bm-ring--gap"></i>{{ 'businessMap.legend_gap' | translate }}</li>
+            }
+            @if (showHeat()) { <li><i class="bm-heat"></i>{{ 'businessMap.legend_heat' | translate }}</li> }
+            <li class="bm-legend__note">{{ 'businessMap.legend_rings_note' | translate }}</li>
+          </ul>
+        }
+      </div>
+    }
+
+    <!-- Popup (positioned by an OpenLayers overlay; shown standalone for areas without a map point) -->
+    <div class="bm-popup" #popupEl [class.is-open]="!!popup()">
+      @if (popup(); as p) {
+        <button type="button" class="bm-popup__close" (click)="closePopup()" [attr.aria-label]="'common.close' | translate"><i class="pi pi-times"></i></button>
+        @if (popupShop(); as s) {
+            <h3>{{ s.name }}</h3>
+            <p class="bm-popup__status">
+              <i class="bm-dot" [style.background]="statusColor[s.markerStatus]"></i> {{ statusLabel(s.markerStatus) }}
+              <small>{{ s.shopCode }}</small>
+            </p>
+            <dl>
+              <dt>{{ 'common.owner' | translate }}</dt><dd>{{ s.ownerName }}</dd>
+              <dt>{{ 'common.mobile' | translate }}</dt><dd><a [href]="'tel:' + s.mobile">{{ s.mobile }}</a></dd>
+              <dt>{{ 'common.address' | translate }}</dt><dd>{{ s.address }}, {{ s.city }}{{ s.district ? ', ' + s.district : '' }}</dd>
+              <dt>{{ 'common.plan' | translate }}</dt>
+              <dd>
+                @if (s.subscription; as sub) {
+                  {{ 'businessMap.plan_until' | translate: { plan: sub.plan, date: (sub.endsAt | appDate: 'mediumDate') } }}
+                  @if (sub.alert === 'EXPIRED') { <em class="bad">{{ 'businessMap.plan_expired' | translate }}</em> }
+                  @if (sub.alert === 'EXPIRING') { <em class="warn">{{ 'businessMap.plan_expiring' | translate }}</em> }
+                } @else {
+                  {{ 'businessMap.no_plan' | translate }}
+                }
+              </dd>
+            </dl>
+            <div class="bm-popup__stats">
+              <div><b>{{ s.jobs | appNumber }}</b><span>{{ 'businessMap.print_jobs' | translate }}</span></div>
+              <div><b>{{ s.pages | appNumber }}</b><span>{{ 'adminDashboard.pages_printed' | translate }}</span></div>
+              <div>
+                <b>{{ s.revenue === null ? '—' : inr(s.revenue) }}</b>
+                <span>{{ (s.revenue === null ? 'businessMap.pricing_off' : 'common.revenue') | translate }}</span>
+              </div>
+            </div>
+            @if (s.printerProblem) {
+              <p class="bm-popup__warn"><i class="pi pi-exclamation-triangle"></i> {{ 'businessMap.failed_prints_in_period' | translate: { failed: s.failed, orders: s.jobs } }}</p>
+            }
+            <p class="bm-popup__meta">
+              {{ 'businessMap.last_active' | translate }}:
+              {{ s.lastActiveAt ? (s.lastActiveAt | appDate: 'medium') : ('businessMap.never' | translate) }}
+            </p>
+            <a class="bm-popup__link" [routerLink]="['/admin/dashboard']" [queryParams]="{ shop: s.id }">
+              {{ 'businessMap.open_shop_details' | translate }} <i class="pi pi-arrow-right"></i>
+            </a>
+        }
+        @if (popupArea(); as a) {
+            <h3>{{ areaName(a) }}</h3>
+            <p class="bm-popup__status"><small>{{ (a.groupBy === 'city' ? 'common.city' : 'location.district') | translate }} · {{ shops()?.meta?.range?.from | appDate }} – {{ shops()?.meta?.range?.to | appDate }}</small></p>
+            <div class="bm-popup__stats bm-popup__stats--4">
+              <div><b>{{ a.shops | appNumber }}</b><span>{{ 'common.shops' | translate }}</span></div>
+              <div><b>{{ a.jobs | appNumber }}</b><span>{{ 'businessMap.print_jobs' | translate }}</span></div>
+              <div><b>{{ a.pages | appNumber }}</b><span>{{ 'adminDashboard.pages_printed' | translate }}</span></div>
+              <div><b>{{ inr(a.revenue) }}</b><span>{{ 'common.revenue' | translate }}</span></div>
+            </div>
+        }
+        @if (popupLead(); as l) {
+            <h3>{{ l.name }}</h3>
+            <p class="bm-popup__status"><i class="bm-diamond" [style.background]="leadColor[l.status]"></i> {{ 'businessMap.lead' | translate }} · {{ leadLabel(l.status) }}</p>
+            <dl>
+              @if (l.contactName) { <dt>{{ 'businessMap.contact_person' | translate }}</dt><dd>{{ l.contactName }}</dd> }
+              @if (l.mobile) { <dt>{{ 'common.mobile' | translate }}</dt><dd><a [href]="'tel:' + l.mobile">{{ l.mobile }}</a></dd> }
+              @if (l.email) { <dt>{{ 'common.email' | translate }}</dt><dd>{{ l.email }}</dd> }
+              @if (l.address || l.city) { <dt>{{ 'common.address' | translate }}</dt><dd>{{ l.address }}{{ l.address && l.city ? ', ' : '' }}{{ l.city }}</dd> }
+              @if (l.shop) { <dt>{{ 'businessMap.registered_shop' | translate }}</dt><dd>{{ l.shop.name }}</dd> }
+            </dl>
+            @if (l.notes) { <p class="bm-popup__notes">{{ l.notes }}</p> }
+            @if (l.suggestedShop && l.status !== 'JOINED') {
+              <p class="bm-popup__hint"><i class="pi pi-info-circle"></i> {{ 'businessMap.looks_like_registered' | translate: { name: l.suggestedShop.name } }}</p>
+            }
+            <div class="bm-popup__actions">
+              <button type="button" class="pf-btn pf-btn--primary" (click)="openLead(l)"><i class="pi pi-pencil"></i> {{ 'common.edit' | translate }}</button>
+              @if (l.status !== 'JOINED') {
+                <button type="button" class="pf-btn" (click)="markJoined(l)"><i class="pi pi-check"></i> {{ 'businessMap.mark_as_joined' | translate }}</button>
+              }
+            </div>
+        }
+        @if (popupPlace(); as pl) {
+            <h3>{{ pl.name || categoryLabel(pl.category) }}</h3>
+            <p class="bm-popup__status"><i class="bm-dot" [style.background]="placeColor[pl.category]"></i> {{ categoryLabel(pl.category) }}</p>
+            <p [class.bm-popup__warn]="!pl.covered">
+              @if (pl.covered) {
+                {{ 'businessMap.nearest_shop' | translate: { distance: distanceLabel(pl.nearestShopM) } }}
+              } @else {
+                <i class="pi pi-exclamation-triangle"></i> {{ 'businessMap.no_shop_within_radius' | translate: { distance: distanceLabel(radius()) } }}
+                @if (pl.nearestShopM !== null) { · {{ 'businessMap.nearest_shop' | translate: { distance: distanceLabel(pl.nearestShopM) } }} }
+              }
+            </p>
+            <small class="bm-popup__meta">© OpenStreetMap</small>
+        }
+      }
+    </div>
+  </section>
+</div>
+
+<app-lead-dialog
+  [visible]="leadDialog().visible"
+  [lead]="leadDialog().lead"
+  [shops]="allShopsForLink()"
+  (visibleChange)="onLeadDialog($event)"
+  (changed)="onLeadsChanged()"
+/>

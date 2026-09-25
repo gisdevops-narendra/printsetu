@@ -3,6 +3,7 @@ import { customAlphabet } from 'nanoid';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppNotFoundException } from '../common/exceptions/app.exceptions';
 import { CreateShopDto, UpdateShopDto } from './dto/shop.dto';
+import { cleanDistrict, resolveLocation } from './shop-location';
 import { Prisma, ShopStatus } from '@prisma/client';
 
 const shopCodeAlphabet = customAlphabet('0123456789ABCDEFGHJKLMNPQRSTUVWXYZ', 8);
@@ -22,6 +23,8 @@ export class ShopsService {
         email: dto.email,
         address: dto.address,
         city: dto.city,
+        district: cleanDistrict(dto.district),
+        ...resolveLocation(dto.latitude, dto.longitude),
         status: ShopStatus.ACTIVE,
         printSettings: { create: {} },
       },

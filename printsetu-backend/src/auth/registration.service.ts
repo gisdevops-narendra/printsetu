@@ -87,6 +87,9 @@ export class RegistrationService {
             email,
             address: dto.address.trim(),
             city: dto.city.trim(),
+            district: dto.district,
+            latitude: dto.latitude,
+            longitude: dto.longitude,
           },
           tx,
         );

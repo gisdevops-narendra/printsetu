@@ -9,6 +9,7 @@ import { ShopkeeperService } from '../../core/services/shopkeeper.service';
 import { DayKey, OpeningHours, ShopProfileInfo, ShopProfileResponse } from '../../core/models/models';
 import { DAY_KEYS, DAY_LABELS, DEFAULT_HOURS } from './profile.util';
 import { t } from '../../core/i18n/i18n';
+import { LocationPickerComponent, PickedLocation } from '../../shared/map/location-picker.component';
 
 const DESCRIPTION_MAX = 600;
 
@@ -16,7 +17,7 @@ const DESCRIPTION_MAX = 600;
 @Component({
   selector: 'app-edit-profile-dialog',
   standalone: true,
-  imports: [TranslatePipe, CommonModule, FormsModule, DialogModule, ToggleSwitchModule],
+  imports: [TranslatePipe, CommonModule, FormsModule, DialogModule, ToggleSwitchModule, LocationPickerComponent],
   template: `
     <p-dialog
       [header]="'profile.edit_shop_profile' | translate"
@@ -56,6 +57,17 @@ const DESCRIPTION_MAX = 600;
           <textarea id="ep-address" name="address" rows="2" autocomplete="street-address" [(ngModel)]="address"></textarea>
           @if (errors()['address']) { <span class="err">{{ errors()['address'] }}</span> }
         </div>
+
+        <div class="field">
+          <label for="ep-district">{{ 'location.district_optional' | translate }}</label>
+          <input id="ep-district" name="district" type="text" autocomplete="address-level2" [(ngModel)]="district" [maxlength]="80" />
+        </div>
+
+        <fieldset class="hours">
+          <legend>{{ 'location.shop_location_on_map' | translate }}</legend>
+          <p class="lead">{{ 'location.optional_helps_customers_and_printsetu' | translate }}</p>
+          <app-location-picker [latitude]="location()?.latitude ?? null" [longitude]="location()?.longitude ?? null" (locationChange)="location.set($event)" />
+        </fieldset>
 
         <fieldset class="hours">
           <legend>{{ 'profile.opening_hours' | translate }}</legend>
@@ -271,6 +283,8 @@ export class EditProfileDialogComponent {
   mobile = '';
   city = '';
   address = '';
+  district = '';
+  location = signal<PickedLocation | null>(null);
   hours = signal<OpeningHours>(structuredClone(DEFAULT_HOURS));
   saving = signal(false);
   private initial = '';
@@ -304,6 +318,12 @@ export class EditProfileDialogComponent {
     this.mobile = this.shop.mobile;
     this.city = this.shop.city;
     this.address = this.shop.address;
+    this.district = this.shop.district ?? '';
+    this.location.set(
+      this.shop.latitude !== null && this.shop.longitude !== null
+        ? { latitude: this.shop.latitude, longitude: this.shop.longitude }
+        : null,
+    );
     this.hours.set(structuredClone(this.shop.openingHours ?? DEFAULT_HOURS));
     this.initial = this.snapshot();
   }
@@ -345,6 +365,9 @@ export class EditProfileDialogComponent {
         mobile: this.mobile.trim(),
         city: this.city.trim(),
         address: this.address.trim(),
+        district: this.district.trim() || null,
+        latitude: this.location()?.latitude ?? null,
+        longitude: this.location()?.longitude ?? null,
         openingHours: this.hours(),
       })
       .subscribe({
@@ -359,6 +382,14 @@ export class EditProfileDialogComponent {
   }
 
   private snapshot(): string {
-    return JSON.stringify([this.description.trim(), this.mobile.trim(), this.city.trim(), this.address.trim(), this.hours()]);
+    return JSON.stringify([
+      this.description.trim(),
+      this.mobile.trim(),
+      this.city.trim(),
+      this.address.trim(),
+      this.district.trim(),
+      this.location(),
+      this.hours(),
+    ]);
   }
 }

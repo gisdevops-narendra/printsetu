@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 /** Step 1 of registration: email a one-time code to the address being registered. */
 export class SendRegistrationOtpDto {
@@ -13,6 +13,11 @@ export class RegisterShopDto {
   @IsEmail() @MaxLength(254) email!: string;
   @IsString() @IsNotEmpty() @MaxLength(300) address!: string;
   @IsString() @IsNotEmpty() @MaxLength(80) city!: string;
+
+  /** Optional map position (Business Map): both or neither. */
+  @IsOptional() @IsNumber() latitude?: number | null;
+  @IsOptional() @IsNumber() longitude?: number | null;
+  @IsOptional() @IsString() @MaxLength(80) district?: string | null;
 
   @IsString()
   @MinLength(8)
