@@ -30,3 +30,6 @@ Thumbs.db
 
 # Local production environment
 .env
+
+# Local database backups (pg_dump), never commit
+.backups/
