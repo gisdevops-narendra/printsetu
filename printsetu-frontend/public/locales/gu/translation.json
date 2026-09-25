@@ -996,7 +996,7 @@
     "private_session": "ખાનગી સેશન",
     "you_stay_signed_in_until_you": "{{connection}} · સાઇન આઉટ કરો ત્યાં સુધી તમે સાઇન ઇન રહેશો",
     "register_your_shop": "તમારી દુકાન રજિસ્ટર કરો",
-    "create_your_shop_and_your_sign": "એક જ પગલામાં તમારી દુકાન અને સાઇન-ઇન બનાવો. પાસવર્ડ તમે જાતે પસંદ કરશો.",
+    "create_your_shop_and_your_sign": "તમારી દુકાનની વિગતો ભરો અને પાસવર્ડ જાતે પસંદ કરો. પછી તમારો ઈમેલ પાકો કરવા અમે એક કોડ મોકલીશું.",
     "shop_name": "દુકાનનું નામ",
     "e_g_sai_xerox_prints": "જેમ કે સાઈ ઝેરોક્સ એન્ડ પ્રિન્ટ્સ",
     "your_name": "તમારું નામ",
@@ -1044,7 +1044,30 @@
     "too_many_sign_in_attempts_please": "સાઇન ઇનના બહુ વધારે પ્રયાસ થયા. કૃપા કરીને એક મિનિટ રાહ જોઈને ફરી પ્રયાસ કરો.",
     "that_password_is_not_valid_please": "આ પાસવર્ડ માન્ય નથી. કૃપા કરીને બીજો અજમાવો.",
     "that_email_or_password_doesnt_match": "ઇમેઇલ કે પાસવર્ડ મેળ ખાતો નથી. કૃપા કરીને તપાસીને ફરી પ્રયાસ કરો.",
-    "we_couldnt_sign_you_in_please": "તમને સાઇન ઇન કરી શકાયા નહીં. કૃપા કરીને ફરી પ્રયાસ કરો."
+    "we_couldnt_sign_you_in_please": "તમને સાઇન ઇન કરી શકાયા નહીં. કૃપા કરીને ફરી પ્રયાસ કરો.",
+    "continue": "આગળ વધો",
+    "sending_the_code": "કોડ મોકલાઈ રહ્યો છે…",
+    "we_will_email_you_a_code": "આગળના પગલામાં અમે તમારા ઈમેલ પર 6 અંકનો કોડ મોકલીશું, જેથી પાકું થાય કે ઈમેલ તમારો છે.",
+    "check_your_email": "તમારો ઈમેલ જુઓ",
+    "we_sent_a_6_digit_code_to": "અમે {{email}} પર 6 અંકનો કોડ મોકલ્યો છે. દુકાન બનાવવા માટે તે નીચે દાખલ કરો.",
+    "verification_code": "ખાતરી કોડ",
+    "enter_the_6_digit_code": "ઈમેલમાં આવેલો 6 અંકનો કોડ દાખલ કરો.",
+    "the_code_works_for_10_minutes": "કોડ 10 મિનિટ સુધી ચાલશે. ઈમેલ ન મળે તો સ્પામ ફોલ્ડર જુઓ.",
+    "verify_and_create_account": "ખાતરી કરો અને ખાતું બનાવો",
+    "didnt_get_the_code": "કોડ ન મળ્યો?",
+    "resend_code_in": "{{seconds}} સેકન્ડમાં ફરી મોકલો",
+    "resend_code": "કોડ ફરી મોકલો",
+    "change_email_or_details": "ઈમેલ કે વિગતો બદલો",
+    "we_sent_a_new_code": "અમે નવો કોડ મોકલ્યો છે. કૃપા કરીને તમારો ઈમેલ જુઓ.",
+    "we_couldnt_send_the_email": "હમણાં ઈમેલ મોકલી શક્યા નહીં. કૃપા કરીને થોડી મિનિટ પછી ફરી પ્રયાસ કરો.",
+    "reset_your_password": "પાસવર્ડ બદલો",
+    "enter_the_email_of_your_account": "જે ઈમેલથી તમે સાઇન ઇન કરો છો તે દાખલ કરો. નવો પાસવર્ડ રાખવા અમે તમને એક કોડ મોકલીશું.",
+    "send_code": "કોડ મોકલો",
+    "remembered_it": "યાદ આવી ગયું?",
+    "if_an_account_uses_email": "જો {{email}} થી કોઈ ખાતું હોય, તો અમે તેના પર 6 અંકનો કોડ મોકલ્યો છે. કોડ દાખલ કરો અને નવો પાસવર્ડ પસંદ કરો.",
+    "saving_your_new_password": "નવો પાસવર્ડ સેવ થઈ રહ્યો છે…",
+    "reset_password_and_sign_in": "પાસવર્ડ બદલો અને સાઇન ઇન કરો",
+    "change_email": "ઈમેલ બદલો"
   },
   "layout": {
     "my_shop": "મારી દુકાન",
@@ -1581,7 +1604,8 @@
     "cleared_entries": {
       "one": "પ્રવૃત્તિ લૉગની {{count}} એન્ટ્રી કાઢી નાખી",
       "other": "પ્રવૃત્તિ લૉગની {{count}} એન્ટ્રી કાઢી નાખી"
-    }
+    },
+    "password_reset_by_email": "ઈમેલથી પાસવર્ડ બદલાયો"
   },
   "adminUsers": {
     "shop_user_accounts_each_is_created": "દુકાનોનાં વપરાશકર્તા એકાઉન્ટ. દરેક એકાઉન્ટ ત્યારે બને છે જ્યારે કોઈ દુકાન સાઇન-ઇન પેજ પરથી રજિસ્ટર કરે છે; આખા પ્લેટફોર્મ માટે એક એડમિન છે. પાસવર્ડ સાઇન-ઇન સિસ્ટમ સંભાળે છે.",
@@ -1641,7 +1665,9 @@
     "something_went_wrong": "કંઈક ખોટું થયું",
     "no_internet_connection": "ઇન્ટરનેટ કનેક્શન નથી",
     "cant_reach_printsetu_check_your_internet": "PrintSetu સાથે સંપર્ક થતો નથી. તમારું ઇન્ટરનેટ કનેક્શન તપાસો અને ફરી પ્રયાસ કરો.",
-    "please_try_again_in_a_moment": "કૃપા કરીને થોડી વારમાં ફરી પ્રયાસ કરો."
+    "please_try_again_in_a_moment": "કૃપા કરીને થોડી વારમાં ફરી પ્રયાસ કરો.",
+    "wrong_code": "કોડ ખોટો છે",
+    "email_not_sent": "ઈમેલ ગયો નહીં"
   },
   "app": {
     "payment_failed": "ચુકવણી નિષ્ફળ · {{shop}}",

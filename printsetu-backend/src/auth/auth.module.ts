@@ -7,6 +7,8 @@ import { UsersModule } from '../users/users.module';
 import { KeycloakAdminModule } from './keycloak-admin.module';
 import { ShopsModule } from '../shops/shops.module';
 import { RegistrationService } from './registration.service';
+import { EmailOtpService } from './email-otp.service';
+import { PasswordResetService } from './password-reset.service';
 import { KeycloakAuthGuard } from '../common/guards/keycloak-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 
@@ -17,6 +19,8 @@ import { RolesGuard } from '../common/guards/roles.guard';
   providers: [
     AuthService,
     RegistrationService,
+    EmailOtpService,
+    PasswordResetService,
     KeycloakTokenVerifierService,
     { provide: APP_GUARD, useClass: KeycloakAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },

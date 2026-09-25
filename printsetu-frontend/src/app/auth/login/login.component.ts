@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, ViewChild, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -133,7 +133,7 @@ interface DemoAccount {
               <div class="field" [class.has-error]="showPasswordError()">
                 <div class="field__row">
                   <label class="field__label" for="password">{{ 'login.password' | translate }}</label>
-                  <button type="button" class="link" (click)="helpOpen.set(!helpOpen())" [attr.aria-expanded]="helpOpen()">{{ 'login.forgot_password' | translate }}</button>
+                  <button type="button" class="link" (click)="startForgot()">{{ 'login.forgot_password' | translate }}</button>
                 </div>
                 <div class="control">
                   <i class="pi pi-lock control__icon" aria-hidden="true"></i>
@@ -161,12 +161,6 @@ interface DemoAccount {
                   <p class="field__error" id="password-error"><i class="pi pi-info-circle"></i> {{ 'login.enter_your_password' | translate }}</p>
                 } @else if (capsOn()) {
                   <p class="field__hint"><i class="pi pi-exclamation-triangle"></i> {{ 'login.caps_lock_is_on' | translate }}</p>
-                }
-                @if (helpOpen()) {
-                  <p class="help" role="note">
-                    <i class="pi pi-info-circle"></i>
-                    {{ 'login.passwords_are_managed_by_your_administrator' | translate }}
-                  </p>
                 }
               </div>
 
@@ -323,17 +317,195 @@ interface DemoAccount {
               <button type="submit" class="submit" [disabled]="loading()">
                 @if (loading()) {
                   <span class="spinner" aria-hidden="true"></span>
+                  <span>{{ 'login.sending_the_code' | translate }}</span>
+                } @else {
+                  <span>{{ 'login.continue' | translate }}</span>
+                  <i class="pi pi-arrow-right"></i>
+                }
+              </button>
+              <p class="field__note field__note--center">{{ 'login.we_will_email_you_a_code' | translate }}</p>
+            </form>
+
+            <p class="switch">
+              {{ 'login.already_registered' | translate }}
+              <button type="button" class="link" (click)="backToLogin()">{{ 'login.sign_in' | translate }}</button>
+            </p>
+          } @else if (mode() === 'verifyEmail') {
+            <header class="sheet__head">
+              <h1 class="sheet__title">{{ 'login.check_your_email' | translate }}</h1>
+              <p class="sheet__sub">{{ 'login.we_sent_a_6_digit_code_to' | translate: { email: reg.email.trim() } }}</p>
+            </header>
+
+            <form (ngSubmit)="submitOtp()" novalidate class="form" [class.is-busy]="loading()">
+              <div class="field" [class.has-error]="showOtpError()">
+                <label class="field__label" for="regOtp">{{ 'login.verification_code' | translate }}</label>
+                <div class="control">
+                  <i class="pi pi-envelope control__icon" aria-hidden="true"></i>
+                  <input #otpInput id="regOtp" name="regOtp" type="text" inputmode="numeric" class="control__input control__input--otp" placeholder="••••••" autocomplete="one-time-code" [(ngModel)]="otp" (ngModelChange)="onOtpChange()" [attr.aria-invalid]="showOtpError()" />
+                </div>
+                @if (showOtpError()) {
+                  <p class="field__error"><i class="pi pi-info-circle"></i> {{ 'login.enter_the_6_digit_code' | translate }}</p>
+                } @else {
+                  <p class="field__note">{{ 'login.the_code_works_for_10_minutes' | translate }}</p>
+                }
+              </div>
+
+              @for (e of errors(); track e.id) {
+                <div class="alert" role="alert">
+                  <i class="pi pi-exclamation-circle"></i>
+                  <span>{{ e.text }}</span>
+                </div>
+              }
+              @if (notice()) {
+                <div class="notice" role="status">
+                  <i class="pi pi-check-circle"></i>
+                  <span>{{ notice() }}</span>
+                </div>
+              }
+
+              <button type="submit" class="submit" [disabled]="loading()">
+                @if (loading()) {
+                  <span class="spinner" aria-hidden="true"></span>
                   <span>{{ 'login.creating_your_shop' | translate }}</span>
                 } @else {
-                  <span>{{ 'login.create_account' | translate }}</span>
+                  <span>{{ 'login.verify_and_create_account' | translate }}</span>
                   <i class="pi pi-arrow-right"></i>
                 }
               </button>
             </form>
 
             <p class="switch">
-              {{ 'login.already_registered' | translate }}
+              {{ 'login.didnt_get_the_code' | translate }}
+              @if (resendIn() > 0) {
+                <span class="switch__wait">{{ 'login.resend_code_in' | translate: { seconds: resendIn() } }}</span>
+              } @else {
+                <button type="button" class="link" [disabled]="resending()" (click)="resendOtp()">{{ 'login.resend_code' | translate }}</button>
+              }
+            </p>
+            <p class="switch">
+              <button type="button" class="link" (click)="backToRegistration()"><i class="pi pi-arrow-left"></i> {{ 'login.change_email_or_details' | translate }}</button>
+            </p>
+          } @else if (mode() === 'forgotEmail') {
+            <header class="sheet__head">
+              <h1 class="sheet__title">{{ 'login.reset_your_password' | translate }}</h1>
+              <p class="sheet__sub">{{ 'login.enter_the_email_of_your_account' | translate }}</p>
+            </header>
+
+            <form (ngSubmit)="submitForgotEmail()" novalidate class="form" [class.is-busy]="loading()">
+              <div class="field" [class.has-error]="showForgotEmailError()">
+                <label class="field__label" for="forgotEmail">{{ 'common.email' | translate }}</label>
+                <div class="control">
+                  <i class="pi pi-envelope control__icon" aria-hidden="true"></i>
+                  <input #forgotEmailInput id="forgotEmail" name="forgotEmail" type="email" class="control__input" [placeholder]="'login.you_shop_com' | translate" autocomplete="email" autocapitalize="none" spellcheck="false" [(ngModel)]="forgotEmail" (ngModelChange)="clearError()" [attr.aria-invalid]="showForgotEmailError()" />
+                </div>
+                @if (showForgotEmailError()) {
+                  <p class="field__error"><i class="pi pi-info-circle"></i> {{ forgotEmailError() }}</p>
+                }
+              </div>
+
+              @for (e of errors(); track e.id) {
+                <div class="alert" role="alert">
+                  <i class="pi pi-exclamation-circle"></i>
+                  <span>{{ e.text }}</span>
+                </div>
+              }
+
+              <button type="submit" class="submit" [disabled]="loading()">
+                @if (loading()) {
+                  <span class="spinner" aria-hidden="true"></span>
+                  <span>{{ 'login.sending_the_code' | translate }}</span>
+                } @else {
+                  <span>{{ 'login.send_code' | translate }}</span>
+                  <i class="pi pi-arrow-right"></i>
+                }
+              </button>
+            </form>
+
+            <p class="switch">
+              {{ 'login.remembered_it' | translate }}
               <button type="button" class="link" (click)="backToLogin()">{{ 'login.sign_in' | translate }}</button>
+            </p>
+          } @else if (mode() === 'forgotReset') {
+            <header class="sheet__head">
+              <h1 class="sheet__title">{{ 'login.check_your_email' | translate }}</h1>
+              <p class="sheet__sub">{{ 'login.if_an_account_uses_email' | translate: { email: forgotEmail.trim() } }}</p>
+            </header>
+
+            <form (ngSubmit)="submitPasswordReset()" novalidate class="form" [class.is-busy]="loading()">
+              <div class="field" [class.has-error]="showOtpError()">
+                <label class="field__label" for="resetOtp">{{ 'login.verification_code' | translate }}</label>
+                <div class="control">
+                  <i class="pi pi-envelope control__icon" aria-hidden="true"></i>
+                  <input #otpInput id="resetOtp" name="resetOtp" type="text" inputmode="numeric" class="control__input control__input--otp" placeholder="••••••" autocomplete="one-time-code" [(ngModel)]="otp" (ngModelChange)="onOtpChange()" [attr.aria-invalid]="showOtpError()" />
+                </div>
+                @if (showOtpError()) {
+                  <p class="field__error"><i class="pi pi-info-circle"></i> {{ 'login.enter_the_6_digit_code' | translate }}</p>
+                } @else {
+                  <p class="field__note">{{ 'login.the_code_works_for_10_minutes' | translate }}</p>
+                }
+              </div>
+
+              <div class="field" [class.has-error]="showResetPasswordError()">
+                <label class="field__label" for="resetPassword">{{ 'login.new_password' | translate }}</label>
+                <div class="control">
+                  <i class="pi pi-lock control__icon" aria-hidden="true"></i>
+                  <input id="resetPassword" name="resetPassword" class="control__input control__input--pw" [placeholder]="'login.at_least_8_characters' | translate" autocomplete="new-password" [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="resetPassword" (blur)="resetPasswordTouched.set(true)" (ngModelChange)="clearError()" (keyup)="checkCaps($event)" (keydown)="checkCaps($event)" [attr.aria-invalid]="showResetPasswordError()" />
+                  <button type="button" class="control__toggle" (click)="showPassword.set(!showPassword())" [attr.aria-pressed]="showPassword()" [attr.aria-label]="showPassword() ? ('login.hide_password' | translate) : ('login.show_password' | translate)">
+                    <i class="pi" [ngClass]="showPassword() ? 'pi-eye-slash' : 'pi-eye'"></i>
+                  </button>
+                </div>
+                @if (showResetPasswordError()) {
+                  <p class="field__error"><i class="pi pi-info-circle"></i> {{ resetPasswordError() }}</p>
+                } @else if (capsOn()) {
+                  <p class="field__hint"><i class="pi pi-exclamation-triangle"></i> {{ 'login.caps_lock_is_on' | translate }}</p>
+                }
+              </div>
+
+              <div class="field" [class.has-error]="showResetConfirmError()">
+                <label class="field__label" for="resetConfirm">{{ 'login.confirm_password' | translate }}</label>
+                <div class="control">
+                  <i class="pi pi-lock control__icon" aria-hidden="true"></i>
+                  <input id="resetConfirm" name="resetConfirm" class="control__input" [placeholder]="'login.type_it_again' | translate" autocomplete="new-password" [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="resetConfirm" (blur)="resetConfirmTouched.set(true)" (ngModelChange)="clearError()" [attr.aria-invalid]="showResetConfirmError()" />
+                </div>
+                @if (showResetConfirmError()) {
+                  <p class="field__error"><i class="pi pi-info-circle"></i> {{ resetConfirmError() }}</p>
+                }
+              </div>
+
+              @for (e of errors(); track e.id) {
+                <div class="alert" role="alert">
+                  <i class="pi pi-exclamation-circle"></i>
+                  <span>{{ e.text }}</span>
+                </div>
+              }
+              @if (notice()) {
+                <div class="notice" role="status">
+                  <i class="pi pi-check-circle"></i>
+                  <span>{{ notice() }}</span>
+                </div>
+              }
+
+              <button type="submit" class="submit" [disabled]="loading()">
+                @if (loading()) {
+                  <span class="spinner" aria-hidden="true"></span>
+                  <span>{{ 'login.saving_your_new_password' | translate }}</span>
+                } @else {
+                  <span>{{ 'login.reset_password_and_sign_in' | translate }}</span>
+                  <i class="pi pi-arrow-right"></i>
+                }
+              </button>
+            </form>
+
+            <p class="switch">
+              {{ 'login.didnt_get_the_code' | translate }}
+              @if (resendIn() > 0) {
+                <span class="switch__wait">{{ 'login.resend_code_in' | translate: { seconds: resendIn() } }}</span>
+              } @else {
+                <button type="button" class="link" [disabled]="resending()" (click)="resendOtp()">{{ 'login.resend_code' | translate }}</button>
+              }
+            </p>
+            <p class="switch">
+              <button type="button" class="link" (click)="startForgot()"><i class="pi pi-arrow-left"></i> {{ 'login.change_email' | translate }}</button>
             </p>
           } @else {
             <header class="sheet__head">
@@ -899,6 +1071,40 @@ interface DemoAccount {
         font-size: 0.8125rem;
         color: var(--muted);
       }
+      .field__note--center {
+        text-align: center;
+      }
+      .switch__wait {
+        margin-left: 0.25rem;
+        font-weight: 600;
+      }
+      .switch .link:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+      .control__input--otp {
+        font-size: 1.375rem;
+        font-weight: 600;
+        letter-spacing: 0.5em;
+        font-variant-numeric: tabular-nums;
+      }
+      /* Calm confirmation (e.g. "new code sent") next to the inline error style. */
+      .notice {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.625rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid #bbe5cc;
+        border-radius: 12px;
+        background: #f0fbf4;
+        color: #166534;
+        font-size: 0.875rem;
+        line-height: 1.45;
+        animation: fade 0.18s ease both;
+      }
+      .notice i {
+        margin-top: 0.15rem;
+      }
       .secure {
         display: flex;
         align-items: center;
@@ -1253,11 +1459,13 @@ interface DemoAccount {
     `,
   ],
 })
-export class LoginComponent {
+export class LoginComponent implements OnDestroy {
   @ViewChild('usernameInput') usernameInput?: ElementRef<HTMLInputElement>;
   @ViewChild('passwordInput') passwordInput?: ElementRef<HTMLInputElement>;
   @ViewChild('newPasswordInput') newPasswordInput?: ElementRef<HTMLInputElement>;
   @ViewChild('regFirstInput') regFirstInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('otpInput') otpInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('forgotEmailInput') forgotEmailInput?: ElementRef<HTMLInputElement>;
 
   username = '';
   password = '';
@@ -1265,7 +1473,6 @@ export class LoginComponent {
   loading = signal(false);
   showPassword = signal(false);
   capsOn = signal(false);
-  helpOpen = signal(false);
   usernameTouched = signal(false);
   passwordTouched = signal(false);
   submitted = signal(false);
@@ -1278,7 +1485,7 @@ export class LoginComponent {
    * AuthService.login / PasswordChangeRequiredError). `password` above is
    * reused as the verified current (temporary) password for that step.
    */
-  mode = signal<'login' | 'changePassword' | 'register'>('login');
+  mode = signal<'login' | 'changePassword' | 'register' | 'verifyEmail' | 'forgotEmail' | 'forgotReset'>('login');
   newPassword = '';
   confirmPassword = '';
   newPasswordTouched = signal(false);
@@ -1287,6 +1494,28 @@ export class LoginComponent {
   /** 'register' = shop self-registration: creates the shop and its owner's login, with a password they choose. */
   reg: Record<RegField, string> = emptyRegistration();
   regTouched = signal<ReadonlySet<RegField>>(new Set());
+
+  /**
+   * 'verifyEmail' = registration step 2: the account is only created once the
+   * 6-digit code emailed to reg.email is entered. "Resend code" unlocks after
+   * the countdown the server asks for.
+   */
+  otp = '';
+  resendIn = signal(0);
+  resending = signal(false);
+  notice = signal('');
+  private resendTimer?: ReturnType<typeof setInterval>;
+
+  /**
+   * 'forgotEmail' → 'forgotReset' = "Forgot password?": a code is emailed to
+   * the account's address, then the code + a new password sign them in.
+   * Shares `otp` and the resend countdown with 'verifyEmail'.
+   */
+  forgotEmail = '';
+  resetPassword = '';
+  resetConfirm = '';
+  resetPasswordTouched = signal(false);
+  resetConfirmTouched = signal(false);
 
   readonly secureConnection = typeof location !== 'undefined' && location.protocol === 'https:';
 
@@ -1436,6 +1665,7 @@ export class LoginComponent {
   }
 
   backToLogin(): void {
+    this.stopResendTimer();
     this.mode.set('login');
     this.reg = emptyRegistration();
     this.submitted.set(false);
@@ -1489,6 +1719,48 @@ export class LoginComponent {
     this.loading.set(true);
     this.clearError();
     try {
+      const sent = await this.auth.sendRegistrationOtp(this.reg.email.trim());
+      this.otp = '';
+      this.notice.set('');
+      this.submitted.set(false);
+      this.mode.set('verifyEmail');
+      this.startResendTimer(sent.resendAfterSeconds);
+      setTimeout(() => this.otpInput?.nativeElement.focus());
+    } catch (err) {
+      this.errors.set([{ id: ++this.errorSeq, text: this.describeAccountError(err) }]);
+      this.submitted.set(false);
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  showOtpError(): boolean {
+    return this.submitted() && !/^\d{6}$/.test(this.otp);
+  }
+
+  onOtpChange(): void {
+    const digits = this.otp.replace(/\D/g, '').slice(0, 6);
+    if (digits !== this.otp) {
+      // Keep the field to digits only, even when a whole email line is pasted in.
+      setTimeout(() => (this.otp = digits));
+    }
+    this.clearError();
+    this.notice.set('');
+  }
+
+  async submitOtp(): Promise<void> {
+    if (this.loading()) return;
+    this.otp = this.otp.replace(/\D/g, '');
+    this.submitted.set(true);
+    if (this.showOtpError()) {
+      this.otpInput?.nativeElement.focus();
+      return;
+    }
+
+    this.loading.set(true);
+    this.clearError();
+    this.notice.set('');
+    try {
       await this.auth.registerShop({
         shopName: this.reg.shopName.trim(),
         ownerName: this.reg.ownerName.trim(),
@@ -1497,20 +1769,183 @@ export class LoginComponent {
         address: this.reg.address.trim(),
         city: this.reg.city.trim(),
         password: this.reg.password,
+        otp: this.otp,
       });
+      this.stopResendTimer();
       this.router.navigate(['/shop']);
     } catch (err) {
-      this.errors.set([{ id: ++this.errorSeq, text: this.describeRegistration(err) }]);
+      this.errors.set([{ id: ++this.errorSeq, text: this.describeAccountError(err) }]);
+      this.submitted.set(false);
+      setTimeout(() => this.otpInput?.nativeElement.select());
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async resendOtp(): Promise<void> {
+    if (this.resending() || this.resendIn() > 0) return;
+    this.resending.set(true);
+    this.clearError();
+    this.notice.set('');
+    try {
+      const sent =
+        this.mode() === 'forgotReset'
+          ? await this.auth.sendPasswordResetCode(this.forgotEmail.trim())
+          : await this.auth.sendRegistrationOtp(this.reg.email.trim());
+      this.otp = '';
+      this.submitted.set(false);
+      this.notice.set(t('login.we_sent_a_new_code'));
+      this.startResendTimer(sent.resendAfterSeconds);
+      setTimeout(() => this.otpInput?.nativeElement.focus());
+    } catch (err) {
+      this.errors.set([{ id: ++this.errorSeq, text: this.describeAccountError(err) }]);
+    } finally {
+      this.resending.set(false);
+    }
+  }
+
+  /** Back to the registration form (details kept) to fix the email or anything else. */
+  backToRegistration(): void {
+    this.stopResendTimer();
+    this.mode.set('register');
+    this.otp = '';
+    this.notice.set('');
+    this.submitted.set(false);
+    this.clearError();
+    setTimeout(() => document.getElementById('regEmail')?.focus());
+  }
+
+  /** "Forgot password?" (also "Change email" on the code step): starts from the email, prefilled from the sign-in field. */
+  startForgot(): void {
+    this.stopResendTimer();
+    if (this.mode() === 'login') {
+      this.forgotEmail = this.username.includes('@') ? this.username.trim() : '';
+    }
+    this.mode.set('forgotEmail');
+    this.otp = '';
+    this.notice.set('');
+    this.submitted.set(false);
+    this.clearError();
+    setTimeout(() => this.forgotEmailInput?.nativeElement.focus());
+  }
+
+  forgotEmailError(): string {
+    const value = this.forgotEmail.trim();
+    if (!value) return t('login.enter_your_email');
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? '' : t('login.enter_a_valid_email_address');
+  }
+
+  showForgotEmailError(): boolean {
+    return this.submitted() && !!this.forgotEmailError();
+  }
+
+  async submitForgotEmail(): Promise<void> {
+    if (this.loading()) return;
+    this.submitted.set(true);
+    if (this.forgotEmailError()) {
+      this.forgotEmailInput?.nativeElement.focus();
+      return;
+    }
+
+    this.loading.set(true);
+    this.clearError();
+    try {
+      const sent = await this.auth.sendPasswordResetCode(this.forgotEmail.trim());
+      this.otp = '';
+      this.resetPassword = '';
+      this.resetConfirm = '';
+      this.resetPasswordTouched.set(false);
+      this.resetConfirmTouched.set(false);
+      this.notice.set('');
+      this.submitted.set(false);
+      this.mode.set('forgotReset');
+      this.startResendTimer(sent.resendAfterSeconds);
+      setTimeout(() => this.otpInput?.nativeElement.focus());
+    } catch (err) {
+      this.errors.set([{ id: ++this.errorSeq, text: this.describeAccountError(err) }]);
       this.submitted.set(false);
     } finally {
       this.loading.set(false);
     }
   }
 
-  private describeRegistration(err: unknown): string {
+  resetPasswordError(): string {
+    if (!this.resetPassword) return t('login.enter_a_new_password');
+    return this.resetPassword.length >= 8 ? '' : t('login.password_must_be_at_least_8');
+  }
+
+  showResetPasswordError(): boolean {
+    return !!this.resetPasswordError() && (this.resetPasswordTouched() || this.submitted());
+  }
+
+  resetConfirmError(): string {
+    if (!this.resetConfirm) return t('login.type_your_password_again');
+    return this.resetConfirm === this.resetPassword ? '' : t('login.passwords_dont_match');
+  }
+
+  showResetConfirmError(): boolean {
+    return !!this.resetConfirmError() && (this.resetConfirmTouched() || this.submitted());
+  }
+
+  async submitPasswordReset(): Promise<void> {
+    if (this.loading()) return;
+    this.otp = this.otp.replace(/\D/g, '');
+    this.submitted.set(true);
+    if (this.showOtpError()) {
+      this.otpInput?.nativeElement.focus();
+      return;
+    }
+    if (this.resetPasswordError()) {
+      document.getElementById('resetPassword')?.focus();
+      return;
+    }
+    if (this.resetConfirmError()) {
+      document.getElementById('resetConfirm')?.focus();
+      return;
+    }
+
+    this.loading.set(true);
+    this.clearError();
+    this.notice.set('');
+    try {
+      const user = await this.auth.resetPassword(this.forgotEmail.trim(), this.otp, this.resetPassword);
+      this.stopResendTimer();
+      this.router.navigate([user.role === 'ADMIN' ? '/admin' : '/shop']);
+    } catch (err) {
+      this.errors.set([{ id: ++this.errorSeq, text: this.describeAccountError(err) }]);
+      this.submitted.set(false);
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.stopResendTimer();
+  }
+
+  private startResendTimer(seconds: number): void {
+    this.stopResendTimer();
+    this.resendIn.set(seconds);
+    this.resendTimer = setInterval(() => {
+      this.resendIn.update((s) => s - 1);
+      if (this.resendIn() <= 0) this.stopResendTimer();
+    }, 1000);
+  }
+
+  private stopResendTimer(): void {
+    if (this.resendTimer) clearInterval(this.resendTimer);
+    this.resendTimer = undefined;
+    this.resendIn.set(0);
+  }
+
+  /** Errors from registration and password reset (both use emailed codes). */
+  private describeAccountError(err: unknown): string {
     if (err instanceof HttpErrorResponse) {
       if (err.status === 0) return t('login.we_cant_reach_the_server_check');
-      if (err.status === 429) return t('login.too_many_attempts_please_wait_a');
+      if (err.status === 429) {
+        return err.error?.code === 'OTP_RESEND_TOO_SOON' ? err.error.message : t('login.too_many_attempts_please_wait_a');
+      }
+      if (err.error?.code === 'EMAIL_SEND_FAILED') return t('login.we_couldnt_send_the_email');
       if (err.status === 409) return err.error?.message || t('login.an_account_with_this_email_already');
       if (err.status === 400) {
         const message = err.error?.message;

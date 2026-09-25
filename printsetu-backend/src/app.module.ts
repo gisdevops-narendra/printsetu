@@ -8,6 +8,7 @@ import configuration, { AppConfig } from './config/configuration';
 import { CryptoModule } from './common/crypto/crypto.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuditModule } from './audit/audit.module';
+import { MailModule } from './mail/mail.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AgentConnectionModule } from './agent-connection/agent-connection.module';
 import { AuthModule } from './auth/auth.module';
@@ -46,6 +47,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     CryptoModule,
     PrismaModule,
     AuditModule,
+    MailModule,
     NotificationsModule,
     AgentConnectionModule,
     AuthModule,

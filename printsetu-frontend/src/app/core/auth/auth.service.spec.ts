@@ -211,6 +211,7 @@ describe('AuthService (SRS §18 token storage/session)', () => {
       address: 'Main Road',
       city: 'Surat',
       password: 'StrongPass123',
+      otp: '123456',
     };
 
     const registerPromise = service.registerShop(details);
@@ -224,6 +225,54 @@ describe('AuthService (SRS §18 token storage/session)', () => {
     expect(user.role).toBe('SHOPKEEPER');
     expect(service.isAuthenticated()).toBe(true);
     expect(localStorage.getItem(ACCESS_TOKEN_KEY)).toBe(accessToken);
+  });
+
+  it('sendRegistrationOtp() asks the server to email a code to the address', async () => {
+    const service = TestBed.inject(AuthService);
+
+    const sendPromise = service.sendRegistrationOtp('owner@shop.com');
+
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/auth/register/send-otp`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ email: 'owner@shop.com' });
+    req.flush({ expiresInSeconds: 600, resendAfterSeconds: 60 });
+
+    expect(await sendPromise).toEqual({ expiresInSeconds: 600, resendAfterSeconds: 60 });
+  });
+
+  it('sendPasswordResetCode() asks the server to email a reset code', async () => {
+    const service = TestBed.inject(AuthService);
+
+    const sendPromise = service.sendPasswordResetCode('owner@shop.com');
+
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/auth/forgot-password/send-otp`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ email: 'owner@shop.com' });
+    req.flush({ expiresInSeconds: 600, resendAfterSeconds: 60 });
+
+    expect(await sendPromise).toEqual({ expiresInSeconds: 600, resendAfterSeconds: 60 });
+  });
+
+  it('resetPassword() sends the code + new password and signs the user in', async () => {
+    const service = TestBed.inject(AuthService);
+    const accessToken = makeJwt({
+      sub: 'u2',
+      email: 'owner@shop.com',
+      preferred_username: 'owner@shop.com',
+      name: 'Shop Owner',
+      realm_access: { roles: ['SHOPKEEPER'] },
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    const resetPromise = service.resetPassword('owner@shop.com', '123456', 'NewStrong123');
+
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/auth/forgot-password/reset`);
+    expect(req.request.body).toEqual({ email: 'owner@shop.com', otp: '123456', newPassword: 'NewStrong123' });
+    req.flush({ accessToken, refreshToken: 'refresh-token' });
+
+    const user = await resetPromise;
+    expect(user.role).toBe('SHOPKEEPER');
+    expect(service.isAuthenticated()).toBe(true);
   });
 
   it('login() rejects when the returned token carries no recognized role', async () => {

@@ -996,7 +996,7 @@
     "private_session": "निजी सेशन",
     "you_stay_signed_in_until_you": "{{connection}} · साइन आउट करने तक आप साइन इन रहेंगे",
     "register_your_shop": "अपनी दुकान रजिस्टर करें",
-    "create_your_shop_and_your_sign": "एक ही चरण में अपनी दुकान और साइन-इन बनाएँ। पासवर्ड आप ख़ुद चुनेंगे।",
+    "create_your_shop_and_your_sign": "अपनी दुकान की जानकारी भरें और अपना पासवर्ड ख़ुद चुनें। फिर हम आपका ईमेल पक्का करने के लिए एक कोड भेजेंगे।",
     "shop_name": "दुकान का नाम",
     "e_g_sai_xerox_prints": "जैसे साई ज़ेरॉक्स एंड प्रिंट्स",
     "your_name": "आपका नाम",
@@ -1044,7 +1044,30 @@
     "too_many_sign_in_attempts_please": "साइन इन की बहुत ज़्यादा कोशिशें हुईं। कृपया एक मिनट रुककर फिर से कोशिश करें।",
     "that_password_is_not_valid_please": "यह पासवर्ड मान्य नहीं है। कृपया कोई दूसरा आज़माएँ।",
     "that_email_or_password_doesnt_match": "ईमेल या पासवर्ड मेल नहीं खाता। कृपया जाँचकर फिर से कोशिश करें।",
-    "we_couldnt_sign_you_in_please": "आपको साइन इन नहीं कर सके। कृपया फिर से कोशिश करें।"
+    "we_couldnt_sign_you_in_please": "आपको साइन इन नहीं कर सके। कृपया फिर से कोशिश करें।",
+    "continue": "आगे बढ़ें",
+    "sending_the_code": "कोड भेजा जा रहा है…",
+    "we_will_email_you_a_code": "अगले चरण में हम आपके ईमेल पर 6 अंकों का कोड भेजेंगे, ताकि पक्का हो कि ईमेल आपका है।",
+    "check_your_email": "अपना ईमेल देखें",
+    "we_sent_a_6_digit_code_to": "हमने {{email}} पर 6 अंकों का कोड भेजा है। दुकान बनाने के लिए उसे नीचे डालें।",
+    "verification_code": "पुष्टि कोड",
+    "enter_the_6_digit_code": "ईमेल में आया 6 अंकों का कोड डालें।",
+    "the_code_works_for_10_minutes": "कोड 10 मिनट तक काम करेगा। ईमेल नहीं मिला? स्पैम फ़ोल्डर देखें।",
+    "verify_and_create_account": "पुष्टि करें और खाता बनाएँ",
+    "didnt_get_the_code": "कोड नहीं मिला?",
+    "resend_code_in": "{{seconds}} सेकंड में फिर से भेजें",
+    "resend_code": "कोड फिर से भेजें",
+    "change_email_or_details": "ईमेल या जानकारी बदलें",
+    "we_sent_a_new_code": "हमने नया कोड भेजा है। कृपया अपना ईमेल देखें।",
+    "we_couldnt_send_the_email": "अभी ईमेल नहीं भेज पाए। कृपया कुछ मिनट बाद फिर कोशिश करें।",
+    "reset_your_password": "पासवर्ड बदलें",
+    "enter_the_email_of_your_account": "जिस ईमेल से आप साइन इन करते हैं, वह डालें। नया पासवर्ड रखने के लिए हम आपको एक कोड भेजेंगे।",
+    "send_code": "कोड भेजें",
+    "remembered_it": "याद आ गया?",
+    "if_an_account_uses_email": "अगर {{email}} से कोई खाता है, तो हमने उस पर 6 अंकों का कोड भेजा है। कोड डालें और नया पासवर्ड चुनें।",
+    "saving_your_new_password": "नया पासवर्ड सेव हो रहा है…",
+    "reset_password_and_sign_in": "पासवर्ड बदलें और साइन इन करें",
+    "change_email": "ईमेल बदलें"
   },
   "layout": {
     "my_shop": "मेरी दुकान",
@@ -1581,7 +1604,8 @@
     "cleared_entries": {
       "one": "गतिविधि लॉग की {{count}} एंट्री मिटाई गई",
       "other": "गतिविधि लॉग की {{count}} एंट्री मिटाई गईं"
-    }
+    },
+    "password_reset_by_email": "ईमेल से पासवर्ड बदला गया"
   },
   "adminUsers": {
     "shop_user_accounts_each_is_created": "दुकानों के उपयोगकर्ता अकाउंट। हर अकाउंट तब बनता है जब कोई दुकान साइन-इन पेज से रजिस्टर करती है; पूरे प्लेटफ़ॉर्म के लिए एक एडमिन है। पासवर्ड साइन-इन सिस्टम संभालता है।",
@@ -1641,7 +1665,9 @@
     "something_went_wrong": "कुछ गड़बड़ हो गई",
     "no_internet_connection": "इंटरनेट कनेक्शन नहीं है",
     "cant_reach_printsetu_check_your_internet": "PrintSetu से संपर्क नहीं हो पा रहा। अपना इंटरनेट कनेक्शन जाँचें और फिर से कोशिश करें।",
-    "please_try_again_in_a_moment": "कृपया थोड़ी देर में फिर से कोशिश करें।"
+    "please_try_again_in_a_moment": "कृपया थोड़ी देर में फिर से कोशिश करें।",
+    "wrong_code": "कोड ग़लत है",
+    "email_not_sent": "ईमेल नहीं गया"
   },
   "app": {
     "payment_failed": "भुगतान नहीं हुआ · {{shop}}",

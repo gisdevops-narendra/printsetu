@@ -34,6 +34,19 @@ export interface AppConfig {
     credentialEncryptionKey: string;
   };
   docAnalysis: { url: string };
+  /** Where the web app is served; used for links in emails (sign-in page, admin panel). */
+  appBaseUrl: string;
+  mail: {
+    /** SMTP server. Unset = no mail server: emails are written to the backend log instead (local development). */
+    host?: string;
+    port: number;
+    secure: boolean;
+    user?: string;
+    pass?: string;
+    from: string;
+    /** Who hears about new shop registrations. Empty = every active ADMIN user. */
+    adminEmails: string[];
+  };
   /** Time zone the shops' opening hours are written in (IANA name). */
   shopTimeZone: string;
 }
@@ -69,7 +82,8 @@ export default (): AppConfig => {
       baseUrl: keycloakBaseUrl,
       realm,
       frontendClientId: process.env.KEYCLOAK_FRONTEND_CLIENT_ID || 'printsetu-frontend',
-      backendAdminClientId: process.env.KEYCLOAK_BACKEND_ADMIN_CLIENT_ID || 'printsetu-backend-admin',
+      backendAdminClientId:
+        process.env.KEYCLOAK_BACKEND_ADMIN_CLIENT_ID || 'printsetu-backend-admin',
       backendAdminClientSecret: process.env.KEYCLOAK_BACKEND_ADMIN_CLIENT_SECRET || '',
       issuer: `${keycloakBaseUrl}/realms/${realm}`,
       jwksUri: `${keycloakBaseUrl}/realms/${realm}/protocol/openid-connect/certs`,
@@ -87,6 +101,19 @@ export default (): AppConfig => {
     shopTimeZone: process.env.SHOP_TIME_ZONE || 'Asia/Kolkata',
     docAnalysis: {
       url: process.env.DOC_ANALYSIS_URL || 'http://localhost:8000',
+    },
+    appBaseUrl: (process.env.PUBLIC_APP_BASE_URL || 'http://localhost:4200').replace(/\/+$/, ''),
+    mail: {
+      host: process.env.SMTP_HOST || undefined,
+      port: parseInt(process.env.SMTP_PORT || '587', 10),
+      secure: (process.env.SMTP_SECURE || 'false') === 'true',
+      user: process.env.SMTP_USER || undefined,
+      pass: process.env.SMTP_PASSWORD || undefined,
+      from: process.env.MAIL_FROM || 'PrintSetu <no-reply@printsetu.local>',
+      adminEmails: (process.env.ADMIN_NOTIFICATION_EMAILS || '')
+        .split(',')
+        .map((e) => e.trim())
+        .filter(Boolean),
     },
   };
 };

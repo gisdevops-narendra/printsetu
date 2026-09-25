@@ -80,3 +80,28 @@ export class EmailAlreadyRegisteredException extends AppException {
     super('EMAIL_ALREADY_REGISTERED', message, HttpStatus.CONFLICT);
   }
 }
+
+/** Registration OTP: wrong, expired, never sent, or tried too many times. */
+export class InvalidOtpException extends AppException {
+  constructor(message = 'That code is not correct. Check the email and try again.') {
+    super('INVALID_OTP', message, HttpStatus.BAD_REQUEST);
+  }
+}
+
+export class OtpResendTooSoonException extends AppException {
+  constructor(seconds: number) {
+    super(
+      'OTP_RESEND_TOO_SOON',
+      `Please wait ${seconds} seconds before asking for a new code.`,
+      HttpStatus.TOO_MANY_REQUESTS,
+    );
+  }
+}
+
+export class EmailSendFailedException extends AppException {
+  constructor(
+    message = "We couldn't send the email right now. Please try again in a few minutes.",
+  ) {
+    super('EMAIL_SEND_FAILED', message, HttpStatus.SERVICE_UNAVAILABLE);
+  }
+}

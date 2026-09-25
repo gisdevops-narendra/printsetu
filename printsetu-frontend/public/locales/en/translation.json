@@ -996,7 +996,7 @@
     "private_session": "Private session",
     "you_stay_signed_in_until_you": "{{connection}} · you stay signed in until you sign out",
     "register_your_shop": "Register your shop",
-    "create_your_shop_and_your_sign": "Create your shop and your sign-in in one step. You'll choose your own password.",
+    "create_your_shop_and_your_sign": "Fill in your shop details and choose your own password. We'll then email you a code to confirm your email.",
     "shop_name": "Shop name",
     "e_g_sai_xerox_prints": "e.g. Sai Xerox & Prints",
     "your_name": "Your name",
@@ -1044,7 +1044,30 @@
     "too_many_sign_in_attempts_please": "Too many sign-in attempts. Please wait a minute and try again.",
     "that_password_is_not_valid_please": "That password is not valid. Please try a different one.",
     "that_email_or_password_doesnt_match": "That email or password doesn't match. Please check and try again.",
-    "we_couldnt_sign_you_in_please": "We couldn't sign you in. Please try again."
+    "we_couldnt_sign_you_in_please": "We couldn't sign you in. Please try again.",
+    "continue": "Continue",
+    "sending_the_code": "Sending the code…",
+    "we_will_email_you_a_code": "Next, we'll email you a 6-digit code to confirm it's your email.",
+    "check_your_email": "Check your email",
+    "we_sent_a_6_digit_code_to": "We sent a 6-digit code to {{email}}. Enter it below to finish creating your shop.",
+    "verification_code": "Verification code",
+    "enter_the_6_digit_code": "Enter the 6-digit code from the email.",
+    "the_code_works_for_10_minutes": "The code works for 10 minutes. Can't find the email? Check your spam folder.",
+    "verify_and_create_account": "Verify and create account",
+    "didnt_get_the_code": "Didn't get the code?",
+    "resend_code_in": "Resend code in {{seconds}}s",
+    "resend_code": "Resend code",
+    "change_email_or_details": "Change email or details",
+    "we_sent_a_new_code": "We sent a new code. Please check your email.",
+    "we_couldnt_send_the_email": "We couldn't send the email right now. Please try again in a few minutes.",
+    "reset_your_password": "Reset your password",
+    "enter_the_email_of_your_account": "Enter the email you sign in with. We'll send you a code to set a new password.",
+    "send_code": "Send code",
+    "remembered_it": "Remembered it?",
+    "if_an_account_uses_email": "If an account uses {{email}}, we've sent a 6-digit code to it. Enter the code and choose a new password.",
+    "saving_your_new_password": "Saving your new password…",
+    "reset_password_and_sign_in": "Reset password and sign in",
+    "change_email": "Change email"
   },
   "layout": {
     "my_shop": "My Shop",
@@ -1581,7 +1604,8 @@
     "cleared_entries": {
       "one": "Cleared {{count}} activity log entry",
       "other": "Cleared {{count}} activity log entries"
-    }
+    },
+    "password_reset_by_email": "Password reset by email"
   },
   "adminUsers": {
     "shop_user_accounts_each_is_created": "Shop user accounts. Each is created when a shop registers from the sign-in page; there is one admin for the whole platform. Passwords are handled by the sign-in system.",
@@ -1641,7 +1665,9 @@
     "something_went_wrong": "Something went wrong",
     "no_internet_connection": "No internet connection",
     "cant_reach_printsetu_check_your_internet": "Can't reach PrintSetu. Check your internet connection and try again.",
-    "please_try_again_in_a_moment": "Please try again in a moment."
+    "please_try_again_in_a_moment": "Please try again in a moment.",
+    "wrong_code": "Wrong code",
+    "email_not_sent": "Email not sent"
   },
   "app": {
     "payment_failed": "Payment failed · {{shop}}",

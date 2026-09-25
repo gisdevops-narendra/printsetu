@@ -752,3 +752,20 @@ model SubscriptionEvent {
   @@index([type, createdAt])
   @@map("subscription_events")
 }
+
+// One-time codes emailed to prove someone owns an address: purpose
+// 'REGISTRATION' (shop sign-up) or 'PASSWORD_RESET' (forgot password). One
+// live code per purpose + email (resending replaces it). Only a hash of the
+// code is stored; the row is deleted once the code has been used.
+model EmailVerification {
+  purpose   String   @default("REGISTRATION")
+  email     String
+  codeHash  String   @map("code_hash")
+  expiresAt DateTime @map("expires_at")
+  attempts  Int      @default(0)
+  sentAt    DateTime @map("sent_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([purpose, email])
+  @@map("email_verifications")
+}

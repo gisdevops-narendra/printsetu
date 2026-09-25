@@ -28,6 +28,8 @@ export interface RegisterShopRequest {
   address: string;
   city: string;
   password: string;
+  /** The 6-digit code emailed by sendRegistrationOtp(). */
+  otp: string;
 }
 
 /** Thrown by login() when the account still has a temporary password; caught by LoginComponent to switch to the change-password step. */
@@ -162,7 +164,35 @@ export class AuthService {
     return this.applyTokens(response);
   }
 
-  /** Registers a new shop and its owner's account (see AuthController.register) and signs them straight in. */
+  /** Registration step 1 (and "Resend code"): emails a one-time code to the address being registered. */
+  sendRegistrationOtp(email: string): Promise<{ expiresInSeconds: number; resendAfterSeconds: number }> {
+    return firstValueFrom(
+      this.http.post<{ expiresInSeconds: number; resendAfterSeconds: number }>(
+        `${environment.apiBaseUrl}/auth/register/send-otp`,
+        { email },
+      ),
+    );
+  }
+
+  /** "Forgot password?" step 1 (and "Resend code"): emails a reset code if the address has an account. */
+  sendPasswordResetCode(email: string): Promise<{ expiresInSeconds: number; resendAfterSeconds: number }> {
+    return firstValueFrom(
+      this.http.post<{ expiresInSeconds: number; resendAfterSeconds: number }>(
+        `${environment.apiBaseUrl}/auth/forgot-password/send-otp`,
+        { email },
+      ),
+    );
+  }
+
+  /** "Forgot password?" step 2: sets the new password with the emailed code and signs the user in. */
+  async resetPassword(email: string, otp: string, newPassword: string): Promise<SessionUser> {
+    const response = await firstValueFrom(
+      this.http.post<TokenPair>(`${environment.apiBaseUrl}/auth/forgot-password/reset`, { email, otp, newPassword }),
+    );
+    return this.applyTokens(response);
+  }
+
+  /** Registers a new shop and its owner's account once the emailed code checks out (see AuthController.register), and signs them straight in. */
   async registerShop(details: RegisterShopRequest): Promise<SessionUser> {
     const response = await firstValueFrom(
       this.http.post<TokenPair>(`${environment.apiBaseUrl}/auth/register`, details),

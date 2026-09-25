@@ -1,6 +1,11 @@
-import { IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
-/** Public shop self-registration: creates the shop and its owner's login in one go. */
+/** Step 1 of registration: email a one-time code to the address being registered. */
+export class SendRegistrationOtpDto {
+  @IsEmail() @MaxLength(254) email!: string;
+}
+
+/** Public shop self-registration: creates the shop and its owner's login in one go, once the email's OTP checks out. */
 export class RegisterShopDto {
   @IsString() @IsNotEmpty() @MaxLength(120) shopName!: string;
   @IsString() @IsNotEmpty() @MaxLength(120) ownerName!: string;
@@ -13,4 +18,8 @@ export class RegisterShopDto {
   @MinLength(8)
   @MaxLength(128)
   password!: string;
+
+  @IsString()
+  @Matches(/^\d{6}$/, { message: 'Enter the 6-digit code from the email.' })
+  otp!: string;
 }

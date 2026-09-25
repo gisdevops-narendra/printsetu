@@ -88,6 +88,16 @@ services:
       retries: 30
       start_period: 30s
 
+  # Local test inbox: catches every email the backend sends (nothing leaves
+  # this machine). Web UI at http://localhost:58025, SMTP on port 51025.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: printsetu-mailpit
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_SMTP_PORT:-51025}:1025"
+      - "${MAILPIT_UI_PORT:-58025}:8025"
+
 volumes:
   printsetu_postgres_data:
   printsetu_redis_data:
