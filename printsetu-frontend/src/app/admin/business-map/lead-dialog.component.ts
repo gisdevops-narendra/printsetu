@@ -31,7 +31,7 @@ export function leadStatusLabel(status: LeadStatus): string {
   imports: [FormsModule, TranslatePipe, DialogModule, SelectModule, LocationPickerComponent],
   template: `
     <p-dialog
-      [header]="(lead?.id ? 'businessMap.edit_lead' : 'businessMap.add_a_lead') | translate"
+      [header]="'businessMap.edit_lead' | translate"
       [visible]="visible"
       (visibleChange)="close()"
       [modal]="true"

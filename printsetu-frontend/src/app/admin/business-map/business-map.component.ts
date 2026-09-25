@@ -27,7 +27,7 @@ import VectorSource from 'ol/source/Vector';
 import Cluster from 'ol/source/Cluster';
 import { Fill, Stroke, Style } from 'ol/style';
 import { boundingExtent, buffer as bufferExtent } from 'ol/extent';
-import { fromLonLat, toLonLat, transformExtent } from 'ol/proj';
+import { fromLonLat, transformExtent } from 'ol/proj';
 import { defaults as defaultControls } from 'ol/control/defaults';
 import ScaleLine from 'ol/control/ScaleLine';
 import { AdminService } from '../../core/services/admin.service';
@@ -72,16 +72,13 @@ type Popup =
   | { kind: 'area'; data: MapAreaProps }
   | { kind: 'lead'; data: MapLead }
   | { kind: 'place'; data: MapPlaceProps };
-type ListTab = 'shops' | 'areas' | 'leads';
+type ListTab = 'layers' | 'shops' | 'areas' | 'leads';
 
 /** Zoom level from which shops are drawn one by one instead of clustered. */
 const UNCLUSTER_ZOOM = 12;
 /** Coverage gaps are only fetched for views about a city wide (the server caps it too). */
 const COVERAGE_MAX_SPAN_DEG = 0.38;
 const RADIUS_CHOICES = [500, 1000, 2000, 3000, 5000];
-/** The floating layer panel (17rem + its 0.75rem gap), which popups must not open under. */
-const PANEL_WIDTH_PX = 284;
-const POPUP_HALF_WIDTH_PX = 165;
 const PLACE_CATEGORIES: PlaceCategory[] = ['college', 'school', 'office', 'government'];
 
 /**
@@ -154,12 +151,9 @@ export class BusinessMapComponent implements AfterViewInit, OnDestroy {
 
   // ---- UI ----
   search = signal('');
-  listTab = signal<ListTab>('shops');
-  panelOpen = signal(typeof window === 'undefined' || window.innerWidth > 900);
+  listTab = signal<ListTab>('layers');
   mobileView = signal<'map' | 'list'>('map');
-  legendOpen = signal(true);
   popup = signal<Popup | null>(null);
-  addingLead = signal(false);
   leadDialog = signal<{ visible: boolean; lead: Partial<MapLead> | null }>({ visible: false, lead: null });
 
   readonly popupShop = computed(() => {
@@ -457,12 +451,7 @@ export class BusinessMapComponent implements AfterViewInit, OnDestroy {
 
   // --------------------------------------------------------------- leads
 
-  startAddLead(): void {
-    this.addingLead.set(!this.addingLead());
-    this.closePopup();
-  }
-
-  openLead(lead: Partial<MapLead> | null): void {
+  openLead(lead: Partial<MapLead>): void {
     this.leadDialog.set({ visible: true, lead });
   }
 
@@ -669,19 +658,13 @@ export class BusinessMapComponent implements AfterViewInit, OnDestroy {
     this.map.on('pointermove', (e) => {
       if (e.dragging) return;
       const hit = this.map!.hasFeatureAtPixel(e.pixel, { layerFilter: (l) => l !== this.heatLayer && l !== this.radiusLayer });
-      this.mapEl.nativeElement.style.cursor = this.addingLead() ? 'crosshair' : hit ? 'pointer' : '';
+      this.mapEl.nativeElement.style.cursor = hit ? 'pointer' : '';
     });
-    this.map.on('singleclick', (e) => this.zone.run(() => this.onMapClick(e.pixel, e.coordinate)));
+    this.map.on('singleclick', (e) => this.zone.run(() => this.onMapClick(e.pixel)));
     new ResizeObserver(() => this.map?.updateSize()).observe(this.mapEl.nativeElement);
   }
 
-  private onMapClick(pixel: number[], coordinate: number[]): void {
-    if (this.addingLead()) {
-      this.addingLead.set(false);
-      const [lon, lat] = toLonLat(coordinate);
-      this.openLead({ latitude: Math.round(lat * 1e5) / 1e5, longitude: Math.round(lon * 1e5) / 1e5 });
-      return;
-    }
+  private onMapClick(pixel: number[]): void {
     const hit = this.map!.forEachFeatureAtPixel(
       pixel,
       (feature, layer) => ({ feature, layer }),
@@ -715,10 +698,9 @@ export class BusinessMapComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Shows a popup over `coordinate`. The view first moves so the point sits
-   * clear of the floating layer panel with room above it for the popup
-   * (to `zoom`, when zooming in from the list); OpenLayers' auto-pan then
-   * handles whatever is left.
+   * Shows a popup over `coordinate`. From the list (`zoom` given) the view
+   * first zooms there with the point a little below the middle, leaving room
+   * above it for the popup; OpenLayers' auto-pan handles the rest.
    */
   private openPopup(popup: Popup, coordinate: number[], selectId: string | null, zoom?: number): void {
     this.popup.set(popup);
@@ -727,23 +709,11 @@ export class BusinessMapComponent implements AfterViewInit, OnDestroy {
     const view = this.map?.getView();
     const size = this.map?.getSize();
     const show = () => void setTimeout(() => this.overlay?.setPosition(coordinate));
-    if (!view || !size) return show();
+    if (!view || !size || zoom === undefined) return show();
 
-    const panelPx = this.panelOpen() && size[0] > 700 ? PANEL_WIDTH_PX : 0;
-    const targetZoom = zoom ?? view.getZoom() ?? 0;
-    const resolution = view.getResolutionForZoom(targetZoom);
-    if (zoom === undefined) {
-      // Clicked on the map: only move if the popup would end up under the panel.
-      const px = this.map!.getPixelFromCoordinate(coordinate);
-      const overflow = px ? px[0] + POPUP_HALF_WIDTH_PX - (size[0] - panelPx - 12) : 0;
-      if (overflow <= 0) return show();
-      const center = view.getCenter()!;
-      view.animate({ center: [center[0] + overflow * resolution, center[1]], duration: 250 }, show);
-      return;
-    }
-    // From the list: the point goes left of the panel, a little below the middle.
-    const center = [coordinate[0] + (panelPx / 2) * resolution, coordinate[1] + (size[1] / 5) * resolution];
-    view.animate({ center, zoom: targetZoom, duration: 450 }, show);
+    const resolution = view.getResolutionForZoom(zoom);
+    const center = [coordinate[0], coordinate[1] + (size[1] / 5) * resolution];
+    view.animate({ center, zoom, duration: 450 }, show);
   }
 
   /** After a reload, show the same shop / lead / area with fresh figures (or close if it's gone). */

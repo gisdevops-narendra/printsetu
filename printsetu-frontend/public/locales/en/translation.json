@@ -1743,15 +1743,13 @@
     "shops_count": "Shops: {{count}}",
     "no_areas": "No areas to show.",
     "no_shop_placed_here": "No shop here has set its map location yet.",
-    "tap_the_map_to_place_the_lead": "Tap the map where the new shop is",
-    "add_a_lead": "Add a lead",
     "may_have_registered": "May have registered",
-    "no_leads_yet": "No leads yet. Add shops you are talking to.",
+    "no_leads_yet": "No leads yet.",
     "pause": "Pause",
     "play": "Play",
     "shops_total_new": "{{total}} shops (+{{added}} this month)",
     "growth_replay": "Growth replay",
-    "layers": "Layers",
+    "layers": "Show on map",
     "shops_live_status": "Shops (live status)",
     "size_by": "Size by",
     "print_activity_heatmap": "Order heatmap",
@@ -1772,7 +1770,6 @@
     "couldnt_load_places": "Couldn't load places right now. Try again in a minute.",
     "gaps_summary": "{{gaps}} of {{total}} places have no shop nearby",
     "some_places_couldnt_load": "Some places could not be loaded. Move the map to try again.",
-    "legend": "Legend",
     "legend_online": "Taking orders now",
     "legend_offline": "Offline right now",
     "legend_size_revenue": "Bigger circle = more revenue (shops without prices: more orders)",
@@ -1818,6 +1815,9 @@
     "lead_deleted": "Lead deleted",
     "delete_this_lead": "Delete this lead?",
     "delete_lead_message": "\"{{name}}\" will be removed from the map. This cannot be undone.",
-    "plan_until": "{{plan}} · until {{date}}"
+    "plan_until": "{{plan}} · until {{date}}",
+    "layers_intro": "Switch on what you want to see. Under each switch is what it draws on the map.",
+    "area_summary_hint": "Totals for each city or district. Tap one to see its figures.",
+    "growth_replay_hint": "Watch your shops appear month by month."
   }
 }
