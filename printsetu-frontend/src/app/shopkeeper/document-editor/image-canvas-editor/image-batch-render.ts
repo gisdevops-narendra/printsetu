@@ -46,7 +46,7 @@ export interface BatchResult {
  * editor), at print resolution. Uses the same placement maths as the live
  * editor so the result matches what the shopkeeper saw on the first document.
  */
-export async function renderImageBatch(url: string, p: BatchParams): Promise<BatchResult> {
+export async function renderImageBatch(blob: Blob, p: BatchParams): Promise<BatchResult> {
   const paper = PAPER_SIZES_MM[p.paperSize];
   let width = Math.round((paper.width / MM_PER_INCH) * TARGET_DPI);
   let height = Math.round((paper.height / MM_PER_INCH) * TARGET_DPI);
@@ -58,9 +58,8 @@ export async function renderImageBatch(url: string, p: BatchParams): Promise<Bat
   }
   const pxPerMm = width / paper.width;
 
-  // Same-origin blob URL: presigned MinIO URLs are cross-origin and would
-  // taint the canvas (see ImageCanvasEditorComponent.loadImage).
-  const blob = await (await fetch(url)).blob();
+  // Same-origin blob URL: a cross-origin image would taint the canvas
+  // (see ImageCanvasEditorComponent.loadImage).
   const blobUrl = URL.createObjectURL(blob);
   try {
     const img = await FabricImage.fromURL(blobUrl, { crossOrigin: 'anonymous' });

@@ -1289,7 +1289,12 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
   @ViewChild('canvasRef') canvasRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('stageRef') stageRef!: ElementRef<HTMLDivElement>;
 
-  @Input({ required: true }) imageUrl!: string;
+  /**
+   * The downloaded image. The parent fetches it through a fresh signed link
+   * (see downloadPreview) — this component never sees a signed URL, so
+   * re-creating it can't re-request one that has since expired.
+   */
+  @Input({ required: true }) imageBlob!: Blob;
   /** True while the parent is uploading the exported file. */
   @Input() saving = false;
   /** Storage key for this document's saved edit history (its print-job item id). */
@@ -1305,6 +1310,8 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
 
   @Output() save = new EventEmitter<CanvasEditorSaveResult>();
   @Output() cancelled = new EventEmitter<void>();
+  /** The downloaded image could not be decoded. */
+  @Output() loadFailed = new EventEmitter<void>();
 
   readonly TARGET_DPI = TARGET_DPI;
   readonly fitModes = FIT_MODES;
@@ -1548,7 +1555,13 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
     this.filterChange$.pipe(debounceTime(50)).subscribe(() => this.applyLiveFilters());
     this.historyChange$.pipe(debounceTime(400)).subscribe(() => this.pushHistory());
 
-    await this.loadImage();
+    try {
+      await this.loadImage();
+    } catch (error) {
+      console.error(error);
+      this.loadFailed.emit();
+      return;
+    }
     this.drawPaperGuide();
     this.createOverlayRects();
     this.createCropRect();
@@ -1678,15 +1691,11 @@ export class ImageCanvasEditorComponent implements AfterViewInit, OnDestroy {
   // ---- Load ----
 
   private async loadImage(): Promise<void> {
-    // Fetch bytes ourselves and load from a same-origin blob: URL — the
-    // source is a presigned MinIO URL on a different origin than the app,
-    // and canvas.toDataURL()/toBlob() throw a SecurityError on a
-    // cross-origin image unless the object store sends CORS headers. A
-    // blob: URL is always same-origin, so this sidesteps needing MinIO
-    // CORS configuration entirely (same trick already used for the PDF
-    // preview's pdf.js fetch).
-    const blob = await (await fetch(this.imageUrl)).blob();
-    this.blobUrl = URL.createObjectURL(blob);
+    // Load from a same-origin blob: URL of the already-downloaded bytes —
+    // canvas.toDataURL()/toBlob() throw a SecurityError on a cross-origin
+    // image unless the object store sends CORS headers, and a blob: URL is
+    // always same-origin, so no MinIO CORS configuration is needed.
+    this.blobUrl = URL.createObjectURL(this.imageBlob);
     {
       const img = await FabricImage.fromURL(this.blobUrl, { crossOrigin: 'anonymous' });
       this.image = img;

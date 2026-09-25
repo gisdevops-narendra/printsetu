@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Param,
   Patch,
   Post,
@@ -172,7 +173,9 @@ export class ShopPrintJobsController {
   }
 
   /** `?original=true` returns the untouched upload instead of the edited render. */
+  // A signed link expires in 120s — never let a browser or proxy cache the response and hand it out again.
   @Get(':id/items/:itemId/preview-url')
+  @Header('Cache-Control', 'private, no-store')
   itemPreviewUrl(
     @Param('id') id: string,
     @Param('itemId') itemId: string,

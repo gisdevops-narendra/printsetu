@@ -19,6 +19,7 @@ import { clearLatestState, loadLatestState } from './image-canvas-editor/editor-
 import { t, tn } from '../../core/i18n/i18n';
 import { TranslateCountPipe } from '../../core/i18n/translate-count.pipe';
 import { COLOR_LABELS, PAPER_LABELS } from '../../shared/utils/print-options.util';
+import { downloadPreview, PreviewDownloadError } from './preview-fetch';
 
 type CropDraft = { x: number; y: number; width: number; height: number };
 
@@ -144,7 +145,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
           <main class="workspace">
             @if (previewLoading()) {
               <div class="stage stage--center"><p-progressSpinner strokeWidth="4" /></div>
-            } @else if (!previewUrl()) {
+            } @else if (!previewBlob()) {
               <div class="stage stage--center state-box">
                 <i class="pi pi-eye-slash state-box__icon"></i>
                 <p class="m-0">{{ 'editor.preview_unavailable_for_this_document' | translate }}</p>
@@ -156,7 +157,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
                    rendered file directly — see onCanvasEditorSave(). -->
               <app-image-canvas-editor
                 class="workspace__fill"
-                [imageUrl]="previewUrl()!"
+                [imageBlob]="previewBlob()!"
                 [saving]="savingEdit()"
                 [historyKey]="selectedItem()!.id"
                 [initialState]="editorState()"
@@ -166,6 +167,7 @@ const DEFAULT_EDIT_STATE: EditState = { rotation: 0, crop: null, brightness: 0, 
                 (applyAll)="onApplyAll($event)"
                 (save)="onCanvasEditorSave($event)"
                 (cancelled)="loadPreview()"
+                (loadFailed)="onPreviewLoadFailed()"
               />
             } @else {
               <div class="pdf-editor">
@@ -1051,7 +1053,14 @@ export class DocumentEditorComponent implements OnInit {
   selectedItem = computed<PrintJobItemRow | null>(() => this.job()?.items[this.selectedIndex()] ?? null);
   isPdf = computed(() => this.selectedItem()?.document?.mimeType === 'application/pdf');
 
-  previewUrl = signal<string | null>(null);
+  /**
+   * The selected document's downloaded bytes. Only the file is kept, never
+   * its signed link: links expire after 120s, so each view gets a fresh one
+   * (see downloadPreview).
+   */
+  previewBlob = signal<Blob | null>(null);
+  /** Bumped per preview request so a slow, older response can't replace a newer one. */
+  private previewRequest = 0;
   /** Saved editor state to reopen an already-edited image with (loaded from the original upload). */
   editorState = signal<unknown | null>(null);
   editorBaseIsOriginal = signal(true);
@@ -1159,8 +1168,9 @@ export class DocumentEditorComponent implements OnInit {
   loadPreview(): void {
     const item = this.selectedItem();
     if (!item) return;
+    const request = ++this.previewRequest;
     this.previewLoading.set(true);
-    this.previewUrl.set(null);
+    this.previewBlob.set(null);
     this.pdfPage = null;
     // An already-edited image reopens from the untouched upload plus its saved
     // editor state, so edits stay adjustable instead of compounding on the
@@ -1169,40 +1179,69 @@ export class DocumentEditorComponent implements OnInit {
     const saved = !this.isPdf() && item.renderedS3Key ? loadLatestState(item.id) : null;
     this.editorState.set(saved);
     this.editorBaseIsOriginal.set(!item.renderedS3Key || !!saved);
-    this.shopkeeperService.itemPreviewUrl(this.jobId, item.id, !!saved).subscribe({
-      next: (res) => {
-        this.previewUrl.set(res.url);
+    downloadPreview(() => this.signedPreviewUrl(item.id, !!saved)).then(
+      (blob) => {
+        if (request !== this.previewRequest) return;
+        this.previewBlob.set(blob);
         this.previewLoading.set(false);
         if (this.isPdf()) {
           // The <canvas #pdfCanvas> only exists once Angular has flushed the
           // @if(isPdf()) branch triggered by the signal writes above — a bare
           // setTimeout(0) races that flush (ViewChild can still be stale),
           // so wait for Angular's own next-render hook instead.
-          afterNextRender(() => this.renderPdfPreview(res.url), { injector: this.injector });
+          afterNextRender(() => this.renderPdfPreview(blob), { injector: this.injector });
         }
       },
-      error: () => {
+      (error) => {
+        if (request !== this.previewRequest) return;
+        console.error(error);
         this.previewLoading.set(false);
+        // The backend refused a link (preview off for this shop) vs. the file itself didn't arrive.
+        const downloadFailed = error instanceof PreviewDownloadError;
         this.messageService.add({
           severity: 'warn',
           get summary() { return t('editor.preview_unavailable'); },
-          get detail() { return t('editor.ask_your_admin_to_enable_document'); },
+          get detail() {
+            return t(downloadFailed ? 'editor.preview_could_not_be_downloaded' : 'editor.ask_your_admin_to_enable_document');
+          },
         });
       },
+    );
+  }
+
+  /** A brand-new signed link for one item — asked for at the moment of download, never stored. */
+  private async signedPreviewUrl(itemId: string, original: boolean): Promise<string> {
+    const { url } = await firstValueFrom(this.shopkeeperService.itemPreviewUrl(this.jobId, itemId, original));
+    return url;
+  }
+
+  /** The file arrived but could not be opened — say so instead of leaving a blank editor. */
+  onPreviewLoadFailed(): void {
+    this.previewBlob.set(null);
+    this.messageService.add({
+      severity: 'warn',
+      get summary() { return t('editor.preview_unavailable'); },
+      get detail() { return t('editor.preview_could_not_be_downloaded'); },
     });
   }
 
-  private async renderPdfPreview(url: string): Promise<void> {
+  private async renderPdfPreview(blob: Blob): Promise<void> {
     const pdfjsLib = await import('pdfjs-dist');
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.mjs';
-    // Fetch the bytes ourselves and hand pdf.js raw `data` rather than a
+    // Hand pdf.js the already-downloaded bytes as raw `data` rather than a
     // `url` — pdf.js's own fetch-range-request transport conflicts with
     // zone.js's patched fetch/ReadableStream (throws deep inside pdf.js:
-    // "Cannot set properties of undefined (setting 'onPull')"). These
-    // preview files are small scanned documents, so fetching the whole
-    // thing upfront is cheap and sidesteps that transport entirely.
-    const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
-    const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+    // "Cannot set properties of undefined (setting 'onPull')"), and a URL
+    // would be a signed link that expires.
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let pdf: import('pdfjs-dist').PDFDocumentProxy;
+    try {
+      pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+    } catch (error) {
+      console.error(error);
+      this.onPreviewLoadFailed();
+      return;
+    }
     this.pdfPage = await pdf.getPage(1);
     await this.paintPdf();
   }
@@ -1448,8 +1487,8 @@ export class DocumentEditorComponent implements OnInit {
     let failed = 0;
     for (const item of targets) {
       try {
-        const { url } = await firstValueFrom(this.shopkeeperService.itemPreviewUrl(this.jobId, item.id, true));
-        const rendered = await renderImageBatch(url, params);
+        const blob = await downloadPreview(() => this.signedPreviewUrl(item.id, true));
+        const rendered = await renderImageBatch(blob, params);
         const res = await firstValueFrom(
           this.shopkeeperService.uploadRenderedImage(
             this.jobId,

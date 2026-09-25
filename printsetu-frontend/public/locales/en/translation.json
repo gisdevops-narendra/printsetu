@@ -807,7 +807,8 @@
     "updated_documents": {
       "one": "Updated {{count}} document",
       "other": "Updated {{count}} documents"
-    }
+    },
+    "preview_could_not_be_downloaded": "The preview could not be downloaded. Check the internet connection, or try another network such as a mobile hotspot."
   },
   "imageEditor": {
     "undo_ctrl_z": "Undo (Ctrl+Z)",
