@@ -22,6 +22,17 @@ import { AppDatePipe } from '../../core/i18n/i18n-format.pipes';
 const DONE: PrintJobStatus[] = ['PRINTED', 'RETENTION_PENDING', 'DELETED'];
 const isDone = (status: PrintJobStatus) => DONE.includes(status);
 
+/**
+ * Why a failed / uncertain order didn't print. The backend stores the
+ * Printer App's plain sentence first and, after a blank line, the technical
+ * details (exit codes, printer state) the shopkeeper can copy for support.
+ */
+function failureReason(job: PrintJobRow): { summary: string; technical: string } | null {
+  if ((job.status !== 'PRINT_FAILED' && job.status !== 'PRINT_UNKNOWN') || !job.failureReason) return null;
+  const [summary, ...rest] = job.failureReason.split('\n\n');
+  return { summary, technical: rest.join('\n\n').replace(/^Technical details:\s*/, '') };
+}
+
 @Component({
   selector: 'app-queue',
   standalone: true,
@@ -94,7 +105,18 @@ const isDone = (status: PrintJobStatus) => DONE.includes(status);
             </div>
           </td>
           <td [attr.data-label]="'common.amount' | translate">{{ job.priced ? job.currency + ' ' + job.amount : '—' }}</td>
-          <td [attr.data-label]="'common.status' | translate"><app-status-tag [status]="job.status" /></td>
+          <td [attr.data-label]="'common.status' | translate">
+            <app-status-tag [status]="job.status" />
+            @if (job.reason; as reason) {
+              <div class="text-xs mt-1" style="color: var(--tone-bad-fg)">{{ reason.summary }}</div>
+              @if (reason.technical) {
+                <button type="button" class="p-link text-xs underline text-color-secondary" (click)="toggleReason(job.id)">{{ 'common.details' | translate }}</button>
+                @if (expandedReasons().has(job.id)) {
+                  <pre class="text-xs m-0 mt-1 p-2 surface-ground border-round" style="white-space: pre-wrap; word-break: break-word; user-select: text">{{ reason.technical }}</pre>
+                }
+              }
+            }
+          </td>
           <td [attr.data-label]="'common.received' | translate">{{ job.createdAt | appDate: 'short' }}</td>
           <td class="text-right">
             <div class="flex flex-wrap gap-2 justify-content-end align-items-center row-gap-2">
@@ -148,8 +170,11 @@ export class QueueComponent implements OnInit {
       ...job,
       documentNames: job.items.map((item) => item.document?.originalName).join(' '),
       done: isDone(job.status),
+      reason: failureReason(job),
     })),
   );
+  /** Orders whose technical failure details are opened (for sending to support). */
+  readonly expandedReasons = signal<ReadonlySet<string>>(new Set());
   readonly loading = computed(() => !this.alerts.loaded());
   /** Past due / expired / cancelled shops can look at orders but not print them. */
   readOnly = () => this.subscriptionStatus.readOnly();
@@ -165,6 +190,14 @@ export class QueueComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  toggleReason(jobId: string): void {
+    this.expandedReasons.update((open) => {
+      const next = new Set(open);
+      if (!next.delete(jobId)) next.add(jobId);
+      return next;
+    });
   }
 
   /** Dedicated full-page workspace to review/reorder/edit every document in this job before printing. */

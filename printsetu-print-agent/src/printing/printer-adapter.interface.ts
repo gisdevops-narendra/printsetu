@@ -1,3 +1,5 @@
+import type { PrinterDiagnostics } from './print-failure';
+
 export interface PrintOptions {
   paperSize: string;
   colorMode: string;
@@ -24,4 +26,10 @@ export interface PrinterAdapter {
   /** Resolves once the OS print spooler has *accepted* the job, not once physical printing finishes. */
   print(filePath: string, printerName: string | undefined, options: PrintOptions): Promise<void>;
   listPrinters(): Promise<DetectedPrinter[]>;
+  /**
+   * Asks the OS about the printer and its spooler, only after a print failed —
+   * the print command's own error rarely says *why* (offline, out of paper,
+   * spooler stopped). Optional; must never throw.
+   */
+  diagnose?(printerName: string | undefined): Promise<PrinterDiagnostics | undefined>;
 }

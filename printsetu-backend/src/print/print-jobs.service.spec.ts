@@ -1,5 +1,7 @@
 import { PDFDocument, PDFName, PDFNumber } from 'pdf-lib';
+import { ValidationPipe } from '@nestjs/common';
 import { PrintJobsService } from './print-jobs.service';
+import { AgentJobStatusDto } from './dto/print.dto';
 import {
   AppNotFoundException,
   InvalidPrintOptionException,
@@ -531,6 +533,63 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
       ).rejects.toThrow(AppNotFoundException);
     });
 
+    it("stores the Printer App's reason and technical details on a failed order", async () => {
+      jobIn('PRINTING');
+      await service.reportAgentStatus('job-1', 'printer-1', {
+        status: 'PRINT_FAILED',
+        agentAttemptId: 'job-1:1',
+        message: 'The printer "HP" is offline.',
+        errorCode: 'PRINTER_OFFLINE',
+        errorDetail: 'stage=print | exit code 1',
+      });
+      const reason =
+        'The printer "HP" is offline.\n\nTechnical details: [PRINTER_OFFLINE] stage=print | exit code 1';
+      expect(repo.transition).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'PRINT_FAILED',
+          message: reason,
+          data: { failureReason: reason },
+        }),
+      );
+    });
+
+    it('records a reason for an uncertain print too, and clears it once the order prints', async () => {
+      jobIn('PRINTING');
+      await service.reportAgentStatus('job-1', 'printer-1', {
+        status: 'PRINT_UNKNOWN',
+        agentAttemptId: 'job-1:1',
+        message: 'Timed out',
+      });
+      expect(repo.transition).toHaveBeenLastCalledWith(
+        expect.objectContaining({ to: 'PRINT_UNKNOWN', data: { failureReason: 'Timed out' } }),
+      );
+
+      jobIn('PRINTING');
+      await service.reportAgentStatus('job-1', 'printer-1', {
+        status: 'PRINTED',
+        agentAttemptId: 'job-1:2',
+      });
+      expect(repo.transition).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'PRINTED',
+          data: expect.objectContaining({ failureReason: null }),
+        }),
+      );
+    });
+
+    it('still records something when an agent sends no reason', async () => {
+      jobIn('PRINTING');
+      await service.reportAgentStatus('job-1', 'printer-1', {
+        status: 'PRINT_FAILED',
+        agentAttemptId: 'job-1:1',
+      });
+      expect(repo.transition).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { failureReason: 'The Printer App did not say why printing failed.' },
+        }),
+      );
+    });
+
     it('a shop confirming an uncertain print as printed sends it on to document cleanup', async () => {
       prisma.printJob.findUnique.mockResolvedValue({
         id: 'job-1',
@@ -587,5 +646,26 @@ describe('PrintJobsService — shop document editor (reorder/delete/settings) + 
     expect(open).toEqual(
       expect.arrayContaining(['PRINT_ELIGIBLE', 'AGENT_OFFLINE', 'PRINT_UNKNOWN', 'PRINT_FAILED']),
     );
+  });
+});
+
+describe('AgentJobStatusDto — survives the global ValidationPipe', () => {
+  // main.ts runs ValidationPipe({ whitelist: true }), which drops undecorated
+  // properties — the failure reason used to vanish there before reaching the service.
+  it('keeps message, errorCode and errorDetail', async () => {
+    const pipe = new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: false,
+    });
+    const body = {
+      status: 'PRINT_FAILED',
+      agentAttemptId: 'a-1',
+      message: 'The printer "HP" is offline.',
+      errorCode: 'PRINTER_OFFLINE',
+      errorDetail: 'exit code 1',
+    };
+    const out = await pipe.transform(body, { type: 'body', metatype: AgentJobStatusDto });
+    expect(out).toEqual(expect.objectContaining(body));
   });
 });

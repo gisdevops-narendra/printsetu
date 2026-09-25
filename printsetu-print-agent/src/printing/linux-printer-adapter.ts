@@ -1,6 +1,7 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { DetectedPrinter, PrinterAdapter, PrintOptions, PrintOutcomeUnknownError } from './printer-adapter.interface';
+import { errorMessage, PrinterDiagnostics } from './print-failure';
 import { logger } from '../logger';
 
 const execFileAsync = promisify(execFile);
@@ -24,16 +25,20 @@ async function run(command: string, args: string[]): Promise<string> {
   return stdout;
 }
 
-/** Turns an execFile failure into the message worth showing: the tool's own stderr, not just "Command failed". */
-function describeFailure(error: unknown): Error {
-  const e = error as { killed?: boolean; signal?: string | null; stderr?: string; message: string };
+/**
+ * A timed-out `lp` becomes PrintOutcomeUnknownError; any other failure is
+ * passed on untouched so its exit code, stderr and command line reach the
+ * failure report (see classifyPrintError).
+ */
+function describeFailure(error: unknown): unknown {
+  const e = error as { killed?: boolean; signal?: string | null };
   if (e.killed || e.signal) {
     return new PrintOutcomeUnknownError(
-      `CUPS did not answer within ${LP_TIMEOUT_MS / 1000}s — the printer may or may not have received the job. ` +
+      `CUPS did not answer within ${LP_TIMEOUT_MS / 1000}s — the printer may or may not have received the order. ` +
         'Check the printer before printing again.',
     );
   }
-  return new Error(e.stderr?.trim() || e.message);
+  return error;
 }
 
 /**
@@ -75,5 +80,27 @@ export class LinuxPrinterAdapter implements PrinterAdapter {
       .map((line) => line.trim())
       .filter(Boolean)
       .map((name) => ({ name, isDefault: name === defaultName }));
+  }
+
+  async diagnose(printerName: string | undefined): Promise<PrinterDiagnostics | undefined> {
+    try {
+      // lpstat exits non-zero for an unknown printer — keep its stderr as the answer.
+      const capture = (args: string[]) => run('lpstat', args).catch((error) => (error as { stderr?: string }).stderr || errorMessage(error));
+      const name = printerName ?? /system default destination:\s*(\S+)/.exec(await capture(['-d']))?.[1];
+      const [scheduler, printer] = await Promise.all([capture(['-r']), name ? capture(['-p', name]) : Promise.resolve('')]);
+      const disabled = /\bdisabled\b/.test(printer);
+      // `lpstat -p` puts the reason a printer was disabled on the following indented line.
+      const reason = disabled ? printer.split('\n').slice(1).join(' ').trim() : '';
+      return {
+        spoolerRunning: !/not running/.test(scheduler),
+        printerFound: name ? !/invalid destination|unknown destination|does not exist/i.test(printer) : undefined,
+        offline: /offline|not connected|unplugged/i.test(printer),
+        problem: disabled ? `paused in CUPS${reason ? ` (${reason})` : ''}` : undefined,
+        summary: `${scheduler.trim()} | ${printer.trim().replace(/\s+/g, ' ')}`,
+      };
+    } catch (error) {
+      logger.warn(`Could not check the printer's state after the failure: ${errorMessage(error)}`);
+      return undefined;
+    }
   }
 }

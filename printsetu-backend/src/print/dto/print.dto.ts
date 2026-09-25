@@ -43,14 +43,24 @@ export class AgentJobStatusDto {
 
   @IsString() @IsNotEmpty() agentAttemptId!: string;
 
-  message?: string;
+  // These need decorators: the global ValidationPipe runs with whitelist: true,
+  // which silently strips any undecorated property — that is how every
+  // failure used to arrive with no reason at all.
+  /** Plain-language reason, shown to the shopkeeper. */
+  @IsOptional() @IsString() message?: string;
+
+  /** Printer App's failure category, e.g. PRINTER_OFFLINE, SPOOLER_ERROR, DOWNLOAD_FAILED. */
+  @IsOptional() @IsString() errorCode?: string;
+
+  /** Technical evidence for support: exit code, stderr, spooler/printer state, computer. */
+  @IsOptional() @IsString() errorDetail?: string;
 }
 
 export class ReconcileJobDto {
   @IsEnum(['PRINTED', 'PRINT_FAILED'])
   outcome!: 'PRINTED' | 'PRINT_FAILED';
 
-  message?: string;
+  @IsOptional() @IsString() message?: string;
 }
 
 // Shop-side document editor (dedicated full-page workspace) — reordering,

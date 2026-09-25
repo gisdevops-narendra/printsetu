@@ -66,7 +66,14 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('job:status')
   async onJobStatus(
     socket: Socket,
-    payload: { jobId: string; status: 'ACCEPTED' | 'PRINTING' | 'PRINTED' | 'PRINT_FAILED' | 'PRINT_UNKNOWN'; agentAttemptId: string; message?: string },
+    payload: {
+      jobId: string;
+      status: 'ACCEPTED' | 'PRINTING' | 'PRINTED' | 'PRINT_FAILED' | 'PRINT_UNKNOWN';
+      agentAttemptId: string;
+      message?: string;
+      errorCode?: string;
+      errorDetail?: string;
+    },
   ) {
     const printerId = socket.data?.printerId;
     if (!printerId) return;
@@ -75,6 +82,8 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
         status: payload.status,
         agentAttemptId: payload.agentAttemptId,
         message: payload.message,
+        errorCode: payload.errorCode,
+        errorDetail: payload.errorDetail,
       });
     } catch (error) {
       this.logger.warn(`job:status handling failed: ${(error as Error).message}`);

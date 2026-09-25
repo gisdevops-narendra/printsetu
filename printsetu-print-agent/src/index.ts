@@ -1,3 +1,4 @@
+import * as os from 'os';
 import { loadConfig } from './config';
 import { BackendHttpClient } from './http-client';
 import { createPrinterAdapter } from './printing/printer-adapter.factory';
@@ -14,6 +15,9 @@ async function main() {
     agentId: config.agentId,
     printDriver: config.printDriver,
     printerName: config.printerName || '(chosen on dashboard)',
+    hostname: os.hostname(),
+    os: `${process.platform} ${os.release()} ${process.arch}`,
+    node: process.version,
   });
 
   const http = new BackendHttpClient(config);

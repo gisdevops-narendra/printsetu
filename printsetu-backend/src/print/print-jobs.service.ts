@@ -649,6 +649,15 @@ export class PrintJobsService {
       current = PrintJobStatus.QUEUED;
     }
 
+    const failed = to === PrintJobStatus.PRINT_FAILED || to === PrintJobStatus.PRINT_UNKNOWN;
+    const reason = failed ? agentFailureReason(dto) : undefined;
+    if (failed) {
+      this.logger.warn(
+        `Printer App reported ${dto.status} for job ${jobId} (shop ${job.shopId}, printer ${printerId}, attempt ${dto.agentAttemptId}): ` +
+          `[${dto.errorCode ?? 'no code'}] ${dto.message ?? '(no message)'} | ${dto.errorDetail ?? '(no details)'}`,
+      );
+    }
+
     // ACCEPTED/PRINTING both land on PRINTING; the second call is a no-op if already there.
     const from = current === to ? null : current;
     if (from) {
@@ -657,8 +666,13 @@ export class PrintJobsService {
         from,
         to,
         agentAttemptId: dto.agentAttemptId,
-        message: dto.message,
-        data: to === PrintJobStatus.PRINTED ? { printedAt: new Date() } : {},
+        message: reason ?? dto.message,
+        data:
+          to === PrintJobStatus.PRINTED
+            ? { printedAt: new Date(), failureReason: null }
+            : reason
+              ? { failureReason: reason }
+              : {},
       });
     }
 
@@ -673,10 +687,6 @@ export class PrintJobsService {
       });
     } else if (to === PrintJobStatus.PRINT_FAILED) {
       await this.notifications.record(job.shopId, jobId, 'PRINT_FAILED');
-      await this.prisma.printJob.update({
-        where: { id: jobId },
-        data: { failureReason: dto.message ?? 'Reported by agent' },
-      });
     }
 
     return { jobId: updated.id, status: updated.status };
@@ -741,4 +751,26 @@ export class PrintJobsService {
     }
     return job;
   }
+}
+
+/** Room for a full SumatraPDF/CUPS error plus the printer check, without letting one report bloat the row. */
+const MAX_FAILURE_REASON_LENGTH = 4000;
+
+/**
+ * What gets stored as PrintJob.failureReason (and on the job's event): the
+ * plain sentence the shopkeeper reads first, then — after a blank line — the
+ * technical details for support. Print Orders shows only the first line.
+ * Printer Apps older than the errorCode/errorDetail fields send just `message`.
+ */
+export function agentFailureReason(
+  dto: Pick<AgentJobStatusDto, 'message' | 'errorCode' | 'errorDetail'>,
+): string {
+  const summary = dto.message?.trim() || 'The Printer App did not say why printing failed.';
+  const technical = [dto.errorCode && `[${dto.errorCode}]`, dto.errorDetail?.trim()]
+    .filter(Boolean)
+    .join(' ');
+  const reason = technical ? `${summary}\n\nTechnical details: ${technical}` : summary;
+  return reason.length > MAX_FAILURE_REASON_LENGTH
+    ? `${reason.slice(0, MAX_FAILURE_REASON_LENGTH - 1)}…`
+    : reason;
 }
