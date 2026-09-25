@@ -545,7 +545,7 @@ export class ShopPricingComponent implements OnInit {
 
   confirmDeleteTier(tier: PricingTier): void {
     this.confirmationService.confirm({
-      get message() { return t('pricing.remove_the_pages_range_for_orders', { tier: this.rangeLabel(tier), tier2: printOptionsLabel(tier) }); },
+      message: t('pricing.remove_the_pages_range_for_orders', { tier: this.rangeLabel(tier), tier2: printOptionsLabel(tier) }),
       get header() { return t('common.confirm'); },
       icon: 'pi pi-exclamation-triangle',
       accept: () => {

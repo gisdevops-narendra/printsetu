@@ -131,7 +131,7 @@ export class NotificationsComponent implements OnInit {
 
   confirmClear(): void {
     this.confirmationService.confirm({
-      get message() { return t('notifications.permanently_delete_all_notification_s_this', { notifications: this.notifications().length }); },
+      message: t('notifications.permanently_delete_all_notification_s_this', { notifications: this.notifications().length }),
       get header() { return t('notifications.clear_notifications'); },
       icon: 'pi pi-exclamation-triangle',
       accept: () => {

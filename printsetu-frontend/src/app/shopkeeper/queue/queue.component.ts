@@ -208,7 +208,7 @@ export class QueueComponent implements OnInit {
 
   reconcile(job: PrintJobRow, outcome: 'PRINTED' | 'PRINT_FAILED'): void {
     this.confirmationService.confirm({
-      get message() { return t('printOrders.did_actually_print_this_cant_be', { job: this.describe(job) }); },
+      message: t('printOrders.did_actually_print_this_cant_be', { job: this.describe(job) }),
       get header() { return t('printOrders.did_it_print'); },
       icon: 'pi pi-exclamation-triangle',
       accept: () => {

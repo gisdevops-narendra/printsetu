@@ -1493,7 +1493,7 @@ export class DocumentEditorComponent implements OnInit {
 
   confirmAndPrint(): void {
     this.confirmationService.confirm({
-      get message() { return t('editor.send_document_s_to_the_printer', { items: this.job()!.items.length }); },
+      message: t('editor.send_document_s_to_the_printer', { items: this.job()!.items.length }),
       get header() { return t('editor.confirm_print_2'); },
       icon: 'pi pi-print',
       accept: () => {

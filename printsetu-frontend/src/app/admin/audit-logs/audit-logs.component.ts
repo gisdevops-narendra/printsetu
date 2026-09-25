@@ -180,7 +180,7 @@ export class AuditLogsComponent implements OnInit {
 
   confirmClear(): void {
     this.confirmationService.confirm({
-      get message() { return t('activityLog.this_permanently_deletes_the_whole_activity', { logs: this.logs().length }); },
+      message: t('activityLog.this_permanently_deletes_the_whole_activity', { logs: this.logs().length }),
       get header() { return t('activityLog.clear_the_whole_activity_log'); },
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
